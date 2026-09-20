@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Copy, Minus, Square, X } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { isTauri } from '@/lib/tauri';
-import markIcon from '@/assets/markdown-mark.png';
+import markIcon from '@/assets/markdown-mark.svg';
 import './TitleBar.css';
 
 interface Props {
@@ -33,7 +33,7 @@ export function TitleBar({ fileName, dirty = false }: Props) {
       <div className="titlebar__title" data-tauri-drag-region>
         <span
           className="titlebar__logo"
-          style={{ maskImage: `url(${markIcon})`, WebkitMaskImage: `url(${markIcon})` }}
+          style={{ maskImage: `url("${markIcon}")`, WebkitMaskImage: `url("${markIcon}")` }}
           aria-hidden
           data-tauri-drag-region
         />

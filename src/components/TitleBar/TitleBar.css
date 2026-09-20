@@ -23,8 +23,8 @@
 
 .titlebar__logo {
   display: inline-block;
-  width: 22px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
   background-color: currentColor;
   mask-size: contain;
