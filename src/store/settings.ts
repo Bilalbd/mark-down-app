@@ -26,7 +26,7 @@ export interface Settings {
 const EPHEMERAL_KEYS: ReadonlySet<keyof Settings> = new Set(['viewMode']);
 
 const DEFAULTS: Settings = {
-  appTheme: 'system',
+  appTheme: 'dark',
   viewMode: 'formatted',
   outlineVisible: true,
   outlineWidth: 240,
