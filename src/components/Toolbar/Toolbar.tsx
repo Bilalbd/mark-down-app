@@ -30,9 +30,6 @@ export function Toolbar({ onNew }: { onNew: () => void }) {
 
   return (
     <div className="toolbar">
-      <button className="toolbar__btn" title="New file (Ctrl+N)" onClick={onNew}>
-        <FilePlus2 {...ICON} />
-      </button>
       <button
         className={`toolbar__btn ${outlineVisible ? 'is-active' : ''}`}
         title="Toggle outline (Ctrl+\)"
@@ -58,6 +55,9 @@ export function Toolbar({ onNew }: { onNew: () => void }) {
 
       <div className="toolbar__spacer" />
 
+      <button className="toolbar__btn" title="New file (Ctrl+N)" onClick={onNew}>
+        <FilePlus2 {...ICON} />
+      </button>
       <ExportMenu />
 
       <button
