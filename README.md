@@ -55,3 +55,7 @@ src-tauri/     Rust shell: file read/write, asset scope, file watcher
 ```
 
 Settings and presets are stored in `%APPDATA%\com.bilal.markdown-viewer\`.
+
+Icon sources: `src-tauri/icons/markdown_icon.svg` (app icon, title bar, favicon) and
+`src-tauri/icons/markdown_file_icon.svg` (the `.md` file-type icon, rendered to `markdown-file.ico`
+and registered by `src-tauri/nsis/hooks.nsh` at install time).
