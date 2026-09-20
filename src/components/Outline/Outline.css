@@ -94,3 +94,10 @@
 .outline__resizer:hover {
   background: color-mix(in srgb, var(--accent) 40%, transparent);
 }
+
+.outline__chevron {
+  transition: transform 120ms ease;
+}
+.outline__chevron.is-open {
+  transform: rotate(90deg);
+}

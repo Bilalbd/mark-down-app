@@ -1,7 +1,10 @@
+import { FilePlus2, Monitor, Moon, PanelLeft, Settings, Sun } from 'lucide-react';
 import { useSettingsStore, type AppTheme, type ViewMode } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import { ExportMenu } from './ExportMenu';
 import './Toolbar.css';
+
+export const ICON = { size: 16, strokeWidth: 1.75, absoluteStrokeWidth: true } as const;
 
 const VIEW_MODES: { id: ViewMode; label: string; title: string }[] = [
   { id: 'formatted', label: 'Formatted', title: 'Formatted view (Ctrl+E)' },
@@ -10,38 +13,8 @@ const VIEW_MODES: { id: ViewMode; label: string; title: string }[] = [
 ];
 
 const THEME_CYCLE: AppTheme[] = ['system', 'light', 'dark'];
-
-function ThemeIcon({ theme }: { theme: AppTheme }) {
-  const common = {
-    width: 16,
-    height: 16,
-    viewBox: '0 0 16 16',
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: 1.5,
-  };
-  if (theme === 'light') {
-    return (
-      <svg {...common}>
-        <circle cx="8" cy="8" r="3" />
-        <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3" />
-      </svg>
-    );
-  }
-  if (theme === 'dark') {
-    return (
-      <svg {...common}>
-        <path d="M13 9.5A5.5 5.5 0 0 1 6.5 3 5.5 5.5 0 1 0 13 9.5z" />
-      </svg>
-    );
-  }
-  return (
-    <svg {...common}>
-      <rect x="1.5" y="2.5" width="13" height="9" rx="1" />
-      <path d="M5 14h6" />
-    </svg>
-  );
-}
+const THEME_ICON = { light: Sun, dark: Moon, system: Monitor } as const;
+const THEME_LABEL = { light: 'Light', dark: 'Dark', system: 'Follow Windows' } as const;
 
 export function Toolbar({ onNew }: { onNew: () => void }) {
   const viewMode = useSettingsStore((s) => s.viewMode);
@@ -53,22 +26,12 @@ export function Toolbar({ onNew }: { onNew: () => void }) {
 
   const cycleTheme = () =>
     set('appTheme', THEME_CYCLE[(THEME_CYCLE.indexOf(appTheme) + 1) % THEME_CYCLE.length]);
+  const ThemeIcon = THEME_ICON[appTheme];
 
   return (
     <div className="toolbar">
       <button className="toolbar__btn" title="New file (Ctrl+N)" onClick={onNew}>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        >
-          <path d="M9 1.5H3.5v13h9V5.5z" />
-          <path d="M9 1.5v4h3.5M6 9.5h4M8 7.5v4" />
-        </svg>
+        <FilePlus2 {...ICON} />
       </button>
       <button
         className={`toolbar__btn ${outlineVisible ? 'is-active' : ''}`}
@@ -76,16 +39,7 @@ export function Toolbar({ onNew }: { onNew: () => void }) {
         onClick={() => set('outlineVisible', !outlineVisible)}
         aria-pressed={outlineVisible}
       >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <path d="M2 4h12M2 8h8M2 12h10" />
-        </svg>
+        <PanelLeft {...ICON} />
       </button>
 
       <div className="toolbar__segment" role="group" aria-label="View mode">
@@ -106,8 +60,12 @@ export function Toolbar({ onNew }: { onNew: () => void }) {
 
       <ExportMenu />
 
-      <button className="toolbar__btn" title={`Theme: ${appTheme}`} onClick={cycleTheme}>
-        <ThemeIcon theme={appTheme} />
+      <button
+        className="toolbar__btn"
+        title={`Theme: ${THEME_LABEL[appTheme]} (click to change)`}
+        onClick={cycleTheme}
+      >
+        <ThemeIcon {...ICON} />
       </button>
 
       <button
@@ -116,20 +74,7 @@ export function Toolbar({ onNew }: { onNew: () => void }) {
         onClick={() => setSettingsOpen(!settingsOpen)}
         aria-pressed={settingsOpen}
       >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <circle cx="8" cy="8" r="2.2" />
-          <path
-            strokeLinejoin="round"
-            d="M6.9 1.5h2.2l.35 1.7a5 5 0 0 1 1.3.75l1.65-.55 1.1 1.9-1.3 1.15a5 5 0 0 1 0 1.5l1.3 1.15-1.1 1.9-1.65-.55a5 5 0 0 1-1.3.75l-.35 1.7H6.9l-.35-1.7a5 5 0 0 1-1.3-.75l-1.65.55-1.1-1.9 1.3-1.15a5 5 0 0 1 0-1.5L2.5 5.3l1.1-1.9 1.65.55a5 5 0 0 1 1.3-.75z"
-          />
-        </svg>
+        <Settings {...ICON} />
       </button>
     </div>
   );

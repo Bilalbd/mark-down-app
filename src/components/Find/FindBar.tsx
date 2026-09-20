@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ChevronDown, ChevronUp, X } from 'lucide-react';
 import {
   SearchQuery,
   closeSearchPanel,
@@ -134,19 +135,13 @@ export function FindBar() {
         Aa
       </button>
       <button className="findbar__btn" title="Previous (Shift+Enter)" onClick={() => step(-1)}>
-        <svg width="12" height="12" viewBox="0 0 12 12">
-          <path d="M2 8l4-4 4 4" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
+        <ChevronUp size={14} strokeWidth={1.75} absoluteStrokeWidth />
       </button>
       <button className="findbar__btn" title="Next (Enter)" onClick={() => step(1)}>
-        <svg width="12" height="12" viewBox="0 0 12 12">
-          <path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
+        <ChevronDown size={14} strokeWidth={1.75} absoluteStrokeWidth />
       </button>
       <button className="findbar__btn" title="Close (Esc)" onClick={() => setOpen(false)}>
-        <svg width="12" height="12" viewBox="0 0 12 12">
-          <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
+        <X size={14} strokeWidth={1.75} absoluteStrokeWidth />
       </button>
     </div>
   );

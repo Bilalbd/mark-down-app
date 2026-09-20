@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Copy, Minus, Square, X } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { isTauri } from '@/lib/tauri';
 import './TitleBar.css';
@@ -44,9 +45,7 @@ export function TitleBar({ fileName, dirty = false }: Props) {
             onClick={() => void win().minimize()}
             aria-label="Minimize"
           >
-            <svg width="10" height="10" viewBox="0 0 10 10">
-              <path d="M0 5h10" stroke="currentColor" strokeWidth="1" />
-            </svg>
+            <Minus size={14} strokeWidth={1.25} absoluteStrokeWidth />
           </button>
           <button
             className="titlebar__btn"
@@ -54,26 +53,14 @@ export function TitleBar({ fileName, dirty = false }: Props) {
             aria-label={maximized ? 'Restore' : 'Maximize'}
           >
             {maximized ? (
-              <svg width="10" height="10" viewBox="0 0 10 10">
-                <path
-                  d="M2.5 0.5h7v7h-2M0.5 2.5h7v7h-7z"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1"
-                />
-              </svg>
+              <Copy
+                size={12}
+                strokeWidth={1.25}
+                absoluteStrokeWidth
+                style={{ transform: 'scaleX(-1)' }}
+              />
             ) : (
-              <svg width="10" height="10" viewBox="0 0 10 10">
-                <rect
-                  x="0.5"
-                  y="0.5"
-                  width="9"
-                  height="9"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1"
-                />
-              </svg>
+              <Square size={12} strokeWidth={1.25} absoluteStrokeWidth />
             )}
           </button>
           <button
@@ -81,9 +68,7 @@ export function TitleBar({ fileName, dirty = false }: Props) {
             onClick={() => void win().close()}
             aria-label="Close"
           >
-            <svg width="10" height="10" viewBox="0 0 10 10">
-              <path d="M0 0l10 10M10 0L0 10" stroke="currentColor" strokeWidth="1.1" />
-            </svg>
+            <X size={15} strokeWidth={1.25} absoluteStrokeWidth />
           </button>
         </div>
       )}

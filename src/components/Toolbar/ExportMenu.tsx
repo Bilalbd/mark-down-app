@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Download } from 'lucide-react';
 import { save as saveDialog } from '@tauri-apps/plugin-dialog';
 import { buildExportHtml } from '@/lib/export';
 import { basename, isTauri, writeFile } from '@/lib/tauri';
@@ -7,6 +8,7 @@ import { useDocumentStore } from '@/store/document';
 import { useSettingsStore } from '@/store/settings';
 import { useStyleStore } from '@/store/style';
 import { useViewStore } from '@/store/view';
+import { ICON } from './Toolbar';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -93,16 +95,7 @@ export function ExportMenu() {
         disabled={!hasDocument}
         onClick={() => setOpen((v) => !v)}
       >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M2.5 12.5v1h11v-1" />
-        </svg>
+        <Download {...ICON} />
       </button>
       {open && (
         <div className="toolbar__dropdown" role="menu">

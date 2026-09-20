@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { X } from 'lucide-react';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import { AppearanceTab } from './AppearanceTab';
@@ -57,9 +58,7 @@ export function SettingsPanel() {
           onClick={() => setOpen(false)}
           aria-label="Close settings"
         >
-          <svg width="12" height="12" viewBox="0 0 12 12">
-            <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.3" />
-          </svg>
+          <X size={14} strokeWidth={1.75} absoluteStrokeWidth />
         </button>
       </header>
       <div className="settings__body">

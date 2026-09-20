@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import type { HeadingInfo } from '@/markdown/plugins';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
@@ -102,14 +103,12 @@ export function Outline() {
                   toggle(n.id);
                 }}
               >
-                <svg width="10" height="10" viewBox="0 0 10 10">
-                  <path
-                    d={isCollapsed ? 'M3 1l4 4-4 4' : 'M1 3l4 4 4-4'}
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  />
-                </svg>
+                <ChevronRight
+                  size={12}
+                  strokeWidth={1.75}
+                  absoluteStrokeWidth
+                  className={`outline__chevron ${isCollapsed ? '' : 'is-open'}`}
+                />
               </button>
               <span className={`outline__text outline__text--h${n.level}`}>
                 {n.text || '(untitled)'}
