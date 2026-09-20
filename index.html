@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Markdown</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style>
+      /* Avoid a flash of white before the app mounts and applies the real theme. */
+      html, body { margin: 0; background: #1a1a1a; }
+      @media (prefers-color-scheme: light) {
+        html, body { background: #f3f3f3; }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

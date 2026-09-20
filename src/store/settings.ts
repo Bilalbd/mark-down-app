@@ -18,6 +18,13 @@ export interface Settings {
   splitEditorSide: SplitSide;
 }
 
+/**
+ * Settings that live in memory and change during a session but are never written to
+ * or restored from disk - the app should always come up in a known, predictable state
+ * for these, regardless of how the previous session ended.
+ */
+const EPHEMERAL_KEYS: ReadonlySet<keyof Settings> = new Set(['viewMode']);
+
 const DEFAULTS: Settings = {
   appTheme: 'system',
   viewMode: 'formatted',
@@ -59,7 +66,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const entries = await s.entries<Settings[keyof Settings]>();
       const patch: Partial<Settings> = {};
       for (const [k, v] of entries) {
-        if (k in DEFAULTS) (patch as Record<string, unknown>)[k] = v;
+        if (k in DEFAULTS && !EPHEMERAL_KEYS.has(k as keyof Settings)) {
+          (patch as Record<string, unknown>)[k] = v;
+        }
       }
       set({ ...patch, loaded: true });
     } else {
@@ -70,6 +79,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   set: (key, value) => {
     if (get()[key] === value) return;
     set({ [key]: value } as Partial<Settings>);
+    if (EPHEMERAL_KEYS.has(key)) return;
     void getStore().then((s) => s?.set(key, value));
   },
 }));
