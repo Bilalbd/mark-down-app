@@ -1,5 +1,6 @@
 import MarkdownIt, { type Env, type Token } from 'markdown-it';
 import footnote from 'markdown-it-footnote';
+import { katex } from '@mdit/plugin-katex';
 import { headingIds, sourceLines, taskLists, type HeadingInfo } from './plugins';
 import { ensureLanguages, getHighlighter, highlightSync } from './shiki';
 import { sanitizeHtml } from './sanitize';
@@ -24,6 +25,7 @@ const md = new MarkdownIt({
   breaks: false,
 })
   .use(footnote)
+  .use(katex, { throwOnError: false, delimiters: 'dollars', allowInlineWithSpace: false })
   .use(sourceLines)
   .use(taskLists)
   .use(headingIds);

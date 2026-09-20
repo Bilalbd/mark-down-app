@@ -1,6 +1,8 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { renderMarkdown } from '@/markdown/render';
+import { renderMermaidBlocks } from '@/markdown/mermaid';
+import { useResolvedTheme } from '@/lib/useAppTheme';
 import { dirname, isTauri, toAssetUrl } from '@/lib/tauri';
 import { useDocumentStore } from '@/store/document';
 import { useSettingsStore } from '@/store/settings';
@@ -45,6 +47,7 @@ export function Preview() {
   const clearPendingScroll = useViewStore((s) => s.clearPendingScroll);
 
   const [html, setHtml] = useState('');
+  const theme = useResolvedTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
   const renderSeq = useRef(0);
   const restoredRef = useRef(false);
@@ -67,6 +70,13 @@ export function Preview() {
     }, RENDER_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [content, path, setHeadings]);
+
+  // Mermaid diagrams render client-side after the HTML is in the DOM (and again on theme change).
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root || !html.includes('mermaid-block')) return;
+    void renderMermaidBlocks(root, theme);
+  }, [html, theme]);
 
   // After the first paint of real content, restore the position the other view was at.
   useLayoutEffect(() => {

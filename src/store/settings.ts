@@ -12,6 +12,7 @@ export interface Settings {
   previewZoom: number;
   editorLineNumbers: boolean;
   editorFontSize: number;
+  splitRatio: number;
 }
 
 const DEFAULTS: Settings = {
@@ -22,6 +23,7 @@ const DEFAULTS: Settings = {
   previewZoom: 1,
   editorLineNumbers: true,
   editorFontSize: 14,
+  splitRatio: 0.5,
 };
 
 interface SettingsState extends Settings {

@@ -1,0 +1,29 @@
+.split {
+  display: flex;
+  height: 100%;
+}
+.split__pane {
+  flex: 0 0 50%;
+  min-width: 0;
+  overflow: hidden;
+}
+.split__pane--grow {
+  flex: 1 1 0;
+}
+.split__divider {
+  width: 5px;
+  margin: 0 -2px;
+  background: transparent;
+  border-left: 1px solid var(--chrome-border);
+  cursor: col-resize;
+  flex-shrink: 0;
+  z-index: 1;
+}
+.split__divider:hover,
+body.is-resizing .split__divider {
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+body.is-resizing {
+  cursor: col-resize;
+  user-select: none;
+}

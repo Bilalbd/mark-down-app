@@ -242,5 +242,35 @@
   text-align: center;
 }
 .preview .mermaid-source {
+  display: none;
+}
+.preview .mermaid-block.is-error .mermaid-source {
+  display: block;
   text-align: left;
+  border-radius: 6px 6px 0 0;
+  margin: 0;
+}
+.preview .mermaid-output svg {
+  max-width: 100%;
+  height: auto;
+}
+.preview .mermaid-error {
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 0 0 6px 6px;
+  font-family: var(--md-font-mono);
+  font-size: 0.85em;
+  color: #e5533d;
+  background: color-mix(in srgb, #e5533d 10%, transparent);
+  white-space: pre-wrap;
+}
+
+/* KaTeX */
+.preview .katex-display {
+  margin: var(--md-paragraph-spacing) 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.preview .katex {
+  font-size: 1.1em;
 }

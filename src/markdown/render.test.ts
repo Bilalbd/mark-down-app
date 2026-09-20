@@ -94,3 +94,17 @@ describe('headings / outline', () => {
     expect(slugify('!!!')).toBe('section');
   });
 });
+
+describe('math', () => {
+  it('renders inline and display KaTeX with SVG radicals kept', async () => {
+    const { html } = await renderMarkdown('a $\\sqrt{2}$ b\n\n$$\nx^2\n$$');
+    expect(html).toContain('class="katex"');
+    expect(html).toContain('katex-display');
+    expect(html).toContain('<path d="');
+  });
+  it('leaves ordinary dollar amounts alone', async () => {
+    const { html } = await renderMarkdown('costs $5 and $10 today');
+    expect(html).not.toContain('katex');
+    expect(html).toContain('$5 and $10');
+  });
+});

@@ -20,8 +20,19 @@ purify.addHook('afterSanitizeAttributes', (node) => {
 
 export function sanitizeHtml(html: string): string {
   return purify.sanitize(html, {
-    USE_PROFILES: { html: true },
-    ADD_TAGS: ['kbd', 'sub', 'sup', 'details', 'summary', 'mark', 'abbr', 'input'],
+    USE_PROFILES: { html: true, mathMl: true, svg: true },
+    ADD_TAGS: [
+      'kbd',
+      'sub',
+      'sup',
+      'details',
+      'summary',
+      'mark',
+      'abbr',
+      'input',
+      'annotation',
+      'semantics',
+    ],
     ADD_ATTR: [
       'data-line',
       'data-line-end',
@@ -35,6 +46,8 @@ export function sanitizeHtml(html: string): string {
       'open',
       'align',
       'start',
+      'encoding',
+      'aria-hidden',
     ],
     FORBID_TAGS: [
       'script',
@@ -49,7 +62,10 @@ export function sanitizeHtml(html: string): string {
     ],
     FORBID_ATTR: ['onerror', 'onload', 'onclick'],
     ALLOW_DATA_ATTR: false,
+    // DOMPurify's default plus the Tauri `asset:` scheme. Note DOMPurify applies this to
+    // every attribute value that looks like it could carry a URL, so it must keep
+    // accepting plain words (SVG path data, MIME types, relative paths).
     ALLOWED_URI_REGEXP:
-      /^(?:(?:https?|mailto|asset|data|blob):|#|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
+      /^(?:(?:https?|mailto|tel|asset|blob):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
   });
 }

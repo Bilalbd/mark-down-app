@@ -6,6 +6,7 @@ import { Toolbar } from './components/Toolbar/Toolbar';
 import { Preview } from './components/Preview/Preview';
 import { SourceEditor } from './components/Editor/SourceEditor';
 import { Outline } from './components/Outline/Outline';
+import { SplitView } from './components/Split/SplitView';
 import { ConfirmDialog } from './components/Dialog/ConfirmDialog';
 import { SettingsPanel } from './components/Settings/SettingsPanel';
 import { StyleInjector } from './components/Preview/StyleInjector';
@@ -135,15 +136,7 @@ export default function App() {
           ) : viewMode === 'source' ? (
             <SourceEditor />
           ) : (
-            <div className="split">
-              <div className="split__pane">
-                <SourceEditor />
-              </div>
-              <div className="split__divider" />
-              <div className="split__pane">
-                <Preview />
-              </div>
-            </div>
+            <SplitView />
           )}
         </div>
         <SettingsPanel />
