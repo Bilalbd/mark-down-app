@@ -15,19 +15,19 @@
   "headingScale": [1.9, 1.45, 1.2, 1.05, 1, 0.9],
   "colors": {
     "light": {
-      "bg": "#e4e0d5",
+      "bg": "#fcfbf7",
       "text": "#241d18",
       "heading": "#1c1712",
       "link": "#9c4a2c",
       "muted": "#63594c",
       "border": "#cec7b7",
-      "codeBg": "#d7d0c0",
+      "codeBg": "#eae6dc",
       "codeText": "#362d24",
       "quoteBorder": "#3f6b4a",
       "quoteText": "#4c4438",
-      "tableBorder": "#cec7b7",
-      "tableStripe": "#ece7db",
-      "hr": "#bdb5a2"
+      "tableBorder": "#d8d1c0",
+      "tableStripe": "#f9f6f1",
+      "hr": "#ded9ce"
     },
     "dark": {
       "bg": "#0d0c0b",
