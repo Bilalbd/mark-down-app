@@ -12,12 +12,14 @@ if (import.meta.env.DEV) {
     import('./store/settings'),
     import('./store/view'),
     import('./store/style'),
-  ]).then(([doc, settings, view, style]) => {
+    import('./markdown/render'),
+  ]).then(([doc, settings, view, style, render]) => {
     (window as unknown as { __mdv: unknown }).__mdv = {
       document: doc.useDocumentStore,
       settings: settings.useSettingsStore,
       view: view.useViewStore,
       style: style.useStyleStore,
+      render: render.renderMarkdown,
     };
   });
 }

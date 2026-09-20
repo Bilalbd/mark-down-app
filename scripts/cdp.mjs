@@ -14,7 +14,11 @@ const [cmd, arg] = process.argv.slice(2);
 
 async function getPageWs() {
   const list = await (await fetch(`http://127.0.0.1:${PORT}/json`)).json();
-  const page = list.find((t) => t.type === 'page' && t.url.startsWith('http://localhost:1420'));
+  const page = list.find(
+    (t) =>
+      t.type === 'page' &&
+      (t.url.startsWith('http://localhost:1420') || t.url.startsWith('http://tauri.localhost')),
+  );
   if (!page) throw new Error('App page not found. Targets: ' + list.map((t) => t.url).join(', '));
   return page.webSocketDebuggerUrl;
 }

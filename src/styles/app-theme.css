@@ -3,7 +3,7 @@
   --titlebar-height: 32px;
   --toolbar-height: 40px;
   --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
-  --font-mono: 'Cascadia Code', 'Cascadia Mono', Consolas, monospace;
+  --font-mono: 'Cascadia Mono', Consolas, 'Courier New', monospace;
 }
 
 :root[data-theme='light'] {

@@ -40,7 +40,6 @@ export function Preview() {
   const content = useDocumentStore((s) => s.content);
   const path = useDocumentStore((s) => s.path);
   const zoom = useSettingsStore((s) => s.previewZoom);
-  const setHeadings = useViewStore((s) => s.setHeadings);
   const setPreviewScrollEl = useViewStore((s) => s.setPreviewScrollEl);
   const setTopLine = useViewStore((s) => s.setTopLine);
   const pendingScrollLine = useViewStore((s) => s.pendingScrollLine);
@@ -67,10 +66,9 @@ export function Preview() {
       });
       if (seq !== renderSeq.current) return; // a newer render superseded this one
       setHtml(result.html);
-      setHeadings(result.headings);
     }, RENDER_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [content, path, setHeadings]);
+  }, [content, path]);
 
   useLayoutEffect(() => {
     if (html) bumpPreviewVersion();
@@ -94,7 +92,7 @@ export function Preview() {
   // Outline click / cross-view scroll request.
   useEffect(() => {
     if (pendingScrollLine === null || !scrollRef.current || !html) return;
-    scrollPreviewToLine(scrollRef.current, pendingScrollLine, true);
+    scrollPreviewToLine(scrollRef.current, pendingScrollLine);
     clearPendingScroll();
   }, [pendingScrollLine, clearPendingScroll, html]);
 

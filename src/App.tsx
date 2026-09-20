@@ -18,6 +18,7 @@ import { basename, getLaunchArgs, isTauri, type FileChangedEvent } from './lib/t
 import { useSettingsStore } from './store/settings';
 import { isDirty, useDocumentStore } from './store/document';
 import { useStyleStore } from './store/style';
+import { extractHeadings } from './markdown/render';
 import { useViewStore } from './store/view';
 
 export default function App() {
@@ -32,6 +33,8 @@ export default function App() {
   const previewZoom = useSettingsStore((s) => s.previewZoom);
 
   const path = useDocumentStore((s) => s.path);
+  const content = useDocumentStore((s) => s.content);
+  const setHeadings = useViewStore((s) => s.setHeadings);
   const dirty = useDocumentStore(isDirty);
   const error = useDocumentStore((s) => s.error);
   const openFile = useDocumentStore((s) => s.open);
@@ -73,6 +76,12 @@ export default function App() {
       .then((u) => (unlisten = u));
     return () => unlisten?.();
   }, [openFile]);
+
+  // Outline headings come from a cheap headings-only parse so the outline works in every view.
+  useEffect(() => {
+    const t = setTimeout(() => setHeadings(extractHeadings(content)), 150);
+    return () => clearTimeout(t);
+  }, [content, setHeadings]);
 
   // Live reload: the Rust watcher reports external edits to the open file.
   useEffect(() => {
