@@ -1,4 +1,5 @@
 import { useSettingsStore, type AppTheme, type ViewMode } from '@/store/settings';
+import { useViewStore } from '@/store/view';
 import './Toolbar.css';
 
 const VIEW_MODES: { id: ViewMode; label: string; title: string }[] = [
@@ -46,6 +47,8 @@ export function Toolbar() {
   const outlineVisible = useSettingsStore((s) => s.outlineVisible);
   const appTheme = useSettingsStore((s) => s.appTheme);
   const set = useSettingsStore((s) => s.set);
+  const settingsOpen = useViewStore((s) => s.settingsOpen);
+  const setSettingsOpen = useViewStore((s) => s.setSettingsOpen);
 
   const cycleTheme = () =>
     set('appTheme', THEME_CYCLE[(THEME_CYCLE.indexOf(appTheme) + 1) % THEME_CYCLE.length]);
@@ -90,7 +93,12 @@ export function Toolbar() {
         <ThemeIcon theme={appTheme} />
       </button>
 
-      <button className="toolbar__btn" title="Settings (Ctrl+,)" disabled>
+      <button
+        className={`toolbar__btn ${settingsOpen ? 'is-active' : ''}`}
+        title="Settings (Ctrl+,)"
+        onClick={() => setSettingsOpen(!settingsOpen)}
+        aria-pressed={settingsOpen}
+      >
         <svg
           width="16"
           height="16"

@@ -61,7 +61,7 @@
 .preview h6 {
   font-family: var(--md-font-heading);
   color: var(--md-heading);
-  font-weight: 600;
+  font-weight: var(--md-heading-weight, 600);
   line-height: 1.25;
   margin: 1.5em 0 0.6em;
   scroll-margin-top: 16px;

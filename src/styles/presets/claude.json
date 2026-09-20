@@ -1,0 +1,49 @@
+{
+  "id": "builtin-claude",
+  "name": "Claude-like",
+  "builtin": true,
+  "typography": {
+    "bodyFont": "'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif",
+    "headingFont": "Georgia, 'Times New Roman', serif",
+    "monoFont": "'Cascadia Mono', Consolas, monospace",
+    "baseSize": 16,
+    "lineHeight": 1.65,
+    "contentWidth": 760,
+    "paragraphSpacing": 1.1,
+    "headingWeight": 500
+  },
+  "headingScale": [1.9, 1.45, 1.2, 1.05, 1, 0.9],
+  "colors": {
+    "light": {
+      "bg": "#faf9f5",
+      "text": "#29261b",
+      "heading": "#29261b",
+      "link": "#c96442",
+      "muted": "#6e6a5e",
+      "border": "#e5e2d9",
+      "codeBg": "#f0eee6",
+      "codeText": "#3b3a33",
+      "quoteBorder": "#d9b99b",
+      "quoteText": "#5d584c",
+      "tableBorder": "#e5e2d9",
+      "tableStripe": "#f4f2eb",
+      "hr": "#e5e2d9"
+    },
+    "dark": {
+      "bg": "#262624",
+      "text": "#eeece2",
+      "heading": "#f4f2e8",
+      "link": "#d97757",
+      "muted": "#a3a094",
+      "border": "#3d3b36",
+      "codeBg": "#1f1e1b",
+      "codeText": "#e3e0d5",
+      "quoteBorder": "#8a6a4f",
+      "quoteText": "#c9c5b8",
+      "tableBorder": "#3d3b36",
+      "tableStripe": "#2b2a27",
+      "hr": "#3d3b36"
+    }
+  },
+  "customCss": ""
+}

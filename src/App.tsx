@@ -7,14 +7,21 @@ import { Preview } from './components/Preview/Preview';
 import { SourceEditor } from './components/Editor/SourceEditor';
 import { Outline } from './components/Outline/Outline';
 import { ConfirmDialog } from './components/Dialog/ConfirmDialog';
+import { SettingsPanel } from './components/Settings/SettingsPanel';
+import { StyleInjector } from './components/Preview/StyleInjector';
 import { useAppTheme } from './lib/useAppTheme';
 import { useShortcuts } from './lib/shortcuts';
 import { basename, getLaunchArgs, isTauri } from './lib/tauri';
 import { useSettingsStore } from './store/settings';
 import { isDirty, useDocumentStore } from './store/document';
+import { useStyleStore } from './store/style';
+import { useViewStore } from './store/view';
 
 export default function App() {
   const loadSettings = useSettingsStore((s) => s.load);
+  const loadStyles = useStyleStore((s) => s.load);
+  const settingsOpen = useViewStore((s) => s.settingsOpen);
+  const setSettingsOpen = useViewStore((s) => s.setSettingsOpen);
   const set = useSettingsStore((s) => s.set);
   const viewMode = useSettingsStore((s) => s.viewMode);
   const outlineVisible = useSettingsStore((s) => s.outlineVisible);
@@ -35,11 +42,11 @@ export default function App() {
   // Startup: load settings, then open a file passed on the command line (file association).
   useEffect(() => {
     void (async () => {
-      await loadSettings();
+      await Promise.all([loadSettings(), loadStyles()]);
       const arg = await getLaunchArgs();
       if (arg) await openFile(arg);
     })();
-  }, [loadSettings, openFile]);
+  }, [loadSettings, loadStyles, openFile]);
 
   // Drag & drop from Explorer (Tauri-native event; browser DnD is disabled by dragDropEnabled).
   useEffect(() => {
@@ -84,8 +91,18 @@ export default function App() {
       'ctrl+=': () => set('previewZoom', Math.min(3, +(previewZoom + 0.1).toFixed(2))),
       'ctrl+-': () => set('previewZoom', Math.max(0.5, +(previewZoom - 0.1).toFixed(2))),
       'ctrl+0': () => set('previewZoom', 1),
+      'ctrl+,': () => setSettingsOpen(!settingsOpen),
     }),
-    [openWithDialog, save, set, viewMode, outlineVisible, previewZoom],
+    [
+      openWithDialog,
+      save,
+      set,
+      viewMode,
+      outlineVisible,
+      previewZoom,
+      settingsOpen,
+      setSettingsOpen,
+    ],
   );
   useShortcuts(shortcuts);
 
@@ -129,7 +146,9 @@ export default function App() {
             </div>
           )}
         </div>
+        <SettingsPanel />
       </main>
+      <StyleInjector />
       <ConfirmDialog />
     </div>
   );

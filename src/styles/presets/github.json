@@ -1,0 +1,49 @@
+{
+  "id": "builtin-github",
+  "name": "GitHub",
+  "builtin": true,
+  "typography": {
+    "bodyFont": "'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif",
+    "headingFont": "",
+    "monoFont": "'Cascadia Mono', Consolas, 'Courier New', monospace",
+    "baseSize": 16,
+    "lineHeight": 1.6,
+    "contentWidth": 860,
+    "paragraphSpacing": 1,
+    "headingWeight": 600
+  },
+  "headingScale": [2, 1.5, 1.25, 1.1, 1, 0.9],
+  "colors": {
+    "light": {
+      "bg": "#ffffff",
+      "text": "#1f2328",
+      "heading": "#1f2328",
+      "link": "#0969da",
+      "muted": "#59636e",
+      "border": "#d1d9e0",
+      "codeBg": "#f6f8fa",
+      "codeText": "#1f2328",
+      "quoteBorder": "#d1d9e0",
+      "quoteText": "#59636e",
+      "tableBorder": "#d1d9e0",
+      "tableStripe": "#f6f8fa",
+      "hr": "#d1d9e0"
+    },
+    "dark": {
+      "bg": "#0d1117",
+      "text": "#e6edf3",
+      "heading": "#e6edf3",
+      "link": "#4493f8",
+      "muted": "#8b949e",
+      "border": "#3d444d",
+      "codeBg": "#161b22",
+      "codeText": "#e6edf3",
+      "quoteBorder": "#3d444d",
+      "quoteText": "#8b949e",
+      "tableBorder": "#3d444d",
+      "tableStripe": "#161b22",
+      "hr": "#3d444d"
+    }
+  },
+  "customCss": ""
+}

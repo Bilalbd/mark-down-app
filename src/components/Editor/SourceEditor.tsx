@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { EditorState, Compartment } from '@codemirror/state';
 import {
   EditorView,
@@ -38,6 +38,7 @@ export function SourceEditor() {
   const content = useDocumentStore((s) => s.content);
   const setContent = useDocumentStore((s) => s.setContent);
   const lineNumbersOn = useSettingsStore((s) => s.editorLineNumbers);
+  const fontSize = useSettingsStore((s) => s.editorFontSize);
   const setEditorView = useViewStore((s) => s.setEditorView);
   const setTopLine = useViewStore((s) => s.setTopLine);
   const pendingScrollLine = useViewStore((s) => s.pendingScrollLine);
@@ -119,7 +120,13 @@ export function SourceEditor() {
     clearPendingScroll();
   }, [pendingScrollLine, clearPendingScroll]);
 
-  return <div className="source-editor" ref={hostRef} />;
+  return (
+    <div
+      className="source-editor"
+      ref={hostRef}
+      style={{ '--editor-font-size': `${fontSize}px` } as React.CSSProperties}
+    />
+  );
 }
 
 export function scrollToLine(view: EditorView, line0: number): void {

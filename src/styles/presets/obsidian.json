@@ -1,0 +1,49 @@
+{
+  "id": "builtin-obsidian",
+  "name": "Obsidian-like",
+  "builtin": true,
+  "typography": {
+    "bodyFont": "Inter, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif",
+    "headingFont": "",
+    "monoFont": "'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace",
+    "baseSize": 16,
+    "lineHeight": 1.5,
+    "contentWidth": 700,
+    "paragraphSpacing": 1,
+    "headingWeight": 700
+  },
+  "headingScale": [1.8, 1.5, 1.25, 1.1, 1, 0.9],
+  "colors": {
+    "light": {
+      "bg": "#ffffff",
+      "text": "#2e3338",
+      "heading": "#2e3338",
+      "link": "#705dcf",
+      "muted": "#6b6f76",
+      "border": "#e2e2e2",
+      "codeBg": "#f2f3f5",
+      "codeText": "#5c5c5c",
+      "quoteBorder": "#705dcf",
+      "quoteText": "#4a4a4a",
+      "tableBorder": "#e2e2e2",
+      "tableStripe": "#f7f7f7",
+      "hr": "#e2e2e2"
+    },
+    "dark": {
+      "bg": "#1e1e1e",
+      "text": "#dadada",
+      "heading": "#dadada",
+      "link": "#a882ff",
+      "muted": "#999999",
+      "border": "#363636",
+      "codeBg": "#2a2a2a",
+      "codeText": "#c7c7c7",
+      "quoteBorder": "#a882ff",
+      "quoteText": "#bcbcbc",
+      "tableBorder": "#363636",
+      "tableStripe": "#242424",
+      "hr": "#363636"
+    }
+  },
+  "customCss": ""
+}

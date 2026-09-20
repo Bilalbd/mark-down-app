@@ -1,0 +1,314 @@
+.settings {
+  display: flex;
+  flex-direction: column;
+  width: 380px;
+  flex-shrink: 0;
+  background: var(--sidebar-bg);
+  border-left: 1px solid var(--chrome-border);
+  color: var(--chrome-fg);
+  font-size: 12.5px;
+}
+
+.settings__header {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 6px 0 8px;
+  border-bottom: 1px solid var(--chrome-border);
+  flex-shrink: 0;
+}
+.settings__tabs {
+  flex: 1;
+  display: flex;
+  gap: 2px;
+}
+.settings__tab {
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--chrome-fg-muted);
+}
+.settings__tab:hover {
+  color: var(--chrome-fg);
+  background: var(--chrome-hover);
+}
+.settings__tab.is-active {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.settings__close {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--chrome-fg-muted);
+  display: grid;
+  place-items: center;
+}
+.settings__close:hover {
+  background: var(--chrome-hover);
+  color: var(--chrome-fg);
+}
+
+.settings__body {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 14px 24px;
+}
+
+.settings__section {
+  margin-bottom: 18px;
+}
+.settings__section-title {
+  margin: 10px 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--chrome-fg-muted);
+}
+
+.settings__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+  padding: 2px 0;
+}
+.settings__label {
+  flex: 0 0 120px;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.settings__hint {
+  font-size: 10.5px;
+  color: var(--chrome-fg-muted);
+}
+.settings__control {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings input[type='text'],
+.settings input[type='number'],
+.settings select,
+.settings textarea {
+  font: inherit;
+  color: var(--chrome-fg);
+  background: var(--chrome-inset);
+  border: 1px solid var(--chrome-border);
+  border-radius: 4px;
+  padding: 3px 6px;
+  min-width: 0;
+}
+.settings input:focus-visible,
+.settings select:focus-visible,
+.settings textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.settings__text {
+  flex: 1;
+}
+.settings__text--hex {
+  width: 78px;
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+}
+.settings__number {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.settings__number input {
+  width: 74px;
+}
+.settings__unit {
+  color: var(--chrome-fg-muted);
+  font-size: 11px;
+}
+.settings__select {
+  flex: 1;
+}
+.settings__color {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.settings__color input[type='color'] {
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--chrome-border);
+  border-radius: 4px;
+  background: transparent;
+}
+.settings__toggle {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.settings__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 12px;
+}
+.settings__grid .settings__label {
+  flex-basis: 30px;
+}
+
+.settings__segment {
+  display: inline-flex;
+  background: var(--chrome-inset);
+  border-radius: 6px;
+  padding: 2px;
+  margin-bottom: 6px;
+}
+.settings__seg {
+  height: 24px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--chrome-fg-muted);
+  font-size: 12px;
+}
+.settings__seg.is-active {
+  background: var(--chrome-bg);
+  color: var(--chrome-fg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.settings__note {
+  margin: 6px 0 10px;
+  color: var(--chrome-fg-muted);
+  line-height: 1.4;
+}
+.settings__note code {
+  font-family: var(--font-mono);
+}
+
+.settings__css {
+  width: 100%;
+  height: calc(100vh - 220px);
+  min-height: 200px;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  tab-size: 2;
+}
+
+.settings__btn {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 5px;
+  border: 1px solid var(--chrome-border);
+  background: var(--chrome-inset);
+  color: var(--chrome-fg);
+}
+.settings__btn:hover {
+  filter: brightness(1.08);
+}
+.settings__actions {
+  margin-top: 8px;
+}
+
+.presets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.presets__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 4px 0 2px;
+  border-radius: 5px;
+}
+.presets__item:hover {
+  background: var(--chrome-hover);
+}
+.presets__name {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--chrome-fg);
+  text-align: left;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.presets__radio {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid var(--chrome-fg-muted);
+  flex-shrink: 0;
+}
+.presets__item.is-active .presets__radio {
+  border-color: var(--accent);
+  background: radial-gradient(circle, var(--accent) 45%, transparent 50%);
+}
+.presets__item.is-active .presets__name {
+  color: var(--accent);
+}
+.presets__actions {
+  display: none;
+  gap: 2px;
+}
+.presets__item:hover .presets__actions,
+.presets__item:focus-within .presets__actions {
+  display: flex;
+}
+.presets__actions button {
+  height: 22px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--chrome-fg-muted);
+  font-size: 11px;
+}
+.presets__actions button:hover {
+  background: var(--chrome-inset);
+  color: var(--chrome-fg);
+}
+.presets__actions button.is-danger:hover {
+  color: #e5533d;
+}
+
+.settings__shortcuts {
+  border-collapse: collapse;
+  width: 100%;
+}
+.settings__shortcuts td {
+  padding: 3px 0;
+  vertical-align: top;
+}
+.settings__shortcuts td:first-child {
+  width: 170px;
+}
+.settings__shortcuts kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 5px;
+  border: 1px solid var(--chrome-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--chrome-inset);
+}

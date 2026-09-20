@@ -16,6 +16,7 @@ interface ViewState {
   topLine: number;
   /** Set to request a scroll to a line; consumers clear it after honouring it. */
   pendingScrollLine: number | null;
+  settingsOpen: boolean;
 
   setHeadings: (h: HeadingInfo[]) => void;
   setActiveHeadingId: (id: string | null) => void;
@@ -24,6 +25,7 @@ interface ViewState {
   setTopLine: (line: number) => void;
   requestScrollToLine: (line: number) => void;
   clearPendingScroll: () => void;
+  setSettingsOpen: (open: boolean) => void;
 }
 
 export const useViewStore = create<ViewState>((set) => ({
@@ -33,6 +35,7 @@ export const useViewStore = create<ViewState>((set) => ({
   previewScrollEl: null,
   topLine: 0,
   pendingScrollLine: null,
+  settingsOpen: false,
 
   setHeadings: (headings) => set({ headings }),
   setActiveHeadingId: (activeHeadingId) => set({ activeHeadingId }),
@@ -41,4 +44,5 @@ export const useViewStore = create<ViewState>((set) => ({
   setTopLine: (topLine) => set({ topLine }),
   requestScrollToLine: (pendingScrollLine) => set({ pendingScrollLine }),
   clearPendingScroll: () => set({ pendingScrollLine: null }),
+  setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
 }));
