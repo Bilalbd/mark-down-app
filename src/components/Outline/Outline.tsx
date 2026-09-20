@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import type { HeadingInfo } from '@/markdown/plugins';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
@@ -32,6 +32,21 @@ export function activeHeadingFor(headings: HeadingInfo[], line: number): Heading
   return active;
 }
 
+/** Ids of every node that has children, i.e. every node a twisty could collapse. */
+export function collapsibleIds(nodes: Node[]): string[] {
+  const ids: string[] = [];
+  const walk = (list: Node[]) => {
+    for (const n of list) {
+      if (n.children.length > 0) {
+        ids.push(n.id);
+        walk(n.children);
+      }
+    }
+  };
+  walk(nodes);
+  return ids;
+}
+
 const MIN_WIDTH = 160;
 const MAX_WIDTH = 480;
 
@@ -44,6 +59,7 @@ export function Outline() {
 
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const tree = useMemo(() => buildTree(headings), [headings]);
+  const allParentIds = useMemo(() => collapsibleIds(tree), [tree]);
   const activeId = useMemo(
     () => activeHeadingFor(headings, topLine)?.id ?? null,
     [headings, topLine],
@@ -64,6 +80,13 @@ export function Outline() {
       return next;
     });
   }, []);
+
+  // A single button that collapses every section, or expands them all when everything
+  // collapsible is already collapsed.
+  const allCollapsed = allParentIds.length > 0 && allParentIds.every((id) => collapsed.has(id));
+  const toggleAll = useCallback(() => {
+    setCollapsed(allCollapsed ? new Set() : new Set(allParentIds));
+  }, [allCollapsed, allParentIds]);
 
   const onResizeStart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -123,7 +146,23 @@ export function Outline() {
 
   return (
     <aside className="outline" style={{ width }} aria-label="Document outline">
-      <div className="outline__header">Outline</div>
+      <div className="outline__header">
+        <span>Outline</span>
+        {allParentIds.length > 0 && (
+          <button
+            className="outline__collapse-all"
+            title={allCollapsed ? 'Expand all' : 'Collapse all'}
+            aria-label={allCollapsed ? 'Expand all' : 'Collapse all'}
+            onClick={toggleAll}
+          >
+            {allCollapsed ? (
+              <ChevronsUpDown size={13} strokeWidth={1.75} absoluteStrokeWidth />
+            ) : (
+              <ChevronsDownUp size={13} strokeWidth={1.75} absoluteStrokeWidth />
+            )}
+          </button>
+        )}
+      </div>
       <div className="outline__scroll" ref={listRef}>
         {headings.length === 0 ? (
           <div className="outline__empty">No headings</div>

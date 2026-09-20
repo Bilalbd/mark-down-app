@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activeHeadingFor, buildTree } from './Outline';
+import { activeHeadingFor, buildTree, collapsibleIds } from './Outline';
 import type { HeadingInfo } from '@/markdown/plugins';
 
 const h = (level: number, text: string, line: number): HeadingInfo => ({
@@ -35,5 +35,16 @@ describe('activeHeadingFor', () => {
   it('returns null before the first heading or with no headings', () => {
     expect(activeHeadingFor([h(1, 'A', 5)], 2)).toBeNull();
     expect(activeHeadingFor([], 0)).toBeNull();
+  });
+});
+
+describe('collapsibleIds', () => {
+  it('lists only nodes that have children, in document order', () => {
+    const tree = buildTree([h(1, 'A', 0), h(2, 'B', 2), h(3, 'C', 4), h(1, 'D', 6)]);
+    expect(collapsibleIds(tree)).toEqual(['a', 'b']);
+  });
+  it('returns an empty list for a flat outline', () => {
+    const tree = buildTree([h(1, 'A', 0), h(1, 'B', 2)]);
+    expect(collapsibleIds(tree)).toEqual([]);
   });
 });
