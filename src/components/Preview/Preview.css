@@ -4,6 +4,7 @@
  * GitHub-like look; presets override them on the .preview root.
  */
 .preview-scroll {
+  position: relative;
   height: 100%;
   overflow: auto;
   background: var(--md-bg, var(--content-bg));
@@ -40,9 +41,9 @@
 
   max-width: var(--md-content-width);
   margin: 0 auto;
-  padding: 32px 40px 80px;
+  padding: 32px 40px 60vh;
   font-family: var(--md-font-body);
-  font-size: var(--md-font-size);
+  font-size: calc(var(--md-font-size) * var(--md-zoom, 1));
   line-height: var(--md-line-height);
   color: var(--md-text);
   word-wrap: break-word;

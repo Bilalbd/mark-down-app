@@ -87,3 +87,18 @@ button:focus-visible {
 .link-button:hover {
   text-decoration: underline;
 }
+
+.split {
+  display: flex;
+  height: 100%;
+}
+.split__pane {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.split__divider {
+  width: 1px;
+  background: var(--chrome-border);
+  flex-shrink: 0;
+}

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { open as openDialog, ask } from '@tauri-apps/plugin-dialog';
+import { open as openDialog } from '@tauri-apps/plugin-dialog';
+import { askSaveChanges } from '@/components/Dialog/ConfirmDialog';
 import { allowAssetDir, basename, dirname, isTauri, readFile, writeFile } from '@/lib/tauri';
 
 export interface DocumentState {
@@ -32,15 +33,11 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   error: null,
 
   confirmDiscard: async () => {
-    if (!isDirty(get())) return true;
-    if (!isTauri()) return window.confirm('Discard unsaved changes?');
-    const save = await ask('You have unsaved changes. Save them before continuing?', {
-      title: 'Unsaved changes',
-      kind: 'warning',
-      okLabel: 'Save',
-      cancelLabel: "Don't save",
-    });
-    if (save) return get().save();
+    const state = get();
+    if (!isDirty(state)) return true;
+    const choice = await askSaveChanges(state.path ? basename(state.path) : 'Untitled');
+    if (choice === null) return false;
+    if (choice === 'save') return get().save();
     return true;
   },
 

@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { TitleBar } from './components/TitleBar/TitleBar';
 import { Toolbar } from './components/Toolbar/Toolbar';
 import { Preview } from './components/Preview/Preview';
+import { SourceEditor } from './components/Editor/SourceEditor';
+import { Outline } from './components/Outline/Outline';
+import { ConfirmDialog } from './components/Dialog/ConfirmDialog';
 import { useAppTheme } from './lib/useAppTheme';
 import { useShortcuts } from './lib/shortcuts';
 import { basename, getLaunchArgs, isTauri } from './lib/tauri';
@@ -22,6 +26,7 @@ export default function App() {
   const openFile = useDocumentStore((s) => s.open);
   const openWithDialog = useDocumentStore((s) => s.openWithDialog);
   const save = useDocumentStore((s) => s.save);
+  const confirmDiscard = useDocumentStore((s) => s.confirmDiscard);
 
   const [dragOver, setDragOver] = useState(false);
 
@@ -54,6 +59,21 @@ export default function App() {
     return () => unlisten?.();
   }, [openFile]);
 
+  // Close guard: ask about unsaved changes before the window closes.
+  useEffect(() => {
+    if (!isTauri()) return;
+    const win = getCurrentWindow();
+    let unlisten: (() => void) | undefined;
+    void win
+      .onCloseRequested(async (e) => {
+        if (!isDirty(useDocumentStore.getState())) return;
+        e.preventDefault();
+        if (await confirmDiscard()) await win.destroy();
+      })
+      .then((u) => (unlisten = u));
+    return () => unlisten?.();
+  }, [confirmDiscard]);
+
   const shortcuts = useMemo(
     () => ({
       'ctrl+o': () => void openWithDialog(),
@@ -69,6 +89,8 @@ export default function App() {
   );
   useShortcuts(shortcuts);
 
+  const hasDoc = path !== null;
+
   return (
     <div className={`app ${dragOver ? 'is-drag-over' : ''}`}>
       <TitleBar fileName={path ? basename(path) : undefined} dirty={dirty} />
@@ -79,8 +101,9 @@ export default function App() {
         </div>
       )}
       <main className="app__body">
+        {hasDoc && outlineVisible && <Outline />}
         <div className="app__content">
-          {path === null ? (
+          {!hasDoc ? (
             <div className="empty-state">
               <p>Open a Markdown file to get started.</p>
               <p className="empty-state__hint">
@@ -90,11 +113,24 @@ export default function App() {
                 or drop a file here
               </p>
             </div>
-          ) : (
+          ) : viewMode === 'formatted' ? (
             <Preview />
+          ) : viewMode === 'source' ? (
+            <SourceEditor />
+          ) : (
+            <div className="split">
+              <div className="split__pane">
+                <SourceEditor />
+              </div>
+              <div className="split__divider" />
+              <div className="split__pane">
+                <Preview />
+              </div>
+            </div>
           )}
         </div>
       </main>
+      <ConfirmDialog />
     </div>
   );
 }

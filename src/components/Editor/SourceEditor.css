@@ -1,0 +1,7 @@
+.source-editor {
+  height: 100%;
+  overflow: hidden;
+}
+.source-editor .cm-editor {
+  height: 100%;
+}

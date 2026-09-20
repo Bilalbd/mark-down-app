@@ -10,6 +10,8 @@ export interface Settings {
   outlineVisible: boolean;
   outlineWidth: number;
   previewZoom: number;
+  editorLineNumbers: boolean;
+  editorFontSize: number;
 }
 
 const DEFAULTS: Settings = {
@@ -18,6 +20,8 @@ const DEFAULTS: Settings = {
   outlineVisible: true,
   outlineWidth: 240,
   previewZoom: 1,
+  editorLineNumbers: true,
+  editorFontSize: 14,
 };
 
 interface SettingsState extends Settings {
