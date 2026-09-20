@@ -1,4 +1,4 @@
-import { useSettingsStore, type AppTheme, type ViewMode } from '@/store/settings';
+import { useSettingsStore, type AppTheme, type SplitSide, type ViewMode } from '@/store/settings';
 import { NumberInput, Row, Section, Select, Toggle } from './controls';
 
 export function GeneralTab() {
@@ -26,6 +26,16 @@ export function GeneralTab() {
               { value: 'formatted', label: 'Formatted' },
               { value: 'source', label: 'Source' },
               { value: 'split', label: 'Split' },
+            ]}
+          />
+        </Row>
+        <Row label="Split layout">
+          <Select<SplitSide>
+            value={s.splitEditorSide}
+            onChange={(v) => s.set('splitEditorSide', v)}
+            options={[
+              { value: 'left', label: 'Source left, formatted right' },
+              { value: 'right', label: 'Formatted left, source right' },
             ]}
           />
         </Row>

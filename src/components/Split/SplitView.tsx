@@ -14,6 +14,7 @@ const ECHO_SUPPRESS_MS = 120;
 
 export function SplitView() {
   const ratio = useSettingsStore((s) => s.splitRatio);
+  const editorSide = useSettingsStore((s) => s.splitEditorSide);
   const set = useSettingsStore((s) => s.set);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -38,7 +39,7 @@ export function SplitView() {
   return (
     <div className="split" ref={containerRef}>
       <div className="split__pane" style={{ flexBasis: `${ratio * 100}%` }}>
-        <SourceEditor />
+        {editorSide === 'left' ? <SourceEditor /> : <Preview />}
       </div>
       <div
         className="split__divider"
@@ -47,7 +48,7 @@ export function SplitView() {
         aria-orientation="vertical"
       />
       <div className="split__pane split__pane--grow">
-        <Preview />
+        {editorSide === 'left' ? <Preview /> : <SourceEditor />}
       </div>
     </div>
   );

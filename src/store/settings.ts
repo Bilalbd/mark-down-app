@@ -3,6 +3,7 @@ import { load as loadStore, type Store } from '@tauri-apps/plugin-store';
 
 export type AppTheme = 'light' | 'dark' | 'system';
 export type ViewMode = 'formatted' | 'source' | 'split';
+export type SplitSide = 'left' | 'right';
 
 export interface Settings {
   appTheme: AppTheme;
@@ -13,6 +14,8 @@ export interface Settings {
   editorLineNumbers: boolean;
   editorFontSize: number;
   splitRatio: number;
+  /** Which side the source editor sits on in Split view. */
+  splitEditorSide: SplitSide;
 }
 
 const DEFAULTS: Settings = {
@@ -24,6 +27,7 @@ const DEFAULTS: Settings = {
   editorLineNumbers: true,
   editorFontSize: 14,
   splitRatio: 0.5,
+  splitEditorSide: 'left',
 };
 
 interface SettingsState extends Settings {

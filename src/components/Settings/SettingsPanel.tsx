@@ -11,16 +11,16 @@ import './SettingsPanel.css';
 type Tab = 'appearance' | 'presets' | 'css' | 'general';
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'appearance', label: 'Appearance' },
-  { id: 'presets', label: 'Presets' },
-  { id: 'css', label: 'Custom CSS' },
   { id: 'general', label: 'General' },
+  { id: 'presets', label: 'Presets' },
+  { id: 'appearance', label: 'Appearance' },
+  { id: 'css', label: 'Custom CSS' },
 ];
 
 export function SettingsPanel() {
   const open = useViewStore((s) => s.settingsOpen);
   const setOpen = useViewStore((s) => s.setSettingsOpen);
-  const [tab, setTab] = useState<Tab>('appearance');
+  const [tab, setTab] = useState<Tab>('general');
   const loaded = useSettingsStore((s) => s.loaded);
 
   useEffect(() => {

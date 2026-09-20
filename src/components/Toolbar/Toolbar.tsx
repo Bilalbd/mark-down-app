@@ -1,4 +1,4 @@
-import { FilePlus2, Monitor, Moon, PanelLeft, Settings, Sun } from 'lucide-react';
+import { ArrowLeftRight, FilePlus2, Monitor, Moon, PanelLeft, Settings, Sun } from 'lucide-react';
 import { useSettingsStore, type AppTheme, type ViewMode } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import { ExportMenu } from './ExportMenu';
@@ -20,6 +20,7 @@ export function Toolbar({ onNew }: { onNew: () => void }) {
   const viewMode = useSettingsStore((s) => s.viewMode);
   const outlineVisible = useSettingsStore((s) => s.outlineVisible);
   const appTheme = useSettingsStore((s) => s.appTheme);
+  const splitEditorSide = useSettingsStore((s) => s.splitEditorSide);
   const set = useSettingsStore((s) => s.set);
   const settingsOpen = useViewStore((s) => s.settingsOpen);
   const setSettingsOpen = useViewStore((s) => s.setSettingsOpen);
@@ -52,6 +53,16 @@ export function Toolbar({ onNew }: { onNew: () => void }) {
           </button>
         ))}
       </div>
+
+      {viewMode === 'split' && (
+        <button
+          className="toolbar__btn"
+          title={`Swap panes (source on the ${splitEditorSide === 'left' ? 'right' : 'left'})`}
+          onClick={() => set('splitEditorSide', splitEditorSide === 'left' ? 'right' : 'left')}
+        >
+          <ArrowLeftRight {...ICON} />
+        </button>
+      )}
 
       <div className="toolbar__spacer" />
 
