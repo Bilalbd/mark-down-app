@@ -1,0 +1,49 @@
+{
+  "id": "builtin-boulayla",
+  "name": "Boulayla",
+  "builtin": true,
+  "typography": {
+    "bodyFont": "Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif",
+    "headingFont": "",
+    "monoFont": "'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', monospace",
+    "baseSize": 15,
+    "lineHeight": 1.45,
+    "contentWidth": 760,
+    "paragraphSpacing": 1,
+    "headingWeight": 600
+  },
+  "headingScale": [1.75, 1.4, 1.2, 1.05, 1, 0.9],
+  "colors": {
+    "light": {
+      "bg": "#fbfbfd",
+      "text": "#17181c",
+      "heading": "#17181c",
+      "link": "#2857e0",
+      "muted": "#5d6572",
+      "border": "#e6e8ef",
+      "codeBg": "#f1f2f6",
+      "codeText": "#3f4552",
+      "quoteBorder": "#c9d6fb",
+      "quoteText": "#3f4552",
+      "tableBorder": "#e6e8ef",
+      "tableStripe": "#f6f7fb",
+      "hr": "#c5c9d3"
+    },
+    "dark": {
+      "bg": "#0b0d12",
+      "text": "#e7eaf2",
+      "heading": "#e7eaf2",
+      "link": "#8ca2ff",
+      "muted": "#98a2b5",
+      "border": "#232936",
+      "codeBg": "#141822",
+      "codeText": "#c0c7d4",
+      "quoteBorder": "#2c3a66",
+      "quoteText": "#c0c7d4",
+      "tableBorder": "#232936",
+      "tableStripe": "#141822",
+      "hr": "#39414f"
+    }
+  },
+  "customCss": "/* Boulayla design-system touches */\n.preview h1 { letter-spacing: -0.015em; }\n.preview h2, .preview h3 { letter-spacing: -0.01em; }\n.preview h4, .preview h5, .preview h6 { letter-spacing: -0.005em; }\n.preview pre { border-radius: 6px; }\n.preview :not(pre) > code { border-radius: 4px; }\n.preview table { font-variant-numeric: tabular-nums; }\n.preview blockquote { border-left-width: 3px; }\n"
+}

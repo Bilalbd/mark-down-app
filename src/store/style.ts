@@ -3,6 +3,7 @@ import { load as loadStore, type Store } from '@tauri-apps/plugin-store';
 import githubPreset from '@/styles/presets/github.json';
 import obsidianPreset from '@/styles/presets/obsidian.json';
 import claudePreset from '@/styles/presets/claude.json';
+import boulaylaPreset from '@/styles/presets/boulayla.json';
 
 export interface ColorSet {
   bg: string;
@@ -66,6 +67,7 @@ export const BUILTIN_PRESETS: StylePreset[] = [
   githubPreset as StylePreset,
   obsidianPreset as StylePreset,
   claudePreset as StylePreset,
+  boulaylaPreset as StylePreset,
 ];
 
 interface Persisted {

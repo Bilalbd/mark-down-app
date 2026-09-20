@@ -22,7 +22,7 @@ describe('style store', () => {
     const s = useStyleStore.getState();
     s.remove(BUILTIN_PRESETS[1].id);
     s.rename(BUILTIN_PRESETS[1].id, 'x');
-    expect(useStyleStore.getState().presets).toHaveLength(3);
+    expect(useStyleStore.getState().presets).toHaveLength(BUILTIN_PRESETS.length);
     expect(useStyleStore.getState().presets[1].name).toBe('Obsidian-like');
   });
 
