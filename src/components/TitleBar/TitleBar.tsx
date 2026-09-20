@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Copy, Minus, Square, X } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { isTauri } from '@/lib/tauri';
+import markIcon from '@/assets/markdown-mark.png';
 import './TitleBar.css';
 
 interface Props {
@@ -21,22 +22,39 @@ export function TitleBar({ fileName, dirty = false }: Props) {
     return () => unlisten?.();
   }, []);
 
-  const title = fileName ?? 'Markdown Viewer';
   useEffect(() => {
-    document.title = `${dirty ? '• ' : ''}${title}`;
-  }, [title, dirty]);
+    document.title = fileName ? `${dirty ? '• ' : ''}${fileName} - Markdown` : 'Markdown';
+  }, [fileName, dirty]);
 
   const win = () => getCurrentWindow();
 
   return (
     <header className="titlebar" data-tauri-drag-region>
       <div className="titlebar__title" data-tauri-drag-region>
-        {dirty && (
-          <span className="titlebar__dirty" aria-label="Unsaved changes">
-            •
-          </span>
+        <span
+          className="titlebar__logo"
+          style={{ maskImage: `url(${markIcon})`, WebkitMaskImage: `url(${markIcon})` }}
+          aria-hidden
+          data-tauri-drag-region
+        />
+        <span className="titlebar__app" data-tauri-drag-region>
+          Markdown
+        </span>
+        {fileName && (
+          <>
+            <span className="titlebar__sep" data-tauri-drag-region>
+              –
+            </span>
+            {dirty && (
+              <span className="titlebar__dirty" aria-label="Unsaved changes">
+                •
+              </span>
+            )}
+            <span className="titlebar__file" data-tauri-drag-region>
+              {fileName}
+            </span>
+          </>
         )}
-        <span data-tauri-drag-region>{title}</span>
       </div>
       {isTauri() && (
         <div className="titlebar__controls">

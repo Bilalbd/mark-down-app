@@ -21,6 +21,32 @@
   text-overflow: ellipsis;
 }
 
+.titlebar__logo {
+  display: inline-block;
+  width: 22px;
+  height: 14px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  margin-right: 2px;
+}
+.titlebar__app {
+  font-weight: 600;
+}
+.titlebar__sep {
+  color: var(--chrome-fg-muted);
+  margin: 0 2px;
+}
+.titlebar__file {
+  color: var(--chrome-fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .titlebar__dirty {
   color: var(--accent);
   font-size: 16px;

@@ -1,4 +1,4 @@
-# Markdown Viewer
+# Markdown
 
 A simple, fast Markdown viewer and editor for Windows. Double-click a `.md` file and it opens
 rendered; flip to Source to edit; the outline keeps you oriented.

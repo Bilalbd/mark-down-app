@@ -2,11 +2,12 @@ import { useEffect } from 'react';
 import { useResolvedTheme } from '@/lib/useAppTheme';
 import { useStyleStore } from '@/store/style';
 import { presetToCssVars } from '@/styles/presetCss';
+import { presetToChromeCss } from '@/styles/chromeCss';
 
 /**
- * Keeps two <style> elements in <head> in sync with the active preset:
- * one for the generated CSS variables, one for the user's custom CSS
- * (placed after so it can override anything).
+ * Keeps three <style> elements in <head> in sync with the active preset: the app
+ * chrome palette derived from it, the preview CSS variables, and the user's custom
+ * CSS (placed last so it can override anything).
  */
 export function StyleInjector() {
   const theme = useResolvedTheme();
@@ -15,8 +16,10 @@ export function StyleInjector() {
   const preset = presets.find((p) => p.id === activeId) ?? presets[0];
 
   useEffect(() => {
+    const chrome = ensureStyle('preset-chrome');
     const vars = ensureStyle('preset-vars');
     const custom = ensureStyle('preset-custom');
+    chrome.textContent = presetToChromeCss(preset, theme);
     vars.textContent = presetToCssVars(preset, theme);
     custom.textContent = preset.customCss;
   }, [preset, theme]);
