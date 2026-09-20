@@ -8,7 +8,7 @@
     "monoFont": "'Cascadia Mono', Consolas, 'Courier New', monospace",
     "baseSize": 16,
     "lineHeight": 1.6,
-    "contentWidth": 860,
+    "contentWidth": 900,
     "paragraphSpacing": 1,
     "headingWeight": 600
   },
