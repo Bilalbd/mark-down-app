@@ -36,3 +36,17 @@ export function basename(path: string): string {
   const i = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
   return i < 0 ? path : path.slice(i + 1);
 }
+
+export interface FileChangedEvent {
+  path: string;
+  mtime: number;
+  removed: boolean;
+}
+
+export function watchFile(path: string): Promise<void> {
+  return invoke('watch_file', { path });
+}
+
+export function unwatchFile(): Promise<void> {
+  return invoke('unwatch_file');
+}

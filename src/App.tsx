@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { listen } from '@tauri-apps/api/event';
 import { TitleBar } from './components/TitleBar/TitleBar';
 import { Toolbar } from './components/Toolbar/Toolbar';
 import { Preview } from './components/Preview/Preview';
@@ -9,10 +10,11 @@ import { Outline } from './components/Outline/Outline';
 import { SplitView } from './components/Split/SplitView';
 import { ConfirmDialog } from './components/Dialog/ConfirmDialog';
 import { SettingsPanel } from './components/Settings/SettingsPanel';
+import { FindBar } from './components/Find/FindBar';
 import { StyleInjector } from './components/Preview/StyleInjector';
 import { useAppTheme } from './lib/useAppTheme';
 import { useShortcuts } from './lib/shortcuts';
-import { basename, getLaunchArgs, isTauri } from './lib/tauri';
+import { basename, getLaunchArgs, isTauri, type FileChangedEvent } from './lib/tauri';
 import { useSettingsStore } from './store/settings';
 import { isDirty, useDocumentStore } from './store/document';
 import { useStyleStore } from './store/style';
@@ -23,6 +25,7 @@ export default function App() {
   const loadStyles = useStyleStore((s) => s.load);
   const settingsOpen = useViewStore((s) => s.settingsOpen);
   const setSettingsOpen = useViewStore((s) => s.setSettingsOpen);
+  const setFindOpen = useViewStore((s) => s.setFindOpen);
   const set = useSettingsStore((s) => s.set);
   const viewMode = useSettingsStore((s) => s.viewMode);
   const outlineVisible = useSettingsStore((s) => s.outlineVisible);
@@ -35,6 +38,10 @@ export default function App() {
   const openWithDialog = useDocumentStore((s) => s.openWithDialog);
   const save = useDocumentStore((s) => s.save);
   const confirmDiscard = useDocumentStore((s) => s.confirmDiscard);
+  const externalChange = useDocumentStore((s) => s.externalChange);
+  const onFileChanged = useDocumentStore((s) => s.onFileChanged);
+  const reload = useDocumentStore((s) => s.reload);
+  const dismissExternalChange = useDocumentStore((s) => s.dismissExternalChange);
 
   const [dragOver, setDragOver] = useState(false);
 
@@ -67,6 +74,16 @@ export default function App() {
     return () => unlisten?.();
   }, [openFile]);
 
+  // Live reload: the Rust watcher reports external edits to the open file.
+  useEffect(() => {
+    if (!isTauri()) return;
+    let unlisten: (() => void) | undefined;
+    void listen<FileChangedEvent>('file-changed', (e) => void onFileChanged(e.payload)).then(
+      (u) => (unlisten = u),
+    );
+    return () => unlisten?.();
+  }, [onFileChanged]);
+
   // Close guard: ask about unsaved changes before the window closes.
   useEffect(() => {
     if (!isTauri()) return;
@@ -93,6 +110,7 @@ export default function App() {
       'ctrl+-': () => set('previewZoom', Math.max(0.5, +(previewZoom - 0.1).toFixed(2))),
       'ctrl+0': () => set('previewZoom', 1),
       'ctrl+,': () => setSettingsOpen(!settingsOpen),
+      'ctrl+f': () => setFindOpen(true),
     }),
     [
       openWithDialog,
@@ -118,9 +136,29 @@ export default function App() {
           {error}
         </div>
       )}
+      {externalChange && (
+        <div className="banner banner--warning" role="status">
+          <span>
+            {externalChange === 'removed'
+              ? 'This file was deleted or moved on disk.'
+              : 'This file was changed on disk and you have unsaved edits.'}
+          </span>
+          <span className="banner__actions">
+            {externalChange === 'modified' && (
+              <button className="banner__btn" onClick={() => void reload()}>
+                Reload from disk
+              </button>
+            )}
+            <button className="banner__btn" onClick={dismissExternalChange}>
+              Keep mine
+            </button>
+          </span>
+        </div>
+      )}
       <main className="app__body">
         {hasDoc && outlineVisible && <Outline />}
         <div className="app__content">
+          {hasDoc && <FindBar />}
           {!hasDoc ? (
             <div className="empty-state">
               <p>Open a Markdown file to get started.</p>

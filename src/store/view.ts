@@ -17,6 +17,9 @@ interface ViewState {
   /** Set to request a scroll to a line; consumers clear it after honouring it. */
   pendingScrollLine: number | null;
   settingsOpen: boolean;
+  findOpen: boolean;
+  /** Incremented every time the preview DOM is replaced, so dependents can re-scan it. */
+  previewVersion: number;
 
   setHeadings: (h: HeadingInfo[]) => void;
   setActiveHeadingId: (id: string | null) => void;
@@ -26,6 +29,8 @@ interface ViewState {
   requestScrollToLine: (line: number) => void;
   clearPendingScroll: () => void;
   setSettingsOpen: (open: boolean) => void;
+  setFindOpen: (open: boolean) => void;
+  bumpPreviewVersion: () => void;
 }
 
 export const useViewStore = create<ViewState>((set) => ({
@@ -36,6 +41,8 @@ export const useViewStore = create<ViewState>((set) => ({
   topLine: 0,
   pendingScrollLine: null,
   settingsOpen: false,
+  findOpen: false,
+  previewVersion: 0,
 
   setHeadings: (headings) => set({ headings }),
   setActiveHeadingId: (activeHeadingId) => set({ activeHeadingId }),
@@ -45,4 +52,6 @@ export const useViewStore = create<ViewState>((set) => ({
   requestScrollToLine: (pendingScrollLine) => set({ pendingScrollLine }),
   clearPendingScroll: () => set({ pendingScrollLine: null }),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+  setFindOpen: (findOpen) => set({ findOpen }),
+  bumpPreviewVersion: () => set((s) => ({ previewVersion: s.previewVersion + 1 })),
 }));

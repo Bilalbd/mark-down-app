@@ -47,11 +47,7 @@ export const editorTheme = EditorView.theme({
   '.cm-searchMatch.cm-searchMatch-selected': {
     backgroundColor: 'color-mix(in srgb, #ff8c00 60%, transparent)',
   },
-  '.cm-panels': {
-    backgroundColor: 'var(--chrome-bg)',
-    color: 'var(--chrome-fg)',
-    borderBottom: '1px solid var(--chrome-border)',
-  },
+  '.cm-panels': { border: 'none', background: 'transparent' },
   '.cm-panel input, .cm-panel button': {
     font: 'inherit',
     background: 'var(--chrome-inset)',

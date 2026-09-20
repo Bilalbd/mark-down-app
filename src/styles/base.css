@@ -41,6 +41,7 @@ button:focus-visible {
 }
 
 .app__content {
+  position: relative;
   flex: 1;
   min-width: 0;
   overflow: auto;
@@ -86,4 +87,73 @@ button:focus-visible {
 }
 .link-button:hover {
   text-decoration: underline;
+}
+
+.banner--warning {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: color-mix(in srgb, #e6b400 18%, var(--chrome-bg));
+  color: var(--chrome-fg);
+}
+.banner__actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+.banner__btn {
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: 1px solid var(--chrome-border);
+  background: var(--chrome-inset);
+  color: var(--chrome-fg);
+  font-size: 12px;
+}
+.banner__btn:hover {
+  filter: brightness(1.1);
+}
+
+/* Printing: only the formatted document, flowing naturally across pages. */
+@media print {
+  html,
+  body,
+  #root,
+  .app,
+  .app__body,
+  .app__content,
+  .preview-scroll,
+  .split,
+  .split__pane {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+  .titlebar,
+  .toolbar,
+  .banner,
+  .outline,
+  .settings,
+  .findbar,
+  .source-editor,
+  .split__divider,
+  .dialog-backdrop {
+    display: none !important;
+  }
+  .preview {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  .preview pre,
+  .preview .code-block,
+  .preview table,
+  .preview .mermaid-block,
+  .preview img {
+    break-inside: avoid;
+  }
+  .preview h1,
+  .preview h2,
+  .preview h3 {
+    break-after: avoid;
+  }
 }

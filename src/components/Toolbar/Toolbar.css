@@ -60,3 +60,34 @@
   color: var(--chrome-fg);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
+
+.toolbar__menu {
+  position: relative;
+}
+.toolbar__dropdown {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  z-index: 30;
+  min-width: 190px;
+  padding: 4px;
+  border-radius: 6px;
+  background: var(--chrome-bg);
+  border: 1px solid var(--chrome-border);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+.toolbar__dropdown button {
+  display: block;
+  width: 100%;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--chrome-fg);
+  text-align: left;
+  font-size: 12.5px;
+}
+.toolbar__dropdown button:hover {
+  background: var(--chrome-hover);
+}

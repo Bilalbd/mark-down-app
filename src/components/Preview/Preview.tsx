@@ -45,6 +45,7 @@ export function Preview() {
   const setTopLine = useViewStore((s) => s.setTopLine);
   const pendingScrollLine = useViewStore((s) => s.pendingScrollLine);
   const clearPendingScroll = useViewStore((s) => s.clearPendingScroll);
+  const bumpPreviewVersion = useViewStore((s) => s.bumpPreviewVersion);
 
   const [html, setHtml] = useState('');
   const theme = useResolvedTheme();
@@ -70,6 +71,10 @@ export function Preview() {
     }, RENDER_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [content, path, setHeadings]);
+
+  useLayoutEffect(() => {
+    if (html) bumpPreviewVersion();
+  }, [html, bumpPreviewVersion]);
 
   // Mermaid diagrams render client-side after the HTML is in the DOM (and again on theme change).
   useEffect(() => {

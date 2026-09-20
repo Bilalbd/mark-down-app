@@ -48,7 +48,8 @@ function connect(url) {
 
 const cdp = await connect(await getPageWs());
 try {
-  if (cmd === 'eval' || cmd === 'eval-file') {
+  if (cmd === 'eval' || cmd === 'eval-file' || cmd === 'print-eval-file') {
+    if (cmd === 'print-eval-file') await cdp.send('Emulation.setEmulatedMedia', { media: 'print' });
     const expression = cmd === 'eval' ? arg : (await import('node:fs')).readFileSync(arg, 'utf8');
     const r = await cdp.send('Runtime.evaluate', {
       expression: `(async () => { ${expression.includes('return ') ? expression : 'return (' + expression + ')'} })()`,
@@ -56,11 +57,19 @@ try {
       returnByValue: true,
     });
     if (r.exceptionDetails) {
-      console.error('Exception:', r.exceptionDetails.exception?.description ?? r.exceptionDetails.text);
+      console.error(
+        'Exception:',
+        r.exceptionDetails.exception?.description ?? r.exceptionDetails.text,
+      );
       process.exitCode = 1;
     } else {
       console.log(JSON.stringify(r.result.value, null, 2));
     }
+    if (cmd === 'print-eval-file') await cdp.send('Emulation.setEmulatedMedia', { media: '' });
+  } else if (cmd === 'pdf') {
+    const r = await cdp.send('Page.printToPDF', { printBackground: true, preferCSSPageSize: true });
+    (await import('node:fs')).writeFileSync(arg, Buffer.from(r.data, 'base64'));
+    console.log('saved', arg);
   } else if (cmd === 'screenshot') {
     const r = await cdp.send('Page.captureScreenshot', { format: 'png' });
     (await import('node:fs')).writeFileSync(arg, Buffer.from(r.data, 'base64'));

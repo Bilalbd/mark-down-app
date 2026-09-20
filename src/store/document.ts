@@ -1,7 +1,18 @@
 import { create } from 'zustand';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { askSaveChanges } from '@/components/Dialog/ConfirmDialog';
-import { allowAssetDir, basename, dirname, isTauri, readFile, writeFile } from '@/lib/tauri';
+import {
+  allowAssetDir,
+  basename,
+  dirname,
+  isTauri,
+  readFile,
+  watchFile,
+  writeFile,
+  type FileChangedEvent,
+} from '@/lib/tauri';
+
+export type ExternalChange = 'modified' | 'removed' | null;
 
 export interface DocumentState {
   path: string | null;
@@ -9,6 +20,11 @@ export interface DocumentState {
   savedContent: string;
   mtime: number;
   error: string | null;
+  /**
+   * Set when the file changed on disk while there are unsaved edits, so the UI can
+   * offer Reload / Keep mine instead of silently overwriting the user's work.
+   */
+  externalChange: ExternalChange;
 
   /** Open a file by path; prompts if the current document has unsaved changes. */
   open: (path: string) => Promise<boolean>;
@@ -20,6 +36,9 @@ export interface DocumentState {
   save: () => Promise<boolean>;
   /** Returns true if it is safe to discard/replace the current document. */
   confirmDiscard: () => Promise<boolean>;
+  /** Handle a change notification from the file watcher. */
+  onFileChanged: (e: FileChangedEvent) => Promise<void>;
+  dismissExternalChange: () => void;
 }
 
 export const isDirty = (s: Pick<DocumentState, 'content' | 'savedContent'>) =>
@@ -31,6 +50,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   savedContent: '',
   mtime: 0,
   error: null,
+  externalChange: null,
 
   confirmDiscard: async () => {
     const state = get();
@@ -46,7 +66,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     try {
       const { content, mtime } = await readFile(path);
       await allowAssetDir(dirname(path)).catch(() => undefined);
-      set({ path, content, savedContent: content, mtime, error: null });
+      set({ path, content, savedContent: content, mtime, error: null, externalChange: null });
+      await watchFile(path).catch(() => undefined);
       return true;
     } catch (e) {
       set({ error: `Could not open ${basename(path)}: ${String(e)}` });
@@ -66,6 +87,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
           savedContent: content,
           mtime: file.lastModified,
           error: null,
+          externalChange: null,
         });
       }
       return;
@@ -86,7 +108,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     if (!path) return;
     try {
       const { content, mtime } = await readFile(path);
-      set({ content, savedContent: content, mtime, error: null });
+      set({ content, savedContent: content, mtime, error: null, externalChange: null });
     } catch (e) {
       set({ error: String(e) });
     }
@@ -99,13 +121,31 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     if (!path) return false;
     try {
       const mtime = await writeFile(path, content);
-      set({ savedContent: content, mtime, error: null });
+      set({ savedContent: content, mtime, error: null, externalChange: null });
       return true;
     } catch (e) {
       set({ error: `Could not save: ${String(e)}` });
       return false;
     }
   },
+
+  onFileChanged: async (e) => {
+    const state = get();
+    if (!state.path || e.path !== state.path) return;
+    if (e.removed) {
+      set({ externalChange: 'removed' });
+      return;
+    }
+    // Our own save produces an event too; the mtime we recorded identifies it.
+    if (e.mtime === state.mtime) return;
+    if (isDirty(state)) {
+      set({ externalChange: 'modified' });
+    } else {
+      await get().reload();
+    }
+  },
+
+  dismissExternalChange: () => set({ externalChange: null }),
 }));
 
 function pickBrowserFile(): Promise<File | null> {

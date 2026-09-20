@@ -1,5 +1,6 @@
 import { useSettingsStore, type AppTheme, type ViewMode } from '@/store/settings';
 import { useViewStore } from '@/store/view';
+import { ExportMenu } from './ExportMenu';
 import './Toolbar.css';
 
 const VIEW_MODES: { id: ViewMode; label: string; title: string }[] = [
@@ -88,6 +89,8 @@ export function Toolbar() {
       </div>
 
       <div className="toolbar__spacer" />
+
+      <ExportMenu />
 
       <button className="toolbar__btn" title={`Theme: ${appTheme}`} onClick={cycleTheme}>
         <ThemeIcon theme={appTheme} />

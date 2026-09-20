@@ -14,7 +14,7 @@ import {
 } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { bracketMatching, indentOnInput } from '@codemirror/language';
-import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
+import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { languages } from '@codemirror/language-data';
 import { useDocumentStore } from '@/store/document';
@@ -64,8 +64,16 @@ export function SourceEditor() {
           crosshairCursor(),
           highlightActiveLine(),
           highlightSelectionMatches(),
+          // The app has its own find bar; CM only paints match decorations while a panel is
+          // open, so register an invisible one that FindBar opens/closes.
+          search({ top: true, createPanel: () => ({ dom: hiddenPanel(), top: true }) }),
           EditorView.lineWrapping,
-          keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, indentWithTab]),
+          keymap.of([
+            ...defaultKeymap,
+            ...historyKeymap,
+            ...searchKeymap.filter((b) => b.key !== 'Mod-f'),
+            indentWithTab,
+          ]),
           markdown({ base: markdownLanguage, codeLanguages: languages }),
           editorTheme,
           editorHighlighting,
@@ -127,6 +135,12 @@ export function SourceEditor() {
       style={{ '--editor-font-size': `${fontSize}px` } as React.CSSProperties}
     />
   );
+}
+
+function hiddenPanel(): HTMLElement {
+  const dom = document.createElement('div');
+  dom.style.display = 'none';
+  return dom;
 }
 
 export function scrollToLine(view: EditorView, line0: number): void {
