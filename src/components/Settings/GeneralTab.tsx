@@ -62,6 +62,7 @@ export function GeneralTab() {
         <table className="settings__shortcuts">
           <tbody>
             {[
+              ['Ctrl+N', 'New file'],
               ['Ctrl+O', 'Open file'],
               ['Ctrl+S', 'Save'],
               ['Ctrl+E', 'Toggle formatted / source'],
