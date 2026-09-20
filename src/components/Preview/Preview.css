@@ -1,0 +1,245 @@
+/*
+ * Formatted-view styling. Every visual property reads a --md-* variable so the
+ * styling system (presets + settings UI) can drive it. Defaults here are a
+ * GitHub-like look; presets override them on the .preview root.
+ */
+.preview-scroll {
+  height: 100%;
+  overflow: auto;
+  background: var(--md-bg, var(--content-bg));
+}
+
+.preview {
+  --md-bg: var(--content-bg);
+  --md-text: var(--content-fg);
+  --md-heading: var(--content-fg);
+  --md-link: var(--accent);
+  --md-muted: var(--chrome-fg-muted);
+  --md-border: var(--chrome-border);
+  --md-code-bg: color-mix(in srgb, var(--content-fg) 7%, transparent);
+  --md-code-text: var(--content-fg);
+  --md-quote-border: var(--chrome-border);
+  --md-quote-text: var(--chrome-fg-muted);
+  --md-table-border: var(--chrome-border);
+  --md-table-stripe: color-mix(in srgb, var(--content-fg) 3%, transparent);
+  --md-hr: var(--chrome-border);
+
+  --md-font-body: var(--font-ui);
+  --md-font-heading: var(--md-font-body);
+  --md-font-mono: var(--font-mono);
+  --md-font-size: 16px;
+  --md-line-height: 1.6;
+  --md-content-width: 860px;
+  --md-paragraph-spacing: 1em;
+  --md-h1: 2em;
+  --md-h2: 1.5em;
+  --md-h3: 1.25em;
+  --md-h4: 1.1em;
+  --md-h5: 1em;
+  --md-h6: 0.9em;
+
+  max-width: var(--md-content-width);
+  margin: 0 auto;
+  padding: 32px 40px 80px;
+  font-family: var(--md-font-body);
+  font-size: var(--md-font-size);
+  line-height: var(--md-line-height);
+  color: var(--md-text);
+  word-wrap: break-word;
+}
+
+.preview > *:first-child {
+  margin-top: 0;
+}
+
+.preview h1,
+.preview h2,
+.preview h3,
+.preview h4,
+.preview h5,
+.preview h6 {
+  font-family: var(--md-font-heading);
+  color: var(--md-heading);
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 1.5em 0 0.6em;
+  scroll-margin-top: 16px;
+}
+.preview h1 {
+  font-size: var(--md-h1);
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--md-border);
+}
+.preview h2 {
+  font-size: var(--md-h2);
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--md-border);
+}
+.preview h3 {
+  font-size: var(--md-h3);
+}
+.preview h4 {
+  font-size: var(--md-h4);
+}
+.preview h5 {
+  font-size: var(--md-h5);
+}
+.preview h6 {
+  font-size: var(--md-h6);
+  color: var(--md-muted);
+}
+
+.preview p,
+.preview ul,
+.preview ol,
+.preview blockquote,
+.preview table,
+.preview pre,
+.preview .code-block,
+.preview .mermaid-block,
+.preview details {
+  margin: 0 0 var(--md-paragraph-spacing);
+}
+
+.preview a {
+  color: var(--md-link);
+  text-decoration: none;
+}
+.preview a:hover {
+  text-decoration: underline;
+}
+
+.preview strong {
+  font-weight: 600;
+}
+
+.preview ul,
+.preview ol {
+  padding-left: 2em;
+}
+.preview li + li {
+  margin-top: 0.25em;
+}
+.preview li > p {
+  margin-bottom: 0.5em;
+}
+.preview .task-list-item {
+  list-style: none;
+  margin-left: -1.5em;
+}
+.preview .task-list-item-checkbox {
+  margin: 0 0.5em 0 0;
+  vertical-align: middle;
+}
+
+.preview blockquote {
+  padding: 0 1em;
+  border-left: 4px solid var(--md-quote-border);
+  color: var(--md-quote-text);
+}
+.preview blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.preview code {
+  font-family: var(--md-font-mono);
+  font-size: 0.875em;
+}
+.preview :not(pre) > code {
+  background: var(--md-code-bg);
+  color: var(--md-code-text);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+}
+.preview pre {
+  background: var(--md-code-bg);
+  border-radius: 6px;
+  padding: 14px 16px;
+  overflow: auto;
+  line-height: 1.45;
+}
+.preview pre code {
+  background: none;
+  padding: 0;
+}
+
+/* Shiki dual-theme output: pick the variable for the active app theme. */
+.preview .shiki,
+.preview .shiki span {
+  color: var(--shiki-light);
+  background-color: var(--md-code-bg) !important;
+}
+:root[data-theme='dark'] .preview .shiki,
+:root[data-theme='dark'] .preview .shiki span {
+  color: var(--shiki-dark);
+}
+.preview .code-block {
+  position: relative;
+}
+.preview .code-block::after {
+  content: attr(data-lang);
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  font-family: var(--md-font-mono);
+  font-size: 11px;
+  color: var(--md-muted);
+  opacity: 0.7;
+  text-transform: lowercase;
+}
+.preview .code-block[data-lang='text']::after {
+  content: none;
+}
+
+.preview table {
+  border-collapse: collapse;
+  display: block;
+  max-width: 100%;
+  overflow: auto;
+}
+.preview th,
+.preview td {
+  border: 1px solid var(--md-table-border);
+  padding: 6px 13px;
+}
+.preview th {
+  font-weight: 600;
+}
+.preview tr:nth-child(2n) {
+  background: var(--md-table-stripe);
+}
+
+.preview hr {
+  border: 0;
+  border-top: 2px solid var(--md-hr);
+  margin: 1.5em 0;
+}
+
+.preview img {
+  max-width: 100%;
+}
+
+.preview kbd {
+  font-family: var(--md-font-mono);
+  font-size: 0.85em;
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--md-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--md-code-bg);
+}
+
+.preview .footnotes {
+  font-size: 0.9em;
+  color: var(--md-muted);
+}
+.preview .footnotes-sep {
+  margin-top: 2em;
+}
+
+.preview .mermaid-block {
+  text-align: center;
+}
+.preview .mermaid-source {
+  text-align: left;
+}

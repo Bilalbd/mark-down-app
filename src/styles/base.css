@@ -1,0 +1,89 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  background: var(--content-bg);
+  color: var(--content-fg);
+}
+
+button {
+  font: inherit;
+  cursor: default;
+}
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app__body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.app__content {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  background: var(--content-bg);
+}
+
+.empty-state {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--chrome-fg-muted);
+  font-size: 15px;
+}
+.empty-state__hint {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.app.is-drag-over .app__content {
+  outline: 2px dashed var(--accent);
+  outline-offset: -6px;
+}
+
+.banner {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--chrome-border);
+}
+.banner--error {
+  background: color-mix(in srgb, #c42b1c 15%, var(--chrome-bg));
+  color: var(--chrome-fg);
+}
+
+.link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+}
+.link-button:hover {
+  text-decoration: underline;
+}

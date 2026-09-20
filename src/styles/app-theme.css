@@ -1,0 +1,35 @@
+/* App chrome theme tokens. Formatted-preview styling lives separately (preview-vars.css). */
+:root {
+  --titlebar-height: 32px;
+  --toolbar-height: 40px;
+  --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Cascadia Code', 'Cascadia Mono', Consolas, monospace;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --chrome-bg: #f3f3f3;
+  --chrome-fg: #1b1b1b;
+  --chrome-fg-muted: #616161;
+  --chrome-border: #e0e0e0;
+  --chrome-hover: rgba(0, 0, 0, 0.06);
+  --chrome-inset: #e6e6e6;
+  --sidebar-bg: #f8f8f8;
+  --content-bg: #ffffff;
+  --content-fg: #1f1f1f;
+  --accent: #0067c0;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --chrome-bg: #202020;
+  --chrome-fg: #f0f0f0;
+  --chrome-fg-muted: #a0a0a0;
+  --chrome-border: #333333;
+  --chrome-hover: rgba(255, 255, 255, 0.08);
+  --chrome-inset: #2b2b2b;
+  --sidebar-bg: #1c1c1c;
+  --content-bg: #1e1e1e;
+  --content-fg: #d4d4d4;
+  --accent: #4cc2ff;
+}

@@ -1,0 +1,51 @@
+.titlebar {
+  display: flex;
+  align-items: center;
+  height: var(--titlebar-height);
+  background: var(--chrome-bg);
+  color: var(--chrome-fg);
+  user-select: none;
+  -webkit-user-select: none;
+  flex-shrink: 0;
+}
+
+.titlebar__title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  font-size: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.titlebar__dirty {
+  color: var(--accent);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.titlebar__controls {
+  display: flex;
+  height: 100%;
+}
+
+.titlebar__btn {
+  width: 46px;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--chrome-fg);
+  display: grid;
+  place-items: center;
+  cursor: default;
+}
+.titlebar__btn:hover {
+  background: var(--chrome-hover);
+}
+.titlebar__btn--close:hover {
+  background: #c42b1c;
+  color: #fff;
+}
