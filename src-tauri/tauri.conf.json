@@ -32,7 +32,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -42,16 +44,23 @@
     ],
     "fileAssociations": [
       {
-        "ext": ["md", "markdown"],
-        "name": "Markdown Document",
+        "ext": [
+          "md",
+          "markdown"
+        ],
+        "name": "Markdown.Document",
         "description": "Markdown Document",
         "role": "Editor"
       }
     ],
     "windows": {
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "installerHooks": "nsis/hooks.nsh"
       }
-    }
+    },
+    "resources": [
+      "icons/markdown-file.ico"
+    ]
   }
 }
