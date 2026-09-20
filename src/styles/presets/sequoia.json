@@ -1,0 +1,49 @@
+{
+  "id": "builtin-sequoia",
+  "name": "Sequoia",
+  "builtin": true,
+  "typography": {
+    "bodyFont": "Constantia, Cambria, Georgia, serif",
+    "headingFont": "Rockwell, 'Rockwell Nova', 'Roboto Slab', serif",
+    "monoFont": "Consolas, 'Cascadia Mono', monospace",
+    "baseSize": 16,
+    "lineHeight": 1.65,
+    "contentWidth": 900,
+    "paragraphSpacing": 1.05,
+    "headingWeight": 700
+  },
+  "headingScale": [1.9, 1.45, 1.2, 1.05, 1, 0.9],
+  "colors": {
+    "light": {
+      "bg": "#eeece7",
+      "text": "#2e2620",
+      "heading": "#241d18",
+      "link": "#9c4a2c",
+      "muted": "#6b6255",
+      "border": "#d8d2c6",
+      "codeBg": "#e3ddd0",
+      "codeText": "#3a3128",
+      "quoteBorder": "#9c4a2c",
+      "quoteText": "#55493c",
+      "tableBorder": "#d8d2c6",
+      "tableStripe": "#f4f1ea",
+      "hr": "#c9c1b1"
+    },
+    "dark": {
+      "bg": "#201d1b",
+      "text": "#e8e4dc",
+      "heading": "#f2eee4",
+      "link": "#cf6b3f",
+      "muted": "#a39c8c",
+      "border": "#3a322a",
+      "codeBg": "#2a2420",
+      "codeText": "#d8cfc0",
+      "quoteBorder": "#8b4a3a",
+      "quoteText": "#b6ab98",
+      "tableBorder": "#3a322a",
+      "tableStripe": "#262019",
+      "hr": "#463c32"
+    }
+  },
+  "customCss": "/* Sequoia: black brushed aluminum, dark wood, giant sequoia bark */\n.preview h1, .preview h2 { letter-spacing: -0.01em; }\n.preview h3, .preview h4 { letter-spacing: -0.005em; }\n.preview blockquote { border-left-width: 4px; font-style: italic; }\n.preview pre, .preview .code-block { border: 1px solid var(--md-border); }\n.preview :not(pre) > code { border: 1px solid var(--md-border); }\n.preview th { background: var(--md-code-bg); }\n.preview hr { height: 2px; border-top-width: 2px; opacity: 0.8; }\n"
+}

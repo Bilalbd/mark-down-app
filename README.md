@@ -12,7 +12,7 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
 - **Editing** in Source mode with markdown syntax highlighting, `Ctrl+S` to save, a dirty
   indicator in the title bar and a Save / Don't save / Cancel guard on close.
 - **Outline** sidebar (`Ctrl+\`) — collapsible, resizable, click to jump, follows your scroll.
-- **Styling presets** — GitHub, Obsidian-like, Claude-like and Boulayla built in. Every font, size, spacing
+- **Styling presets** — GitHub, Obsidian-like, Claude-like, Boulayla and Sequoia built in. Every font, size, spacing
   and colour (separately for light and dark) is editable in Settings (`Ctrl+,`); presets can be
   copied, renamed, imported and exported as JSON, and each has a custom-CSS slot.
 - **Light / dark / follow-Windows** app theme.

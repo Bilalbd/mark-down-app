@@ -4,6 +4,7 @@ import githubPreset from '@/styles/presets/github.json';
 import obsidianPreset from '@/styles/presets/obsidian.json';
 import claudePreset from '@/styles/presets/claude.json';
 import boulaylaPreset from '@/styles/presets/boulayla.json';
+import sequoiaPreset from '@/styles/presets/sequoia.json';
 
 export interface ColorSet {
   bg: string;
@@ -68,6 +69,7 @@ export const BUILTIN_PRESETS: StylePreset[] = [
   obsidianPreset as StylePreset,
   claudePreset as StylePreset,
   boulaylaPreset as StylePreset,
+  sequoiaPreset as StylePreset,
 ];
 
 interface Persisted {
