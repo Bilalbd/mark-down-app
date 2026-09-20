@@ -1,4 +1,4 @@
-import { useSettingsStore, type AppTheme, type SplitSide } from '@/store/settings';
+import { useSettingsStore, type AppTheme, type SplitSide, type ViewMode } from '@/store/settings';
 import { NumberInput, Row, Section, Select, Toggle } from './controls';
 
 export function GeneralTab() {
@@ -15,6 +15,17 @@ export function GeneralTab() {
               { value: 'system', label: 'Follow Windows' },
               { value: 'light', label: 'Light' },
               { value: 'dark', label: 'Dark' },
+            ]}
+          />
+        </Row>
+        <Row label="Default view">
+          <Select<ViewMode>
+            value={s.viewMode}
+            onChange={(v) => s.set('viewMode', v)}
+            options={[
+              { value: 'formatted', label: 'Formatted' },
+              { value: 'source', label: 'Source' },
+              { value: 'split', label: 'Split' },
             ]}
           />
         </Row>

@@ -3,9 +3,9 @@
   "name": "Sequoia",
   "builtin": true,
   "typography": {
-    "bodyFont": "Inter, ui-sans-serif, system-ui, 'Segoe UI', sans-serif",
+    "bodyFont": "Constantia, Cambria, Georgia, serif",
     "headingFont": "Rockwell, 'Rockwell Nova', 'Roboto Slab', serif",
-    "monoFont": "'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', monospace",
+    "monoFont": "Consolas, 'Cascadia Mono', monospace",
     "baseSize": 16,
     "lineHeight": 1.65,
     "contentWidth": 900,
@@ -15,35 +15,35 @@
   "headingScale": [1.9, 1.45, 1.2, 1.05, 1, 0.9],
   "colors": {
     "light": {
-      "bg": "#e4e0d5",
-      "text": "#241d18",
-      "heading": "#1c1712",
+      "bg": "#eeece7",
+      "text": "#2e2620",
+      "heading": "#241d18",
       "link": "#9c4a2c",
-      "muted": "#63594c",
-      "border": "#cec7b7",
-      "codeBg": "#d7d0c0",
-      "codeText": "#362d24",
-      "quoteBorder": "#3f6b4a",
-      "quoteText": "#4c4438",
-      "tableBorder": "#cec7b7",
-      "tableStripe": "#ece7db",
-      "hr": "#bdb5a2"
+      "muted": "#6b6255",
+      "border": "#d8d2c6",
+      "codeBg": "#e3ddd0",
+      "codeText": "#3a3128",
+      "quoteBorder": "#9c4a2c",
+      "quoteText": "#55493c",
+      "tableBorder": "#d8d2c6",
+      "tableStripe": "#f4f1ea",
+      "hr": "#c9c1b1"
     },
     "dark": {
-      "bg": "#0d0c0b",
-      "text": "#d9d4c6",
-      "heading": "#f2eee3",
-      "link": "#d3703f",
-      "muted": "#8a8272",
-      "border": "#29221c",
-      "codeBg": "#161210",
-      "codeText": "#d2c7b6",
-      "quoteBorder": "#4f7a56",
-      "quoteText": "#a89f8f",
-      "tableBorder": "#29221c",
-      "tableStripe": "#131110",
-      "hr": "#332a20"
+      "bg": "#201d1b",
+      "text": "#e8e4dc",
+      "heading": "#f2eee4",
+      "link": "#cf6b3f",
+      "muted": "#a39c8c",
+      "border": "#3a322a",
+      "codeBg": "#2a2420",
+      "codeText": "#d8cfc0",
+      "quoteBorder": "#8b4a3a",
+      "quoteText": "#b6ab98",
+      "tableBorder": "#3a322a",
+      "tableStripe": "#262019",
+      "hr": "#463c32"
     }
   },
-  "customCss": "/* Sequoia: black brushed aluminum, dark wood, giant sequoia bark and needles */\n.preview h1, .preview h2 { letter-spacing: -0.01em; }\n.preview h3, .preview h4 { letter-spacing: -0.005em; }\n.preview blockquote { border-left-width: 4px; font-style: italic; }\n.preview pre, .preview .code-block { border: 1px solid var(--md-border); }\n.preview :not(pre) > code { border: 1px solid var(--md-border); }\n.preview th { background: var(--md-code-bg); }\n.preview hr { height: 2px; border-top-width: 2px; opacity: 0.8; }\n"
+  "customCss": "/* Sequoia: black brushed aluminum, dark wood, giant sequoia bark */\n.preview h1, .preview h2 { letter-spacing: -0.01em; }\n.preview h3, .preview h4 { letter-spacing: -0.005em; }\n.preview blockquote { border-left-width: 4px; font-style: italic; }\n.preview pre, .preview .code-block { border: 1px solid var(--md-border); }\n.preview :not(pre) > code { border: 1px solid var(--md-border); }\n.preview th { background: var(--md-code-bg); }\n.preview hr { height: 2px; border-top-width: 2px; opacity: 0.8; }\n"
 }
