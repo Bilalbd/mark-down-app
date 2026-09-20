@@ -1,6 +1,14 @@
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
+import { emit } from '@tauri-apps/api/event';
 
 export const isTauri = (): boolean => '__TAURI_INTERNALS__' in window;
+
+/** Tells the Rust side the first frame has painted, so it can show the window
+ * (which starts hidden — see tauri.conf.json) without a blank-window flash. */
+export function emitAppReady(): void {
+  if (!isTauri()) return;
+  void emit('app-ready');
+}
 
 export interface FileData {
   content: string;

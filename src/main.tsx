@@ -4,6 +4,7 @@ import App from './App';
 import './styles/app-theme.css';
 import './styles/base.css';
 import 'katex/dist/katex.min.css';
+import { emitAppReady } from './lib/tauri';
 
 if (import.meta.env.DEV) {
   // Dev-only handles for driving the app from the browser console / automated checks.
@@ -29,3 +30,8 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <App />
   </React.StrictMode>,
 );
+
+// Two rAFs: the first fires before the browser paints the frame just rendered,
+// the second fires after — so the native window is only shown once there's
+// actually something on screen.
+requestAnimationFrame(() => requestAnimationFrame(emitAppReady));

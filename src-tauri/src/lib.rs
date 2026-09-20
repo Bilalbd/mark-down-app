@@ -1,6 +1,8 @@
 mod commands;
 mod watch;
 
+use tauri::{Listener, Manager};
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -17,6 +19,17 @@ pub fn run() {
             watch::watch_file,
             watch::unwatch_file
         ])
+        .setup(|app| {
+            // The window starts hidden (tauri.conf.json) so the native frame and
+            // tauri-plugin-window-state's geometry restore never paint a blank
+            // window; the frontend shows it once React has painted a first frame.
+            let window = app.get_webview_window("main").expect("main window exists");
+            app.handle().clone().listen("app-ready", move |_event| {
+                let _ = window.show();
+                let _ = window.set_focus();
+            });
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
