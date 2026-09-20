@@ -31,6 +31,7 @@ export function ExportMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const path = useDocumentStore((s) => s.path);
+  const hasDocument = useDocumentStore((s) => s.hasDocument);
   const theme = useResolvedTheme();
   const presets = useStyleStore((s) => s.presets);
   const activeId = useStyleStore((s) => s.activePresetId);
@@ -52,9 +53,9 @@ export function ExportMenu() {
   const exportHtml = async () => {
     setOpen(false);
     const preview = await ensurePreview();
-    if (!preview || !path) return;
+    if (!preview) return;
     const preset = presets.find((p) => p.id === activeId) ?? presets[0];
-    const title = basename(path).replace(/\.[^.]+$/, '');
+    const title = path ? basename(path).replace(/\.[^.]+$/, '') : 'Untitled';
     const html = buildExportHtml({ title, bodyHtml: preview.innerHTML, preset, theme });
     if (!isTauri()) {
       const blob = new Blob([html], { type: 'text/html' });
@@ -89,7 +90,7 @@ export function ExportMenu() {
         title="Export"
         aria-haspopup="menu"
         aria-expanded={open}
-        disabled={!path}
+        disabled={!hasDocument}
         onClick={() => setOpen((v) => !v)}
       >
         <svg

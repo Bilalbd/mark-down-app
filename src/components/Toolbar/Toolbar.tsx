@@ -43,7 +43,7 @@ function ThemeIcon({ theme }: { theme: AppTheme }) {
   );
 }
 
-export function Toolbar() {
+export function Toolbar({ onNew }: { onNew: () => void }) {
   const viewMode = useSettingsStore((s) => s.viewMode);
   const outlineVisible = useSettingsStore((s) => s.outlineVisible);
   const appTheme = useSettingsStore((s) => s.appTheme);
@@ -56,6 +56,20 @@ export function Toolbar() {
 
   return (
     <div className="toolbar">
+      <button className="toolbar__btn" title="New file (Ctrl+N)" onClick={onNew}>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        >
+          <path d="M9 1.5H3.5v13h9V5.5z" />
+          <path d="M9 1.5v4h3.5M6 9.5h4M8 7.5v4" />
+        </svg>
+      </button>
       <button
         className={`toolbar__btn ${outlineVisible ? 'is-active' : ''}`}
         title="Toggle outline (Ctrl+\)"
@@ -110,8 +124,11 @@ export function Toolbar() {
           stroke="currentColor"
           strokeWidth="1.5"
         >
-          <circle cx="8" cy="8" r="2" />
-          <path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" />
+          <circle cx="8" cy="8" r="2.2" />
+          <path
+            strokeLinejoin="round"
+            d="M6.9 1.5h2.2l.35 1.7a5 5 0 0 1 1.3.75l1.65-.55 1.1 1.9-1.3 1.15a5 5 0 0 1 0 1.5l1.3 1.15-1.1 1.9-1.65-.55a5 5 0 0 1-1.3.75l-.35 1.7H6.9l-.35-1.7a5 5 0 0 1-1.3-.75l-1.65.55-1.1-1.9 1.3-1.15a5 5 0 0 1 0-1.5L2.5 5.3l1.1-1.9 1.65.55a5 5 0 0 1 1.3-.75z"
+          />
         </svg>
       </button>
     </div>

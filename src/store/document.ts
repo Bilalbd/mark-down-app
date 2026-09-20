@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { open as openDialog } from '@tauri-apps/plugin-dialog';
+import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialog';
 import { askSaveChanges } from '@/components/Dialog/ConfirmDialog';
 import {
   allowAssetDir,
@@ -7,6 +7,7 @@ import {
   dirname,
   isTauri,
   readFile,
+  unwatchFile,
   watchFile,
   writeFile,
   type FileChangedEvent,
@@ -15,7 +16,10 @@ import {
 export type ExternalChange = 'modified' | 'removed' | null;
 
 export interface DocumentState {
+  /** Absolute path, or null for a new document that has not been saved yet. */
   path: string | null;
+  /** True once a document (opened or new) is loaded and the editor should be shown. */
+  hasDocument: boolean;
   content: string;
   savedContent: string;
   mtime: number;
@@ -30,6 +34,10 @@ export interface DocumentState {
   open: (path: string) => Promise<boolean>;
   /** Show the OS open dialog. */
   openWithDialog: () => Promise<void>;
+  /** Start a new, unsaved document (prompts if the current one has unsaved changes). */
+  newDocument: () => Promise<boolean>;
+  /** Save to a location chosen in the OS dialog. */
+  saveAs: () => Promise<boolean>;
   /** Re-read the current file from disk (used by live reload). */
   reload: () => Promise<void>;
   setContent: (content: string) => void;
@@ -46,6 +54,7 @@ export const isDirty = (s: Pick<DocumentState, 'content' | 'savedContent'>) =>
 
 export const useDocumentStore = create<DocumentState>((set, get) => ({
   path: null,
+  hasDocument: false,
   content: '',
   savedContent: '',
   mtime: 0,
@@ -66,7 +75,15 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     try {
       const { content, mtime } = await readFile(path);
       await allowAssetDir(dirname(path)).catch(() => undefined);
-      set({ path, content, savedContent: content, mtime, error: null, externalChange: null });
+      set({
+        path,
+        hasDocument: true,
+        content,
+        savedContent: content,
+        mtime,
+        error: null,
+        externalChange: null,
+      });
       await watchFile(path).catch(() => undefined);
       return true;
     } catch (e) {
@@ -83,6 +100,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         const content = await file.text();
         set({
           path: file.name,
+          hasDocument: true,
           content,
           savedContent: content,
           mtime: file.lastModified,
@@ -103,6 +121,44 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     if (typeof selected === 'string') await get().open(selected);
   },
 
+  newDocument: async () => {
+    if (!(await get().confirmDiscard())) return false;
+    if (isTauri()) await unwatchFile().catch(() => undefined);
+    set({
+      path: null,
+      hasDocument: true,
+      content: '',
+      savedContent: '',
+      mtime: 0,
+      error: null,
+      externalChange: null,
+    });
+    return true;
+  },
+
+  saveAs: async () => {
+    if (!isTauri()) return false;
+    const target = await saveDialog({
+      defaultPath: get().path ?? 'Untitled.md',
+      filters: [
+        { name: 'Markdown', extensions: ['md'] },
+        { name: 'All files', extensions: ['*'] },
+      ],
+    });
+    if (!target) return false;
+    const { content } = get();
+    try {
+      const mtime = await writeFile(target, content);
+      set({ path: target, savedContent: content, mtime, error: null, externalChange: null });
+      await allowAssetDir(dirname(target)).catch(() => undefined);
+      await watchFile(target).catch(() => undefined);
+      return true;
+    } catch (e) {
+      set({ error: `Could not save: ${String(e)}` });
+      return false;
+    }
+  },
+
   reload: async () => {
     const { path } = get();
     if (!path) return;
@@ -117,8 +173,9 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   setContent: (content) => set({ content }),
 
   save: async () => {
-    const { path, content } = get();
-    if (!path) return false;
+    const { path, content, hasDocument } = get();
+    if (!hasDocument) return false;
+    if (!path) return get().saveAs();
     try {
       const mtime = await writeFile(path, content);
       set({ savedContent: content, mtime, error: null, externalChange: null });

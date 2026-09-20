@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
@@ -33,6 +33,8 @@ export default function App() {
   const previewZoom = useSettingsStore((s) => s.previewZoom);
 
   const path = useDocumentStore((s) => s.path);
+  const hasDocument = useDocumentStore((s) => s.hasDocument);
+  const newDocument = useDocumentStore((s) => s.newDocument);
   const content = useDocumentStore((s) => s.content);
   const setHeadings = useViewStore((s) => s.setHeadings);
   const dirty = useDocumentStore(isDirty);
@@ -108,9 +110,15 @@ export default function App() {
     return () => unlisten?.();
   }, [confirmDiscard]);
 
+  // New note: blank document straight into Source mode so typing can start immediately.
+  const createNew = useCallback(async () => {
+    if (await newDocument()) set('viewMode', 'source');
+  }, [newDocument, set]);
+
   const shortcuts = useMemo(
     () => ({
       'ctrl+o': () => void openWithDialog(),
+      'ctrl+n': () => void createNew(),
       'ctrl+s': () => void save(),
       'ctrl+e': () => set('viewMode', viewMode === 'source' ? 'formatted' : 'source'),
       'ctrl+shift+e': () => set('viewMode', viewMode === 'split' ? 'formatted' : 'split'),
@@ -123,6 +131,7 @@ export default function App() {
     }),
     [
       openWithDialog,
+      createNew,
       save,
       set,
       viewMode,
@@ -134,12 +143,15 @@ export default function App() {
   );
   useShortcuts(shortcuts);
 
-  const hasDoc = path !== null;
+  const hasDoc = hasDocument;
 
   return (
     <div className={`app ${dragOver ? 'is-drag-over' : ''}`}>
-      <TitleBar fileName={path ? basename(path) : undefined} dirty={dirty} />
-      <Toolbar />
+      <TitleBar
+        fileName={path ? basename(path) : hasDocument ? 'Untitled' : undefined}
+        dirty={dirty}
+      />
+      <Toolbar onNew={() => void createNew()} />
       {error && (
         <div className="banner banner--error" role="alert">
           {error}
@@ -176,6 +188,12 @@ export default function App() {
                   Ctrl+O
                 </button>{' '}
                 or drop a file here
+              </p>
+              <p className="empty-state__hint">
+                <button className="link-button" onClick={() => void createNew()}>
+                  Ctrl+N
+                </button>{' '}
+                to start a new note
               </p>
             </div>
           ) : viewMode === 'formatted' ? (

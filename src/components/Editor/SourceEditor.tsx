@@ -90,6 +90,7 @@ export function SourceEditor() {
     });
     viewRef.current = view;
     setEditorView(view);
+    view.focus();
 
     // Restore the position the other view was at.
     const initial = useViewStore.getState().topLine;
