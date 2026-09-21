@@ -31,6 +31,7 @@ export default function App() {
   const viewMode = useSettingsStore((s) => s.viewMode);
   const outlineVisible = useSettingsStore((s) => s.outlineVisible);
   const previewZoom = useSettingsStore((s) => s.previewZoom);
+  const recentFiles = useSettingsStore((s) => s.recentFiles);
 
   const path = useDocumentStore((s) => s.path);
   const hasDocument = useDocumentStore((s) => s.hasDocument);
@@ -195,6 +196,24 @@ export default function App() {
                 </button>{' '}
                 to start a new note
               </p>
+              {recentFiles.length > 0 && (
+                <div className="empty-state__recent">
+                  <p className="empty-state__recent-title">Recent</p>
+                  <ul className="empty-state__recent-list">
+                    {recentFiles.map((path) => (
+                      <li key={path}>
+                        <button
+                          className="link-button"
+                          title={path}
+                          onClick={() => void openFile(path)}
+                        >
+                          {basename(path)}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           ) : viewMode === 'formatted' ? (
             <Preview />
