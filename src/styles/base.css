@@ -62,6 +62,29 @@ button:focus-visible {
   opacity: 0.7;
 }
 
+.empty-state__recent {
+  margin-top: 28px;
+  text-align: center;
+}
+
+.empty-state__recent-title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.55;
+}
+
+.empty-state__recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
 .app.is-drag-over .app__content {
   outline: 2px dashed var(--accent);
   outline-offset: -6px;

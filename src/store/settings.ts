@@ -16,7 +16,11 @@ export interface Settings {
   splitRatio: number;
   /** Which side the source editor sits on in Split view. */
   splitEditorSide: SplitSide;
+  /** Absolute paths of the most recently opened files, newest first. */
+  recentFiles: string[];
 }
+
+const MAX_RECENT_FILES = 5;
 
 /**
  * Settings that live in memory and change during a session but are never written to
@@ -35,12 +39,15 @@ const DEFAULTS: Settings = {
   editorFontSize: 14,
   splitRatio: 0.5,
   splitEditorSide: 'left',
+  recentFiles: [],
 };
 
 interface SettingsState extends Settings {
   loaded: boolean;
   load: () => Promise<void>;
   set: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
+  /** Moves `path` to the front of recentFiles, deduped and capped. */
+  addRecentFile: (path: string) => void;
 }
 
 let store: Store | null = null;
@@ -81,5 +88,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ [key]: value } as Partial<Settings>);
     if (EPHEMERAL_KEYS.has(key)) return;
     void getStore().then((s) => s?.set(key, value));
+  },
+
+  addRecentFile: (path) => {
+    const next = [path, ...get().recentFiles.filter((p) => p !== path)].slice(
+      0,
+      MAX_RECENT_FILES,
+    );
+    get().set('recentFiles', next);
   },
 }));

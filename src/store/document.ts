@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialog';
 import { askSaveChanges } from '@/components/Dialog/ConfirmDialog';
+import { useSettingsStore } from '@/store/settings';
 import {
   allowAssetDir,
   basename,
@@ -85,6 +86,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         externalChange: null,
       });
       await watchFile(path).catch(() => undefined);
+      useSettingsStore.getState().addRecentFile(path);
       return true;
     } catch (e) {
       set({ error: `Could not open ${basename(path)}: ${String(e)}` });
@@ -152,6 +154,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       set({ path: target, savedContent: content, mtime, error: null, externalChange: null });
       await allowAssetDir(dirname(target)).catch(() => undefined);
       await watchFile(target).catch(() => undefined);
+      useSettingsStore.getState().addRecentFile(target);
       return true;
     } catch (e) {
       set({ error: `Could not save: ${String(e)}` });
