@@ -8,6 +8,7 @@ import { dirname, isTauri, toAssetUrl } from '@/lib/tauri';
 import { useDocumentStore } from '@/store/document';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
+import { openPath } from '@/store/tabs';
 import './Preview.css';
 
 const RENDER_DEBOUNCE_MS = 150;
@@ -133,7 +134,7 @@ export function Preview() {
         else window.open(href, '_blank', 'noopener');
         return;
       case 'markdown':
-        void useDocumentStore.getState().open(classification.path);
+        void openPath(classification.path);
         return;
       case 'file':
         if (isTauri()) void revealItemInDir(classification.path);

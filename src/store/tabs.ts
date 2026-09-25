@@ -5,6 +5,7 @@ import {
   isDirty,
   nextLoadId,
   pickDocFields,
+  setOpenHandler,
   setSaveTargetGuard,
   useDocumentStore,
 } from '@/store/document';
@@ -437,7 +438,7 @@ export const useTabsStore = create<TabsState>((set, get) => ({
   },
 }));
 
-// Set up save-target guard (activeId is initialized in create)
+// Set up save-target guard and open handler (activeId is initialized in create)
 setSaveTargetGuard((target) => {
   const state = useTabsStore.getState();
   const inactiveTab = state.tabs.find(
@@ -462,3 +463,63 @@ setSaveTargetGuard((target) => {
   });
   return 'ok';
 });
+
+// Install openPath as the handler for openWithDialog
+setOpenHandler(openPath);
+
+/** Returns true if any tab has unsaved changes (active or snapshot). */
+export function hasUnsavedTabs(): boolean {
+  const state = useTabsStore.getState();
+  const activeDoc = useDocumentStore.getState();
+
+  // Check active tab
+  if (isDirty(activeDoc)) {
+    return true;
+  }
+
+  // Check snapshots
+  for (const tab of state.tabs) {
+    if (tab.snapshot && isDirty(tab.snapshot.doc)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/** Opens `path` the way the "Open files in" setting says: as a tab, or replacing the current document. */
+export async function openPath(path: string): Promise<boolean> {
+  const openFilesIn = useSettingsStore.getState().openFilesIn;
+
+  if (openFilesIn === 'tab') {
+    return useTabsStore.getState().openInTab(path);
+  }
+
+  // window mode
+  // Check if already open in another tab
+  const existingId = findTabByPath(
+    useTabsStore.getState().tabs.map((t) => ({ id: t.id, path: pathOf(t) })),
+    path,
+  );
+  if (existingId) {
+    await useTabsStore.getState().activate(existingId);
+    return true;
+  }
+
+  // Not open: replace the active document
+  return useDocumentStore.getState().open(path);
+}
+
+/** Creates a new document the way the "Open files in" setting says: new tab or replace current. */
+export async function newDocumentPerSetting(): Promise<void> {
+  const openFilesIn = useSettingsStore.getState().openFilesIn;
+
+  if (openFilesIn === 'tab') {
+    await useTabsStore.getState().newTab();
+  } else {
+    // window mode
+    if (await useDocumentStore.getState().newDocument()) {
+      useSettingsStore.getState().set('viewMode', 'source');
+    }
+  }
+}

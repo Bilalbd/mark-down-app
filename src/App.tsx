@@ -18,7 +18,7 @@ import { basename, emitAppReady, getLaunchArgs, isTauri, type FileChangedEvent }
 import { cycleIndex, samePath } from './lib/tabs';
 import { useSettingsStore } from './store/settings';
 import { isDirty, useDocumentStore } from './store/document';
-import { useTabsStore } from './store/tabs';
+import { hasUnsavedTabs, newDocumentPerSetting, openPath, useTabsStore } from './store/tabs';
 import { useStyleStore } from './store/style';
 import { extractHeadings } from './markdown/render';
 import { useViewStore } from './store/view';
@@ -37,15 +37,12 @@ export default function App() {
 
   const path = useDocumentStore((s) => s.path);
   const hasDocument = useDocumentStore((s) => s.hasDocument);
-  const newDocument = useDocumentStore((s) => s.newDocument);
   const content = useDocumentStore((s) => s.content);
   const setHeadings = useViewStore((s) => s.setHeadings);
   const dirty = useDocumentStore(isDirty);
   const error = useDocumentStore((s) => s.error);
-  const openFile = useDocumentStore((s) => s.open);
   const openWithDialog = useDocumentStore((s) => s.openWithDialog);
   const save = useDocumentStore((s) => s.save);
-  const confirmDiscard = useDocumentStore((s) => s.confirmDiscard);
   const externalChange = useDocumentStore((s) => s.externalChange);
   const onFileChanged = useDocumentStore((s) => s.onFileChanged);
   const reload = useDocumentStore((s) => s.reload);
@@ -63,10 +60,10 @@ export default function App() {
     void (async () => {
       await Promise.all([loadSettings(), loadStyles()]);
       const arg = await getLaunchArgs();
-      if (arg) await openFile(arg);
+      if (arg) await openPath(arg);
       requestAnimationFrame(() => requestAnimationFrame(emitAppReady));
     })();
-  }, [loadSettings, loadStyles, openFile]);
+  }, [loadSettings, loadStyles]);
 
   // Drag & drop from Explorer (Tauri-native event; browser DnD is disabled by dragDropEnabled).
   useEffect(() => {
@@ -78,13 +75,22 @@ export default function App() {
         else if (e.payload.type === 'leave') setDragOver(false);
         else if (e.payload.type === 'drop') {
           setDragOver(false);
-          const first = e.payload.paths[0];
-          if (first) void openFile(first);
+          const openFilesIn = useSettingsStore.getState().openFilesIn;
+          if (openFilesIn === 'tab') {
+            // Open all dropped files as tabs
+            for (const path of e.payload.paths) {
+              void openPath(path);
+            }
+          } else {
+            // Window mode: open first file only
+            const first = e.payload.paths[0];
+            if (first) void openPath(first);
+          }
         }
       })
       .then((u) => (unlisten = u));
     return () => unlisten?.();
-  }, [openFile]);
+  }, []);
 
   // Outline headings come from a cheap headings-only parse so the outline works in every view.
   useEffect(() => {
@@ -114,18 +120,18 @@ export default function App() {
     let unlisten: (() => void) | undefined;
     void win
       .onCloseRequested(async (e) => {
-        if (!isDirty(useDocumentStore.getState())) return;
+        if (!hasUnsavedTabs()) return;
         e.preventDefault();
-        if (await confirmDiscard()) await win.destroy();
+        if (await useTabsStore.getState().confirmCloseAll()) await win.destroy();
       })
       .then((u) => (unlisten = u));
     return () => unlisten?.();
-  }, [confirmDiscard]);
+  }, []);
 
   // New note: blank document straight into Source mode so typing can start immediately.
   const createNew = useCallback(async () => {
-    if (await newDocument()) set('viewMode', 'source');
-  }, [newDocument, set]);
+    await newDocumentPerSetting();
+  }, []);
 
   const zoomIn = useCallback(
     () => set('previewZoom', Math.min(3, +(previewZoom + 0.1).toFixed(2))),
@@ -366,7 +372,7 @@ export default function App() {
                         <button
                           className="link-button"
                           title={path}
-                          onClick={() => void openFile(path)}
+                          onClick={() => void openPath(path)}
                         >
                           {basename(path)}
                         </button>

@@ -1,4 +1,4 @@
-import { useSettingsStore, type AppTheme, type SplitSide } from '@/store/settings';
+import { useSettingsStore, type AppTheme, type OpenFilesIn, type SplitSide } from '@/store/settings';
 import { NumberInput, Row, Section, Select, Toggle } from './controls';
 
 export function GeneralTab() {
@@ -7,6 +7,16 @@ export function GeneralTab() {
   return (
     <>
       <Section title="Application">
+        <Row label="Open files in" hint="Also applies to files opened from Explorer">
+          <Select<OpenFilesIn>
+            value={s.openFilesIn}
+            onChange={(v) => s.set('openFilesIn', v)}
+            options={[
+              { value: 'tab', label: 'New tab' },
+              { value: 'window', label: 'New window' },
+            ]}
+          />
+        </Row>
         <Row label="Theme">
           <Select<AppTheme>
             value={s.appTheme}

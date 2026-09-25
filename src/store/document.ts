@@ -128,6 +128,16 @@ export function setSaveTargetGuard(guard: SaveTargetGuard): void {
   saveTargetGuard = guard;
 }
 
+/** Handles opening files; the tabs store installs the implementation that respects the setting. */
+export type OpenHandler = (path: string) => Promise<boolean>;
+let openHandler: OpenHandler = async (path) => {
+  return useDocumentStore.getState().open(path);
+};
+/** Installs the handler that `openWithDialog` uses for each selected file (see the tabs store). */
+export function setOpenHandler(handler: OpenHandler): void {
+  openHandler = handler;
+}
+
 export const useDocumentStore = create<DocumentState>((set, get) => ({
   ...EMPTY_DOC,
 
@@ -202,14 +212,18 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       return;
     }
     const selected = await openDialog({
-      multiple: false,
+      multiple: useSettingsStore.getState().openFilesIn === 'tab',
       directory: false,
       filters: [
         { name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd', 'txt'] },
         { name: 'All files', extensions: ['*'] },
       ],
     });
-    if (typeof selected === 'string') await get().open(selected);
+    if (!selected) return;
+    const paths = Array.isArray(selected) ? selected : [selected];
+    for (const path of paths) {
+      await openHandler(path);
+    }
   },
 
   newDocument: async () => {

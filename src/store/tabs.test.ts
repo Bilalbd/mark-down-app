@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useDocumentStore } from '@/store/document';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
-import { useTabsStore } from '@/store/tabs';
+import { hasUnsavedTabs, newDocumentPerSetting, openPath, useTabsStore } from '@/store/tabs';
 
 const mockReadFile = vi.fn();
 const mockWriteFile = vi.fn();
@@ -447,5 +447,110 @@ describe('tabs store', () => {
 
     expect(mockReadFile).toHaveBeenCalledWith('C:\\docs\\A.md');
     expect(useDocumentStore.getState().content).toBe('# Reloaded A');
+  });
+
+  it('hasUnsavedTabs: false when clean', () => {
+    expect(hasUnsavedTabs()).toBe(false);
+  });
+
+  it('hasUnsavedTabs: true when active tab dirty', () => {
+    useDocumentStore.getState().setContent('edited');
+    expect(hasUnsavedTabs()).toBe(true);
+  });
+
+  it('hasUnsavedTabs: true when snapshot tab dirty', async () => {
+    await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+    useDocumentStore.getState().setContent('A content');
+
+    await useTabsStore.getState().openInTab('C:\\docs\\B.md');
+
+    // Now A tab is inactive. Mark it dirty by setting content and checking state
+    useTabsStore.setState({
+      tabs: useTabsStore.getState().tabs.map((t) =>
+        t.snapshot && t.snapshot.doc.path === 'C:\\docs\\A.md'
+          ? {
+              ...t,
+              snapshot: { ...t.snapshot, doc: { ...t.snapshot.doc, content: 'A edited' } },
+            }
+          : t,
+      ),
+    });
+
+    expect(hasUnsavedTabs()).toBe(true);
+  });
+
+  it('openPath in tab mode opens a second tab', async () => {
+    useSettingsStore.setState({ openFilesIn: 'tab' });
+
+    const ok = await openPath('C:\\docs\\A.md');
+
+    expect(ok).toBe(true);
+    expect(useTabsStore.getState().tabs).toHaveLength(1);
+    expect(useDocumentStore.getState().path).toBe('C:\\docs\\A.md');
+  });
+
+  it('openPath in window mode replaces active document', async () => {
+    useSettingsStore.setState({ openFilesIn: 'window' });
+
+    mockAskSaveChanges.mockResolvedValueOnce('discard');
+
+    await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+    const tabCountBefore = useTabsStore.getState().tabs.length;
+
+    const ok = await openPath('C:\\docs\\B.md');
+
+    expect(ok).toBe(true);
+    expect(useTabsStore.getState().tabs).toHaveLength(tabCountBefore);
+    expect(useDocumentStore.getState().path).toBe('C:\\docs\\B.md');
+  });
+
+  it('openPath in window mode with file already open in another tab, activates that tab', async () => {
+    useSettingsStore.setState({ openFilesIn: 'window' });
+
+    await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+    await useTabsStore.getState().openInTab('C:\\docs\\B.md');
+    const bId = useTabsStore.getState().activeId;
+
+    // Back to A
+    const aId = useTabsStore.getState().tabs[0].id;
+    await useTabsStore.getState().activate(aId);
+
+    // Open B path (should activate existing tab)
+    const ok = await openPath('C:\\docs\\B.md');
+
+    expect(ok).toBe(true);
+    expect(useTabsStore.getState().activeId).toBe(bId);
+    expect(useDocumentStore.getState().path).toBe('C:\\docs\\B.md');
+  });
+
+  it('newDocumentPerSetting in tab mode creates new tab in source view', async () => {
+    useSettingsStore.setState({ openFilesIn: 'tab' });
+
+    await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+    useSettingsStore.getState().set('viewMode', 'formatted');
+
+    await newDocumentPerSetting();
+
+    expect(useTabsStore.getState().tabs).toHaveLength(2);
+    expect(useDocumentStore.getState().path).toBeNull();
+    expect(useDocumentStore.getState().hasDocument).toBe(true);
+    expect(useSettingsStore.getState().viewMode).toBe('source');
+  });
+
+  it('newDocumentPerSetting in window mode replaces current document and sets source view', async () => {
+    useSettingsStore.setState({ openFilesIn: 'window' });
+
+    mockAskSaveChanges.mockResolvedValueOnce('discard');
+
+    await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+    useSettingsStore.getState().set('viewMode', 'formatted');
+    const tabCountBefore = useTabsStore.getState().tabs.length;
+
+    await newDocumentPerSetting();
+
+    expect(useTabsStore.getState().tabs).toHaveLength(tabCountBefore);
+    expect(useDocumentStore.getState().path).toBeNull();
+    expect(useDocumentStore.getState().hasDocument).toBe(true);
+    expect(useSettingsStore.getState().viewMode).toBe('source');
   });
 });
