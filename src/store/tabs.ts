@@ -36,19 +36,19 @@ export interface Tab {
 interface TabsState {
   tabs: Tab[];
   activeId: string;
-  /** Open a file by path, activating an existing tab or creating a new one. */
+  /** Opens `path` in a new tab, or focuses it if already open, or loads it into a blank active tab. */
   openInTab: (path: string) => Promise<boolean>;
-  /** Create a new blank tab or new document if none is open. */
+  /** Creates a new blank tab, or a new unsaved document if showing the start screen. */
   newTab: () => Promise<void>;
-  /** Activate a tab by id. */
+  /** Activates a tab by id, capturing and swapping its state. */
   activate: (id: string) => Promise<void>;
-  /** Close a tab, prompting about unsaved changes. Returns false if cancelled. */
+  /** Closes a tab by id, asking about unsaved changes if dirty. Returns false if cancelled. */
   close: (id: string) => Promise<boolean>;
-  /** Ask about unsaved changes on each dirty tab in order. Returns false if cancelled. */
+  /** Iterates through all tabs, asking about each dirty one; returns false if any cancelled. Does not remove tabs. */
   confirmCloseAll: () => Promise<boolean>;
-  /** Move a tab from one position to another. */
+  /** Reorders tabs by moving the one at `from` to position `to`. */
   move: (from: number, to: number) => void;
-  /** Handle a file-change event for an inactive tab. */
+  /** Updates an inactive tab's snapshot when its file changes on disk. */
   onInactiveFileChanged: (e: FileChangedEvent) => void;
 }
 
@@ -76,11 +76,15 @@ function captureActive(): TabSnapshot {
   };
 }
 
-/** Puts a snapshot on screen. */
-async function showSnapshot(snap: TabSnapshot): Promise<void> {
+/** Asynchronously applies the asset root for a path (must happen before swapIn to avoid edit window). */
+async function applyAssetRoot(path: string | null): Promise<void> {
   if (isTauri()) {
-    await setAssetRoot(snap.doc.path ? dirname(snap.doc.path) : null).catch(() => undefined);
+    await setAssetRoot(path ? dirname(path) : null).catch(() => undefined);
   }
+}
+
+/** Synchronously swaps a snapshot into the live document and UI stores (no awaits). */
+function swapIn(snap: TabSnapshot): void {
   useViewStore.getState().setFindOpen(false);
   useViewStore.getState().setTopLine(snap.topLine);
   useDocumentStore.setState(snap.doc);
@@ -88,20 +92,28 @@ async function showSnapshot(snap: TabSnapshot): Promise<void> {
   if (snap.topLine > 0) {
     useViewStore.getState().requestScrollToLine(snap.topLine);
   }
-  if (snap.needsReload && !isDirty(snap.doc)) {
-    await useDocumentStore.getState().reload();
-  }
 }
 
+/** Immutably update one tab's snapshot. */
+function updateSnapshot(tabs: Tab[], tabId: string, fn: (snap: TabSnapshot) => TabSnapshot): Tab[] {
+  return tabs.map((t) =>
+    t.id === tabId && t.snapshot ? { id: t.id, snapshot: fn(t.snapshot) } : t,
+  );
+}
+
+const firstTabId = newTabId();
+
 export const useTabsStore = create<TabsState>((set, get) => ({
-  tabs: [{ id: newTabId(), snapshot: null }],
-  activeId: '',
+  tabs: [{ id: firstTabId, snapshot: null }],
+  activeId: firstTabId,
 
   activate: async (id) => {
     const state = get();
     if (id === state.activeId) return;
     const incomingTab = state.tabs.find((t) => t.id === id);
     if (!incomingTab || incomingTab.snapshot === null) return;
+
+    await applyAssetRoot(incomingTab.snapshot.doc.path);
 
     const outgoing = captureActive();
     const activeIdx = state.tabs.findIndex((t) => t.id === state.activeId);
@@ -116,7 +128,11 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       activeId: id,
     });
 
-    await showSnapshot(incomingTab.snapshot);
+    swapIn(incomingTab.snapshot);
+
+    if (incomingTab.snapshot.needsReload && !isDirty(incomingTab.snapshot.doc)) {
+      await useDocumentStore.getState().reload();
+    }
   },
 
   openInTab: async (path) => {
@@ -143,6 +159,15 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     }
 
     // Create new tab after active one
+    const newBlankSnapshot: TabSnapshot = {
+      doc: { ...EMPTY_DOC, loadId: nextLoadId() },
+      viewMode: 'formatted',
+      topLine: 0,
+      needsReload: false,
+    };
+
+    await applyAssetRoot(null);
+
     const outgoing = captureActive();
     const activeIdx = state.tabs.findIndex((t) => t.id === state.activeId);
     const newId = newTabId();
@@ -157,12 +182,7 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       activeId: newId,
     });
 
-    await showSnapshot({
-      doc: { ...EMPTY_DOC, loadId: nextLoadId() },
-      viewMode: 'formatted',
-      topLine: 0,
-      needsReload: false,
-    });
+    swapIn(newBlankSnapshot);
 
     const ok = await useDocumentStore.getState().load(path);
     if (ok) {
@@ -180,7 +200,8 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     });
 
     if (previousTab.snapshot) {
-      await showSnapshot(previousTab.snapshot);
+      await applyAssetRoot(previousTab.snapshot.doc.path);
+      swapIn(previousTab.snapshot);
     }
 
     useDocumentStore.setState({ error });
@@ -198,6 +219,15 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     }
 
     // Add tab after active one
+    const newBlankSnapshot: TabSnapshot = {
+      doc: { ...EMPTY_DOC, hasDocument: true, loadId: nextLoadId() },
+      viewMode: 'source',
+      topLine: 0,
+      needsReload: false,
+    };
+
+    await applyAssetRoot(null);
+
     const state = get();
     const outgoing = captureActive();
     const activeIdx = state.tabs.findIndex((t) => t.id === state.activeId);
@@ -213,12 +243,7 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       activeId: newId,
     });
 
-    await showSnapshot({
-      doc: { ...EMPTY_DOC, hasDocument: true, loadId: nextLoadId() },
-      viewMode: 'source',
-      topLine: 0,
-      needsReload: false,
-    });
+    swapIn(newBlankSnapshot);
   },
 
   close: async (id) => {
@@ -251,38 +276,49 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     }
 
     const closingPath = useDocumentStore.getState().path;
-    const ids = state.tabs.map((t) => t.id);
-    const next = nextActiveAfterClose(ids, id, state.activeId);
+    const currentState = get();
+    const currentTabs = currentState.tabs;
+    const ids = currentTabs.map((t) => t.id);
+    const next = nextActiveAfterClose(ids, id, currentState.activeId);
 
     if (next) {
-      const nextTab = state.tabs.find((t) => t.id === next);
+      const nextTab = currentTabs.find((t) => t.id === next);
       if (nextTab?.snapshot) {
+        await applyAssetRoot(nextTab.snapshot.doc.path);
+
         set({
-          tabs: state.tabs.filter((t) => t.id !== id),
+          tabs: currentTabs.filter((t) => t.id !== id),
           activeId: next,
         });
+
         set((s) => ({
           tabs: s.tabs.map((t) => (t.id === next ? { ...t, snapshot: null } : t)),
         }));
-        await showSnapshot(nextTab.snapshot);
+
+        swapIn(nextTab.snapshot);
+
+        if (nextTab.snapshot.needsReload && !isDirty(nextTab.snapshot.doc)) {
+          await useDocumentStore.getState().reload();
+        }
       }
     } else {
       // Last tab: show start screen
-      set({
-        tabs: [{ id: newTabId(), snapshot: null }],
-        activeId: '',
-      });
-
-      await showSnapshot({
+      const newTabId_ = newTabId();
+      const startScreenSnapshot: TabSnapshot = {
         doc: { ...EMPTY_DOC, loadId: nextLoadId() },
         viewMode: 'formatted',
         topLine: 0,
         needsReload: false,
+      };
+
+      await applyAssetRoot(null);
+
+      set({
+        tabs: [{ id: newTabId_, snapshot: null }],
+        activeId: newTabId_,
       });
 
-      set((s) => ({
-        activeId: s.tabs[0].id,
-      }));
+      swapIn(startScreenSnapshot);
     }
 
     if (closingPath) {
@@ -293,9 +329,14 @@ export const useTabsStore = create<TabsState>((set, get) => ({
 
   confirmCloseAll: async () => {
     const state = get();
+    const tabIds = state.tabs.map((t) => t.id);
 
-    for (const tab of state.tabs) {
-      const isActive = tab.id === state.activeId;
+    for (const tabId of tabIds) {
+      const currentState = get();
+      const tab = currentState.tabs.find((t) => t.id === tabId);
+      if (!tab) continue;
+
+      const isActive = tabId === currentState.activeId;
       const isDirtyTab = isActive
         ? isDirty(useDocumentStore.getState())
         : tab.snapshot
@@ -304,7 +345,7 @@ export const useTabsStore = create<TabsState>((set, get) => ({
 
       if (isDirtyTab) {
         if (!isActive) {
-          await get().activate(tab.id);
+          await get().activate(tabId);
         }
         if (!(await useDocumentStore.getState().confirmDiscard())) {
           return false;
@@ -336,19 +377,10 @@ export const useTabsStore = create<TabsState>((set, get) => ({
 
     if (e.removed) {
       set({
-        tabs: state.tabs.map((t) =>
-          t.id === tabId && t.snapshot
-            ? {
-                id: t.id,
-                snapshot: {
-                  doc: { ...t.snapshot.doc, externalChange: 'removed' },
-                  viewMode: t.snapshot.viewMode,
-                  topLine: t.snapshot.topLine,
-                  needsReload: t.snapshot.needsReload,
-                },
-              }
-            : t,
-        ),
+        tabs: updateSnapshot(state.tabs, tabId, (s) => ({
+          ...s,
+          doc: { ...s.doc, externalChange: 'removed' },
+        })),
       });
       return;
     }
@@ -359,67 +391,44 @@ export const useTabsStore = create<TabsState>((set, get) => ({
 
     if (isDirty(snapshot.doc)) {
       set({
-        tabs: state.tabs.map((t) =>
-          t.id === tabId && t.snapshot
-            ? {
-                id: t.id,
-                snapshot: {
-                  doc: { ...t.snapshot.doc, externalChange: 'modified' },
-                  viewMode: t.snapshot.viewMode,
-                  topLine: t.snapshot.topLine,
-                  needsReload: t.snapshot.needsReload,
-                },
-              }
-            : t,
-        ),
+        tabs: updateSnapshot(state.tabs, tabId, (s) => ({
+          ...s,
+          doc: { ...s.doc, externalChange: 'modified' },
+        })),
       });
     } else {
       set({
-        tabs: state.tabs.map((t) =>
-          t.id === tabId && t.snapshot
-            ? {
-                id: t.id,
-                snapshot: {
-                  doc: t.snapshot.doc,
-                  viewMode: t.snapshot.viewMode,
-                  topLine: t.snapshot.topLine,
-                  needsReload: true,
-                },
-              }
-            : t,
-        ),
+        tabs: updateSnapshot(state.tabs, tabId, (s) => ({
+          ...s,
+          needsReload: true,
+        })),
       });
     }
   },
 }));
 
-// Initialize the first tab's id and set up save-target guard
-{
-  const initialId = useTabsStore.getState().tabs[0].id;
-  useTabsStore.setState({ activeId: initialId });
+// Set up save-target guard (activeId is initialized in create)
+setSaveTargetGuard((target) => {
+  const state = useTabsStore.getState();
+  const inactiveTab = state.tabs.find(
+    (t) =>
+      t.snapshot !== null &&
+      t.id !== state.activeId &&
+      t.snapshot.doc.path &&
+      samePath(t.snapshot.doc.path, target),
+  );
 
-  setSaveTargetGuard((target) => {
-    const state = useTabsStore.getState();
-    const inactiveTab = state.tabs.find(
-      (t) =>
-        t.snapshot !== null &&
-        t.id !== state.activeId &&
-        t.snapshot.doc.path &&
-        samePath(t.snapshot.doc.path, target),
-    );
-
-    if (!inactiveTab || !inactiveTab.snapshot) {
-      return 'ok';
-    }
-
-    if (isDirty(inactiveTab.snapshot.doc)) {
-      return 'blocked';
-    }
-
-    // Clean tab: remove it
-    useTabsStore.setState({
-      tabs: state.tabs.filter((t) => t.id !== inactiveTab.id),
-    });
+  if (!inactiveTab || !inactiveTab.snapshot) {
     return 'ok';
+  }
+
+  if (isDirty(inactiveTab.snapshot.doc)) {
+    return 'blocked';
+  }
+
+  // Clean tab: remove it
+  useTabsStore.setState({
+    tabs: state.tabs.filter((t) => t.id !== inactiveTab.id),
   });
-}
+  return 'ok';
+});

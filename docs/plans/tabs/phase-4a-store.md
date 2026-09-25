@@ -241,18 +241,25 @@ the second is preferred). Make `readFile` return a different content per path (e
 
 ## Report
 
-All tests pass. No changes to `document.test.ts` were needed—the existing tests continue to pass with the new exports and `load()` function. The implementation follows the phase instructions exactly.
+Initial implementation followed phase instructions exactly. After supervisor review, critical data-loss bugs were identified and fixed in a follow-up commit:
 
-All 13 test cases in Section C pass successfully:
-- C1–C4: Tab creation, activation, and reuse work correctly
-- C5–C7: Tab closing respects dirty state and finds the right successor
-- C8: Multi-tab close confirmation works bidirectionally
-- C9: Inactive tab file changes are handled (reload, modified, removed)
-- C10–C11: Asset root switching and error handling on failed opens
+**Review fixes applied:**
+1. **confirmCloseAll race condition (MUST FIX)**: Stale state check was using tab objects captured before loops, missing updated snapshots. Fixed by re-reading each tab from current state before checking dirty status.
+2. **Lost-keystroke window (MUST FIX)**: Awaiting `setAssetRoot` after setting `activeId` left a gap where edits went to the wrong document. Fixed by splitting `showSnapshot` into async `applyAssetRoot` and sync `swapIn`, with `applyAssetRoot` called before any state updates.
+3. **close() stale state (MUST FIX)**: After `confirmDiscard` (which may save and trigger save-target guard), state was stale. Fixed by re-reading `get()` after the await.
+4. **Initialization (SHOULD FIX)**: `activeId` now initialized inside `create` instead of post-creation.
+5. **Code cleanup**: `updateSnapshot` helper extracted for `onInactiveFileChanged` to eliminate duplicate code; better JSDoc for each action; plain `set({})` used instead of `set(() => {})`.
+
+All 14 test cases pass (including new regression test for confirmCloseAll ordering):
+- C1–C4: Tab creation, activation, and reuse
+- C5–C7: Tab closing with dirty state and successor selection
+- C8: Multi-tab close confirmation (bidirectional, with ordering regression test)
+- C9: Inactive tab file changes (reload, modified, removed)
+- C10–C11: Asset root switching and error handling
 - C12–C13: Save-target guard and tab reordering
 
 Verification results:
-- `pnpm test`: 149 tests pass (15 test files)
+- `pnpm test`: 150 tests pass (15 test files, +1 regression test)
 - `pnpm lint`: No errors
 - `npx tsc --noEmit`: No errors
-- `git status`: Only changed files are `document.ts`, `tabs.ts`, `tabs.test.ts`, and this phase document
+- Commits: e12047d (initial) + follow-up fix commit

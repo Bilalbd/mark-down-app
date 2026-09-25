@@ -397,4 +397,21 @@ describe('tabs store', () => {
 
     expect(useTabsStore.getState().tabs.map((t) => t.id)).toEqual(['t1', 't0', 't2']);
   });
+
+  it('regression: confirmCloseAll with inactive dirty before active dirty, saving first, asks both correctly', async () => {
+    await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+    useDocumentStore.getState().setContent('A edited');
+
+    await useTabsStore.getState().openInTab('C:\\docs\\B.md');
+    useDocumentStore.getState().setContent('B edited');
+
+    mockWriteFile.mockResolvedValue(1);
+    mockAskSaveChanges.mockResolvedValueOnce('save').mockResolvedValueOnce('discard');
+
+    const result = await useTabsStore.getState().confirmCloseAll();
+
+    expect(result).toBe(true);
+    expect(mockAskSaveChanges).toHaveBeenCalledTimes(2);
+    expect(mockWriteFile).toHaveBeenCalledOnce();
+  });
 });

@@ -146,7 +146,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const { content: raw, mtime, encoding, lossy } = await readFile(path);
       const { text: content, eol } = normalizeEol(raw);
       await setAssetRoot(dirname(path)).catch(() => undefined);
-      set(() => ({
+      set({
         path,
         hasDocument: true,
         content,
@@ -158,7 +158,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         loadId: nextLoadId(),
         error: null,
         externalChange: null,
-      }));
+      });
       await watchFile(path).catch(() => undefined);
       // Best effort: a stale watch only causes an ignored event.
       if (previous && previous !== path) {
@@ -185,7 +185,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       if (file && (await get().confirmDiscard())) {
         const raw = await file.text();
         const { text: content, eol } = normalizeEol(raw);
-        set(() => ({
+        set({
           path: file.name,
           hasDocument: true,
           content,
@@ -197,7 +197,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
           loadId: nextLoadId(),
           error: null,
           externalChange: null,
-        }));
+        });
       }
       return;
     }
@@ -219,7 +219,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       if (previous) await unwatchFile(previous).catch(() => undefined);
       await setAssetRoot(null).catch(() => undefined);
     }
-    set(() => ({
+    set({
       path: null,
       hasDocument: true,
       content: '',
@@ -231,7 +231,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       loadId: nextLoadId(),
       error: null,
       externalChange: null,
-    }));
+    });
     return true;
   },
 
@@ -282,7 +282,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     try {
       const { content: raw, mtime, encoding, lossy } = await readFile(path);
       const { text: content, eol } = normalizeEol(raw);
-      set(() => ({
+      set({
         content,
         savedContent: content,
         mtime,
@@ -292,7 +292,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         loadId: nextLoadId(),
         error: null,
         externalChange: null,
-      }));
+      });
     } catch (e) {
       set({ error: String(e) });
     }
