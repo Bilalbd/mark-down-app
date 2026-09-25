@@ -115,12 +115,16 @@ export const useTabsStore = create<TabsState>((set, get) => ({
 
     await applyAssetRoot(incomingTab.snapshot.doc.path);
 
+    const currentState = get();
+    const currentIncomingTab = currentState.tabs.find((t) => t.id === id);
+    if (!currentIncomingTab || currentIncomingTab.snapshot === null) return;
+
     const outgoing = captureActive();
-    const activeIdx = state.tabs.findIndex((t) => t.id === state.activeId);
-    const incomingIdx = state.tabs.findIndex((t) => t.id === id);
+    const activeIdx = currentState.tabs.findIndex((t) => t.id === currentState.activeId);
+    const incomingIdx = currentState.tabs.findIndex((t) => t.id === id);
 
     set({
-      tabs: state.tabs.map((t, i) => {
+      tabs: currentState.tabs.map((t, i) => {
         if (i === activeIdx) return { ...t, snapshot: outgoing };
         if (i === incomingIdx) return { ...t, snapshot: null };
         return t;
@@ -128,9 +132,9 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       activeId: id,
     });
 
-    swapIn(incomingTab.snapshot);
+    swapIn(currentIncomingTab.snapshot);
 
-    if (incomingTab.snapshot.needsReload && !isDirty(incomingTab.snapshot.doc)) {
+    if (currentIncomingTab.snapshot.needsReload && !isDirty(currentIncomingTab.snapshot.doc)) {
       await useDocumentStore.getState().reload();
     }
   },
@@ -146,7 +150,6 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       return true;
     }
 
-    const state = get();
     const activeDoc = useDocumentStore.getState();
 
     // Blank document: load into active tab
@@ -168,17 +171,19 @@ export const useTabsStore = create<TabsState>((set, get) => ({
 
     await applyAssetRoot(null);
 
-    const outgoing = captureActive();
-    const activeIdx = state.tabs.findIndex((t) => t.id === state.activeId);
+    const currentState = get();
+    const currentActiveIdx = currentState.tabs.findIndex((t) => t.id === currentState.activeId);
     const newId = newTabId();
-    const insertIdx = activeIdx + 1;
+    const insertIdx = currentActiveIdx + 1;
+
+    const outgoing = captureActive();
 
     set({
       tabs: [
-        ...state.tabs.slice(0, insertIdx),
+        ...currentState.tabs.slice(0, insertIdx),
         { id: newId, snapshot: null },
-        ...state.tabs.slice(insertIdx),
-      ].map((t, i) => (i === activeIdx ? { ...t, snapshot: outgoing } : t)),
+        ...currentState.tabs.slice(insertIdx),
+      ].map((t, i) => (i === currentActiveIdx ? { ...t, snapshot: outgoing } : t)),
       activeId: newId,
     });
 
@@ -191,12 +196,12 @@ export const useTabsStore = create<TabsState>((set, get) => ({
 
     // Failed: restore previous tab
     const error = useDocumentStore.getState().error;
-    const currentState = get();
-    const previousTab = currentState.tabs[activeIdx];
+    const failState = get();
+    const previousTab = failState.tabs[currentActiveIdx];
 
     set({
-      tabs: currentState.tabs.filter((t) => t.id !== newId),
-      activeId: state.activeId,
+      tabs: failState.tabs.filter((t) => t.id !== newId),
+      activeId: currentState.activeId,
     });
 
     if (previousTab.snapshot) {
@@ -229,10 +234,11 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     await applyAssetRoot(null);
 
     const state = get();
-    const outgoing = captureActive();
     const activeIdx = state.tabs.findIndex((t) => t.id === state.activeId);
     const newId = newTabId();
     const insertIdx = activeIdx + 1;
+
+    const outgoing = captureActive();
 
     set({
       tabs: [
@@ -286,18 +292,20 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       if (nextTab?.snapshot) {
         await applyAssetRoot(nextTab.snapshot.doc.path);
 
+        const closeState = get();
+        const finalNextTab = closeState.tabs.find((t) => t.id === next);
+        if (!finalNextTab?.snapshot) return false;
+
         set({
-          tabs: currentTabs.filter((t) => t.id !== id),
+          tabs: closeState.tabs.filter((t) => t.id !== id).map((t) =>
+            t.id === next ? { ...t, snapshot: null } : t,
+          ),
           activeId: next,
         });
 
-        set((s) => ({
-          tabs: s.tabs.map((t) => (t.id === next ? { ...t, snapshot: null } : t)),
-        }));
+        swapIn(finalNextTab.snapshot);
 
-        swapIn(nextTab.snapshot);
-
-        if (nextTab.snapshot.needsReload && !isDirty(nextTab.snapshot.doc)) {
+        if (finalNextTab.snapshot.needsReload && !isDirty(finalNextTab.snapshot.doc)) {
           await useDocumentStore.getState().reload();
         }
       }

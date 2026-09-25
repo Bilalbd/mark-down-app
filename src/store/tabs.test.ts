@@ -414,4 +414,23 @@ describe('tabs store', () => {
     expect(mockAskSaveChanges).toHaveBeenCalledTimes(2);
     expect(mockWriteFile).toHaveBeenCalledOnce();
   });
+
+  it('regression: activate re-reads state after asset-root await', async () => {
+    await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+    await useTabsStore.getState().openInTab('C:\\docs\\B.md');
+
+    const aTabId = useTabsStore.getState().tabs[0].id;
+
+    mockReadFile.mockResolvedValueOnce({
+      content: '# Reloaded A',
+      mtime: 2,
+      encoding: 'utf8' as const,
+      lossy: false,
+    });
+
+    await useTabsStore.getState().activate(aTabId);
+
+    expect(useDocumentStore.getState().path).toBe('C:\\docs\\A.md');
+    expect(useDocumentStore.getState().loadId).toBeGreaterThan(0);
+  });
 });
