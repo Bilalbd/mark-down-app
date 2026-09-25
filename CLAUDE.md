@@ -11,13 +11,13 @@ consistent. Read it fully before changing anything. `README.md` covers features 
 
 These are settled. Don't propose alternatives unless Bilal asks.
 
-- **One file per window.** No tabs, no folder browser or file tree.
+- **Tabs or windows**, chosen by the *Open files in* setting (default: tabs). No folder browser or file tree.
 - **Views:** Formatted / Source / Split, switched with Ctrl+E and Ctrl+Shift+E. The app always
   starts in Formatted (`viewMode` is deliberately not saved).
 - **Styling:** presets, each with a light and a dark colour set, plus a custom-CSS slot.
 - **Packaging:** NSIS installer, per-user, registers `.md` / `.markdown`.
-- **Out of scope:** Obsidian syntax (callouts, `[[wikilinks]]`, `==highlight==`), tabs, a folder
-  browser, **autosave**. Don't add these, even partially or behind a flag.
+- **Out of scope:** Obsidian syntax (callouts, `[[wikilinks]]`, `==highlight==`), a folder
+  browser, **autosave**, restoring open tabs on relaunch. Don't add these, even partially or behind a flag.
 
 When a request is ambiguous or has several reasonable designs, **present 2–4 options with a
 recommendation and let Bilal pick.** Don't choose silently on anything he'd see or feel.
@@ -87,6 +87,8 @@ Placement rules:
     `src/styles/presets/*.json` and are never modified at runtime; `updateActive` copies them
     first.
   - `view`: short-lived UI state and live element handles. Never saved.
+  - `tabs`: the open tabs, and a snapshot of each inactive tab's document and view state. The
+    document store always holds the tab on screen. Never saved.
 - **Rust stays thin:** file I/O, the file watcher, the local-image protocol and window lifecycle.
   Rendering, parsing and UI logic belong in TypeScript.
 - **New Tauri command:** add it to `generate_handler!` in `lib.rs`, add a typed wrapper in
@@ -100,7 +102,7 @@ Placement rules:
 
 - **Unsaved work is sacred.** Every path that replaces or closes the document goes through
   `confirmDiscard()` (open, new, drag-and-drop, recent files, links to other `.md` files, window
-  close). Never add a code path that reloads the webview or navigates it away.
+  close, closing a tab). Never add a code path that reloads the webview or navigates it away.
 - **Saves are atomic and keep the file as it was.** Write through `write_file`, which writes a
   temp file and renames it. Keep the file's line ending and encoding: content is held with LF
   line endings in memory and converted back on save.
