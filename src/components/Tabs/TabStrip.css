@@ -3,6 +3,8 @@
   align-items: stretch;
   min-width: 0;
   height: 100%;
+  flex: 0 1 auto;
+  margin-left: 8px;
 }
 
 .tabstrip__list {
@@ -10,6 +12,7 @@
   overflow-x: auto;
   scrollbar-width: none;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 /* Hide scrollbar on webkit browsers */

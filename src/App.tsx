@@ -139,13 +139,8 @@ export default function App() {
 
   const dialogOpen = useDialogStore((s) => s.current !== null);
 
-  const shortcuts = useMemo(() => {
-    const openFilesIn = useSettingsStore.getState().openFilesIn;
-    const tabs = useTabsStore.getState().tabs;
-    const activeId = useTabsStore.getState().activeId;
-    const showTabs = openFilesIn === 'tab' || tabs.length > 1;
-
-    const map: Record<string, () => void> = {
+  const shortcuts = useMemo(
+    () => ({
       'ctrl+o': () => void openWithDialog(),
       'ctrl+n': () => void createNew(),
       'ctrl+s': () => void save(),
@@ -160,61 +155,148 @@ export default function App() {
       'ctrl+0': zoomReset,
       'ctrl+,': () => setSettingsOpen(!settingsOpen),
       'ctrl+f': () => setFindOpen(true),
-    };
-
-    // Tab-related shortcuts
-    if (openFilesIn === 'tab') {
-      map['ctrl+t'] = () => void useTabsStore.getState().newTab();
-    }
-
-    if (showTabs) {
-      map['ctrl+w'] = () => void useTabsStore.getState().close(activeId);
-      map['ctrl+tab'] = () => {
-        const state = useTabsStore.getState();
+      'ctrl+t': () => {
+        const settings = useSettingsStore.getState();
+        if (settings.openFilesIn !== 'tab') return;
+        void useTabsStore.getState().newTab();
+      },
+      'ctrl+w': () => {
+        const tabs = useTabsStore.getState().tabs;
+        const openFilesIn = useSettingsStore.getState().openFilesIn;
+        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+        if (!showTabs) return;
+        void useTabsStore.getState().close(useTabsStore.getState().activeId);
+      },
+      'ctrl+tab': () => {
+        const tabs = useTabsStore.getState().tabs;
+        const activeId = useTabsStore.getState().activeId;
+        const openFilesIn = useSettingsStore.getState().openFilesIn;
+        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+        if (!showTabs) return;
         const nextIdx = cycleIndex(
-          state.tabs.length,
-          state.tabs.findIndex((t) => t.id === activeId),
+          tabs.length,
+          tabs.findIndex((t) => t.id === activeId),
           1,
         );
-        void state.activate(state.tabs[nextIdx].id);
-      };
-      map['ctrl+pagedown'] = map['ctrl+tab'];
-      map['ctrl+shift+tab'] = () => {
-        const state = useTabsStore.getState();
+        void useTabsStore.getState().activate(tabs[nextIdx].id);
+      },
+      'ctrl+pagedown': () => {
+        const tabs = useTabsStore.getState().tabs;
+        const activeId = useTabsStore.getState().activeId;
+        const openFilesIn = useSettingsStore.getState().openFilesIn;
+        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+        if (!showTabs) return;
         const nextIdx = cycleIndex(
-          state.tabs.length,
-          state.tabs.findIndex((t) => t.id === activeId),
+          tabs.length,
+          tabs.findIndex((t) => t.id === activeId),
+          1,
+        );
+        void useTabsStore.getState().activate(tabs[nextIdx].id);
+      },
+      'ctrl+shift+tab': () => {
+        const tabs = useTabsStore.getState().tabs;
+        const activeId = useTabsStore.getState().activeId;
+        const openFilesIn = useSettingsStore.getState().openFilesIn;
+        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+        if (!showTabs) return;
+        const nextIdx = cycleIndex(
+          tabs.length,
+          tabs.findIndex((t) => t.id === activeId),
           -1,
         );
-        void state.activate(state.tabs[nextIdx].id);
-      };
-      map['ctrl+pageup'] = map['ctrl+shift+tab'];
-
-      for (let i = 1; i <= 9; i++) {
-        const tabNumber = i;
-        map[`ctrl+${i}`] = () => {
-          const state = useTabsStore.getState();
-          if (tabNumber <= state.tabs.length) {
-            void state.activate(state.tabs[tabNumber - 1].id);
-          }
-        };
-      }
-    }
-
-    return map;
-  }, [
-    openWithDialog,
-    createNew,
-    save,
-    set,
-    viewMode,
-    outlineVisible,
-    zoomIn,
-    zoomOut,
-    zoomReset,
-    settingsOpen,
-    setSettingsOpen,
-  ]);
+        void useTabsStore.getState().activate(tabs[nextIdx].id);
+      },
+      'ctrl+pageup': () => {
+        const tabs = useTabsStore.getState().tabs;
+        const activeId = useTabsStore.getState().activeId;
+        const openFilesIn = useSettingsStore.getState().openFilesIn;
+        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+        if (!showTabs) return;
+        const nextIdx = cycleIndex(
+          tabs.length,
+          tabs.findIndex((t) => t.id === activeId),
+          -1,
+        );
+        void useTabsStore.getState().activate(tabs[nextIdx].id);
+      },
+      'ctrl+1': () => {
+        const tabs = useTabsStore.getState().tabs;
+        const openFilesIn = useSettingsStore.getState().openFilesIn;
+        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+        if (!showTabs || tabs.length < 1) return;
+        void useTabsStore.getState().activate(tabs[0].id);
+      },
+      'ctrl+2': () => {
+        const tabs = useTabsStore.getState().tabs;
+        const openFilesIn = useSettingsStore.getState().openFilesIn;
+        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+        if (!showTabs || tabs.length < 2) return;
+        void useTabsStore.getState().activate(tabs[1].id);
+      },
+      'ctrl+3': () => {
+        const tabs = useTabsStore.getState().tabs;
+        const openFilesIn = useSettingsStore.getState().openFilesIn;
+        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+        if (!showTabs || tabs.length < 3) return;
+        void useTabsStore.getState().activate(tabs[2].id);
+      },
+      'ctrl+4': () => {
+        const tabs = useTabsStore.getState().tabs;
+        const openFilesIn = useSettingsStore.getState().openFilesIn;
+        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+        if (!showTabs || tabs.length < 4) return;
+        void useTabsStore.getState().activate(tabs[3].id);
+      },
+      'ctrl+5': () => {
+        const tabs = useTabsStore.getState().tabs;
+        const openFilesIn = useSettingsStore.getState().openFilesIn;
+        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+        if (!showTabs || tabs.length < 5) return;
+        void useTabsStore.getState().activate(tabs[4].id);
+      },
+      'ctrl+6': () => {
+        const tabs = useTabsStore.getState().tabs;
+        const openFilesIn = useSettingsStore.getState().openFilesIn;
+        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+        if (!showTabs || tabs.length < 6) return;
+        void useTabsStore.getState().activate(tabs[5].id);
+      },
+      'ctrl+7': () => {
+        const tabs = useTabsStore.getState().tabs;
+        const openFilesIn = useSettingsStore.getState().openFilesIn;
+        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+        if (!showTabs || tabs.length < 7) return;
+        void useTabsStore.getState().activate(tabs[6].id);
+      },
+      'ctrl+8': () => {
+        const tabs = useTabsStore.getState().tabs;
+        const openFilesIn = useSettingsStore.getState().openFilesIn;
+        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+        if (!showTabs || tabs.length < 8) return;
+        void useTabsStore.getState().activate(tabs[7].id);
+      },
+      'ctrl+9': () => {
+        const tabs = useTabsStore.getState().tabs;
+        const openFilesIn = useSettingsStore.getState().openFilesIn;
+        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+        if (!showTabs) return;
+        void useTabsStore.getState().activate(tabs[tabs.length - 1].id);
+      },
+    }),
+    [
+      openWithDialog,
+      createNew,
+      save,
+      set,
+      viewMode,
+      outlineVisible,
+      zoomIn,
+      zoomOut,
+      zoomReset,
+      settingsOpen,
+      setSettingsOpen,
+    ],
+  );
   useShortcuts(shortcuts, !dialogOpen);
 
   return (
