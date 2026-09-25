@@ -11,7 +11,14 @@ import {
 } from '@/store/document';
 import { useSettingsStore, type ViewMode } from '@/store/settings';
 import { useViewStore } from '@/store/view';
-import { dirname, isTauri, openInNewWindow, setAssetRoot, unwatchFile, type FileChangedEvent } from '@/lib/tauri';
+import {
+  dirname,
+  isTauri,
+  openInNewWindow,
+  setAssetRoot,
+  unwatchFile,
+  type FileChangedEvent,
+} from '@/lib/tauri';
 import { pruneEditorCache } from '@/lib/editorCache';
 import {
   findTabByPath,

@@ -14,11 +14,25 @@ import { FindBar } from './components/Find/FindBar';
 import { StyleInjector } from './components/Preview/StyleInjector';
 import { useAppTheme } from './lib/useAppTheme';
 import { useShortcuts } from './lib/shortcuts';
-import { basename, emitAppReady, getLaunchArgs, isTauri, takePendingOpens, type FileChangedEvent } from './lib/tauri';
+import {
+  basename,
+  emitAppReady,
+  getLaunchArgs,
+  isTauri,
+  takePendingOpens,
+  type FileChangedEvent,
+} from './lib/tauri';
 import { cycleIndex, samePath } from './lib/tabs';
 import { useSettingsStore } from './store/settings';
 import { isDirty, useDocumentStore } from './store/document';
-import { hasUnsavedTabs, newDocumentPerSetting, openPath, openPaths, routeExternalOpen, useTabsStore } from './store/tabs';
+import {
+  hasUnsavedTabs,
+  newDocumentPerSetting,
+  openPath,
+  openPaths,
+  routeExternalOpen,
+  useTabsStore,
+} from './store/tabs';
 import { useStyleStore } from './store/style';
 import { extractHeadings } from './markdown/render';
 import { useViewStore } from './store/view';

@@ -1,4 +1,9 @@
-import { useSettingsStore, type AppTheme, type OpenFilesIn, type SplitSide } from '@/store/settings';
+import {
+  useSettingsStore,
+  type AppTheme,
+  type OpenFilesIn,
+  type SplitSide,
+} from '@/store/settings';
 import { NumberInput, Row, Section, Select, Toggle } from './controls';
 
 export function GeneralTab() {

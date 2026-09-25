@@ -2,7 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useDocumentStore } from '@/store/document';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
-import { hasUnsavedTabs, newDocumentPerSetting, openPath, openPaths, routeExternalOpen, useTabsStore } from '@/store/tabs';
+import {
+  hasUnsavedTabs,
+  newDocumentPerSetting,
+  openPath,
+  openPaths,
+  routeExternalOpen,
+  useTabsStore,
+} from '@/store/tabs';
 
 const mockReadFile = vi.fn();
 const mockWriteFile = vi.fn();
@@ -21,7 +28,8 @@ vi.mock('@/lib/tauri', async (importOriginal) => {
     watchFile: (...args: Parameters<typeof actual.watchFile>) => mockWatchFile(...args),
     unwatchFile: (...args: Parameters<typeof actual.unwatchFile>) => mockUnwatchFile(...args),
     setAssetRoot: (...args: Parameters<typeof actual.setAssetRoot>) => mockSetAssetRoot(...args),
-    openInNewWindow: (...args: Parameters<typeof actual.openInNewWindow>) => mockOpenInNewWindow(...args),
+    openInNewWindow: (...args: Parameters<typeof actual.openInNewWindow>) =>
+      mockOpenInNewWindow(...args),
   };
 });
 
