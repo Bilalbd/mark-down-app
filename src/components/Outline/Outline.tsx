@@ -89,6 +89,45 @@ export function Outline() {
     setCollapsed(allCollapsed ? new Set() : new Set(allParentIds));
   }, [allCollapsed, allParentIds]);
 
+  const onItemKeyDown = (
+    e: React.KeyboardEvent<HTMLDivElement>,
+    n: Node,
+    isCollapsed: boolean,
+    hasChildren: boolean,
+  ) => {
+    switch (e.key) {
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        requestScrollToLine(n.line);
+        return;
+      case 'ArrowRight':
+        if (hasChildren && isCollapsed) {
+          e.preventDefault();
+          toggle(n.id);
+        }
+        return;
+      case 'ArrowLeft':
+        if (hasChildren && !isCollapsed) {
+          e.preventDefault();
+          toggle(n.id);
+        }
+        return;
+      case 'ArrowDown':
+      case 'ArrowUp': {
+        e.preventDefault();
+        const items = Array.from(
+          listRef.current?.querySelectorAll<HTMLElement>('.outline__item') ?? [],
+        );
+        const idx = items.indexOf(e.currentTarget);
+        if (idx === -1) return;
+        const next = items[e.key === 'ArrowDown' ? idx + 1 : idx - 1];
+        next?.focus();
+        return;
+      }
+    }
+  };
+
   const onResizeStart = (e: React.MouseEvent) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -121,7 +160,9 @@ export function Outline() {
               style={{ paddingLeft: 8 + depth * 14 }}
               data-id={n.id}
               title={n.text}
+              tabIndex={0}
               onClick={() => requestScrollToLine(n.line)}
+              onKeyDown={(e) => onItemKeyDown(e, n, isCollapsed, hasChildren)}
             >
               <button
                 className={`outline__twisty ${hasChildren ? '' : 'is-hidden'}`}

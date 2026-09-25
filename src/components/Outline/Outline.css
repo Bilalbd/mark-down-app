@@ -77,6 +77,10 @@
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
+.outline__item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
 
 .outline__twisty {
   flex-shrink: 0;
