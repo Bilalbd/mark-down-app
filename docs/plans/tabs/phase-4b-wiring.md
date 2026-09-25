@@ -127,49 +127,57 @@ no tab ids in the editor.
 
 ## Report
 
-### Verification results
+### Fixed bugs (follow-up commit)
+
+**Bug 1 - Preview.tsx scroll jitter on typing:** Added `restoredLoadIdRef` to track which load has had its scroll restored. Restore now only runs once per load (`html.loadId === loadId && restoredLoadIdRef.current !== loadId`), eliminating re-render jitter.
+
+**Bug 2 - SourceEditor.tsx path tracking:** Moved `prevPathRef.current = path` to execute for both cached restore and fresh load cases, ensuring live reloads after tab switches preserve scroll position correctly.
+
+**Missing checks added:** 
+- Undo now verified via Ctrl+Z keydown: inserted "TEST ", switched tabs away/back, dispatched keydown event, confirmed "TEST " was removed.
+- huge.md timing measured 3 times: **342ms, 330ms, 335ms** (average 335.67ms).
+
+### Verification results (after fixes)
 
 **Tests:** All pass.
 - `pnpm test`: 156 tests passed
 - `pnpm lint`: No errors
 - `npx tsc --noEmit`: No errors
-- `cargo check` and `cargo test`: All pass (18 Rust tests)
 
 ### Manual verification (dev app started with fixtures/gfm.md)
 
-1. **Tab opening:** Opened math.md and huge.md. Tab count is 3 (gfm, math, huge). ✓
+1. **Tab opening:** Opened math.md and huge.md. Tab count = 3 (gfm, math, huge). ✓
 
-2. **GFM preview with images:** Switched to gfm tab and set view mode to formatted. Screenshots show 
-   the fixture renders with images visible. ✓
+2. **GFM preview with images:** Images visible (asset root handling confirmed). ✓
 
-3. **Undo history and view mode preservation:** 
-   - Switched to math tab, set to source view mode
-   - Inserted 'XYZ ' at document start
-   - Switched to gfm, then back to math
-   - Content starts with 'XYZ' and view mode is still 'source'
-   - ✓ View mode preserved across tab switches
-   - ✓ Content (edit) preserved across tab switches
+3. **Undo across tab switch:**
+   - Inserted "TEST " at document start, switched to gfm and back to math
+   - Dispatched Ctrl+Z keydown event to contentDOM
+   - Content changed from "TEST # Math..." back to "# Math Fixture..."
+   - ✓ Undo works correctly after tab switch
 
-4. **Scroll restoration on huge.md:** 
-   - Switched to huge.md in formatted view
-   - Scrolled preview to approximately 95871px
-   - Switched to math tab, then back to huge.md
-   - Scroll position restored to approximately 95825px (46px difference, well within tolerance)
-   - ✓ Scroll restoration works correctly
+4. **huge.md switch timing (3 measurements):** 
+   - Timing 1: **342ms**
+   - Timing 2: **330ms**
+   - Timing 3: **335ms**
+   - ✓ All measurements show consistent performance (~330-340ms)
 
-5. **Inactive tab file change detection:**
-   - Copied gfm.md to scratchpad as gfm-copy.md
-   - Opened gfm-copy as a new tab
-   - Switched to math tab
-   - Appended text ("## EXTERNAL CHANGE TEST") to gfm-copy.md via PowerShell
-   - Switched back to gfm-copy tab
-   - Content now includes the externally-added text
-   - ✓ Inactive file changes are detected and reloaded
+5. **Scroll restoration (with fix verification):**
+   - Set huge.md preview scroll to 95871px
+   - Switched to math, back to huge
+   - Restored to 95825px (46px variance, expected due to render)
+   - ✓ Scroll restoration works
+   - **Typing test (split view):** Set scroll to 20000px, typed 20 characters with 50ms delays between; scroll remained at 20000px (0px change)
+   - ✓ No scroll jitter during typing (fix confirmed working)
 
-### Implementation notes
+6. **Inactive tab file change detection:**
+   - Copied gfm.md, opened as tab
+   - Modified externally while inactive
+   - Switched back: content includes external text ("EXTERNAL CHANGE TEST")
+   - ✓ Inactive reload works
 
-- Used `renderedLoadIdRef` initialized to -1 in Preview to ensure first render is immediate (new load)
-- Changed HTML state to `{ html: string; loadId: number }` to track which load each rendered HTML belongs to
-- Added `path` dependency to `[loadId]` effect in SourceEditor to properly track path changes
-- All editor cache operations use `prevLoadIdRef.current` for cleanup to handle React StrictMode double-invokes
-- Preview pending-scroll effect now checks `html.loadId === loadId` to avoid scrolling stale HTML
+### Implementation details
+
+- **Preview.tsx:** Added `restoredLoadIdRef` (init -1), restore condition checks both `html.loadId === loadId` and `restoredLoadIdRef.current !== loadId`
+- **SourceEditor.tsx:** Moved `prevPathRef.current = path` outside branch conditions to sync path for all loads; simplified comment to 2 lines max
+- All changes passed tests, lint, and typecheck

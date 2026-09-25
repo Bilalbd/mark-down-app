@@ -120,10 +120,8 @@ export function SourceEditor() {
     };
   }, []);
 
-  // A fresh open/newDocument/reload gets a fresh undo history. A reload of the same
-  // path (live external-change reload) keeps the scroll position instead of jumping to top.
-  // When switching to a tab that was previously loaded, restore its cached editor state
-  // (including undo history and selection) if available.
+  // On load change: cache outgoing state, restore from cache if available, or create fresh.
+  // Fresh loads get new undo history; same-path reloads keep scroll; different paths lose scroll.
   useEffect(() => {
     if (loadId === prevLoadIdRef.current) return; // just mounted/remounted, no new load
     const outgoingLoadId = prevLoadIdRef.current;
@@ -131,23 +129,21 @@ export function SourceEditor() {
     const view = viewRef.current;
     if (!view) return;
 
-    // Cache the outgoing state before switching
     cacheEditorState(outgoingLoadId, view.state);
 
     const content = useDocumentStore.getState().content;
     const restored = cachedEditorState(loadId, content);
 
     if (restored) {
-      // Restored from cache: use it directly (no scroll adjustment needed)
       view.setState(restored);
     } else {
-      // Fresh load: create new state
       const samePath = prevPathRef.current === path;
-      prevPathRef.current = path;
       const savedLine = samePath ? topVisibleLine(view) : null;
       view.setState(createEditorState(content));
       if (savedLine !== null) scrollToLine(view, savedLine);
     }
+
+    prevPathRef.current = path;
   }, [loadId, path]);
 
   // Fallback sync for content changes that didn't come from a load (shouldn't normally

@@ -54,6 +54,7 @@ export function Preview() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const renderSeq = useRef(0);
   const renderedLoadIdRef = useRef(-1);
+  const restoredLoadIdRef = useRef(-1);
 
   useEffect(() => {
     setPreviewScrollEl(scrollRef.current);
@@ -93,8 +94,9 @@ export function Preview() {
   // After the first paint of real content, restore the position the other view was at.
   useLayoutEffect(() => {
     if (!html.html || !scrollRef.current) return;
-    // Only restore scroll for this loadId once (not on every render)
-    if (renderedLoadIdRef.current === loadId) {
+    // Only restore once per load: check HTML is for current loadId and hasn't been restored yet
+    if (html.loadId === loadId && restoredLoadIdRef.current !== loadId) {
+      restoredLoadIdRef.current = loadId;
       const line = useViewStore.getState().topLine;
       if (line > 0) scrollPreviewToLine(scrollRef.current, line);
     }
