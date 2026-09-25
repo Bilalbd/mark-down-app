@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { Copy, Minus, Square, X } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { isTauri } from '@/lib/tauri';
+import { useTabsStore } from '@/store/tabs';
+import { useSettingsStore } from '@/store/settings';
+import { TabStrip } from '@/components/Tabs/TabStrip';
 import markIcon from '@/assets/markdown-mark.svg';
 import './TitleBar.css';
 
@@ -12,6 +15,9 @@ interface Props {
 
 export function TitleBar({ fileName, dirty = false }: Props) {
   const [maximized, setMaximized] = useState(false);
+
+  const tabs = useTabsStore((s) => s.tabs);
+  const openFilesIn = useSettingsStore((s) => s.openFilesIn);
 
   useEffect(() => {
     if (!isTauri()) return;
@@ -28,34 +34,49 @@ export function TitleBar({ fileName, dirty = false }: Props) {
 
   const win = () => getCurrentWindow();
 
+  const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+
   return (
     <header className="titlebar" data-tauri-drag-region>
-      <div className="titlebar__title" data-tauri-drag-region>
-        <span
-          className="titlebar__logo"
-          style={{ maskImage: `url("${markIcon}")`, WebkitMaskImage: `url("${markIcon}")` }}
-          aria-hidden
-          data-tauri-drag-region
-        />
-        <span className="titlebar__app" data-tauri-drag-region>
-          Markdown
-        </span>
-        {fileName && (
-          <>
-            <span className="titlebar__sep" data-tauri-drag-region>
-              –
-            </span>
-            {dirty && (
-              <span className="titlebar__dirty" aria-label="Unsaved changes">
-                •
+      {showTabs ? (
+        <>
+          <span
+            className="titlebar__logo"
+            style={{ maskImage: `url("${markIcon}")`, WebkitMaskImage: `url("${markIcon}")` }}
+            aria-hidden
+            data-tauri-drag-region
+          />
+          <TabStrip />
+          <div className="titlebar__drag" data-tauri-drag-region />
+        </>
+      ) : (
+        <div className="titlebar__title" data-tauri-drag-region>
+          <span
+            className="titlebar__logo"
+            style={{ maskImage: `url("${markIcon}")`, WebkitMaskImage: `url("${markIcon}")` }}
+            aria-hidden
+            data-tauri-drag-region
+          />
+          <span className="titlebar__app" data-tauri-drag-region>
+            Markdown
+          </span>
+          {fileName && (
+            <>
+              <span className="titlebar__sep" data-tauri-drag-region>
+                –
               </span>
-            )}
-            <span className="titlebar__file" data-tauri-drag-region>
-              {fileName}
-            </span>
-          </>
-        )}
-      </div>
+              {dirty && (
+                <span className="titlebar__dirty" aria-label="Unsaved changes">
+                  •
+                </span>
+              )}
+              <span className="titlebar__file" data-tauri-drag-region>
+                {fileName}
+              </span>
+            </>
+          )}
+        </div>
+      )}
       {isTauri() && (
         <div className="titlebar__controls">
           <button

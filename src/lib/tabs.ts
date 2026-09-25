@@ -71,6 +71,14 @@ export function moveItem<T>(items: readonly T[], from: number, to: number): T[] 
   return result;
 }
 
+/** Returns the next index when cycling by delta, wrapping around. Returns the same index if length is 0 or 1. */
+export function cycleIndex(length: number, index: number, delta: number): number {
+  if (length <= 1) return index;
+  const next = index + delta;
+  const wrapped = ((next % length) + length) % length;
+  return wrapped;
+}
+
 /** Returns one label per path in the same order: basenames, with parent-folder suffixes for duplicates. */
 export function tabLabels(paths: readonly (string | null)[]): string[] {
   const result: string[] = [];

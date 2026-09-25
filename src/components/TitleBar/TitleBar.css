@@ -1,24 +1,12 @@
 .titlebar {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   height: var(--titlebar-height);
   background: var(--chrome-bg);
   color: var(--chrome-fg);
   user-select: none;
   -webkit-user-select: none;
   flex-shrink: 0;
-}
-
-.titlebar__title {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 12px;
-  font-size: 12px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 .titlebar__logo {
@@ -33,20 +21,43 @@
   -webkit-mask-size: contain;
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-position: center;
-  margin-right: 2px;
+  margin: auto 6px auto 12px;
 }
+
+.titlebar__drag {
+  flex: 1;
+  min-width: 40px;
+  data-tauri-drag-region: '';
+}
+
+.titlebar__title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  font-size: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
 .titlebar__app {
   font-weight: 600;
 }
+
 .titlebar__sep {
   color: var(--chrome-fg-muted);
   margin: 0 2px;
 }
+
 .titlebar__file {
   color: var(--chrome-fg-muted);
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .titlebar__dirty {
   color: var(--accent);
   font-size: 16px;

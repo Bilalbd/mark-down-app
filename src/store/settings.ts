@@ -4,6 +4,7 @@ import { load as loadStore, type Store } from '@tauri-apps/plugin-store';
 export type AppTheme = 'light' | 'dark' | 'system';
 export type ViewMode = 'formatted' | 'source' | 'split';
 export type SplitSide = 'left' | 'right';
+export type OpenFilesIn = 'tab' | 'window';
 
 export interface Settings {
   appTheme: AppTheme;
@@ -20,6 +21,8 @@ export interface Settings {
   recentFiles: string[];
   /** Strips remote (http/https) image sources from the preview instead of loading them. */
   blockRemoteImages: boolean;
+  /** Whether files opened from Explorer or inside the app become tabs or separate windows. */
+  openFilesIn: OpenFilesIn;
 }
 
 const MAX_RECENT_FILES = 5;
@@ -43,6 +46,7 @@ const DEFAULTS: Settings = {
   splitEditorSide: 'left',
   recentFiles: [],
   blockRemoteImages: false,
+  openFilesIn: 'tab',
 };
 
 interface SettingsState extends Settings {

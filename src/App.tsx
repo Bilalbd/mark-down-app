@@ -15,7 +15,7 @@ import { StyleInjector } from './components/Preview/StyleInjector';
 import { useAppTheme } from './lib/useAppTheme';
 import { useShortcuts } from './lib/shortcuts';
 import { basename, emitAppReady, getLaunchArgs, isTauri, type FileChangedEvent } from './lib/tauri';
-import { samePath } from './lib/tabs';
+import { cycleIndex, samePath } from './lib/tabs';
 import { useSettingsStore } from './store/settings';
 import { isDirty, useDocumentStore } from './store/document';
 import { useTabsStore } from './store/tabs';
@@ -139,8 +139,13 @@ export default function App() {
 
   const dialogOpen = useDialogStore((s) => s.current !== null);
 
-  const shortcuts = useMemo(
-    () => ({
+  const shortcuts = useMemo(() => {
+    const openFilesIn = useSettingsStore.getState().openFilesIn;
+    const tabs = useTabsStore.getState().tabs;
+    const activeId = useTabsStore.getState().activeId;
+    const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+
+    const map: Record<string, () => void> = {
       'ctrl+o': () => void openWithDialog(),
       'ctrl+n': () => void createNew(),
       'ctrl+s': () => void save(),
@@ -155,21 +160,61 @@ export default function App() {
       'ctrl+0': zoomReset,
       'ctrl+,': () => setSettingsOpen(!settingsOpen),
       'ctrl+f': () => setFindOpen(true),
-    }),
-    [
-      openWithDialog,
-      createNew,
-      save,
-      set,
-      viewMode,
-      outlineVisible,
-      zoomIn,
-      zoomOut,
-      zoomReset,
-      settingsOpen,
-      setSettingsOpen,
-    ],
-  );
+    };
+
+    // Tab-related shortcuts
+    if (openFilesIn === 'tab') {
+      map['ctrl+t'] = () => void useTabsStore.getState().newTab();
+    }
+
+    if (showTabs) {
+      map['ctrl+w'] = () => void useTabsStore.getState().close(activeId);
+      map['ctrl+tab'] = () => {
+        const state = useTabsStore.getState();
+        const nextIdx = cycleIndex(
+          state.tabs.length,
+          state.tabs.findIndex((t) => t.id === activeId),
+          1,
+        );
+        void state.activate(state.tabs[nextIdx].id);
+      };
+      map['ctrl+pagedown'] = map['ctrl+tab'];
+      map['ctrl+shift+tab'] = () => {
+        const state = useTabsStore.getState();
+        const nextIdx = cycleIndex(
+          state.tabs.length,
+          state.tabs.findIndex((t) => t.id === activeId),
+          -1,
+        );
+        void state.activate(state.tabs[nextIdx].id);
+      };
+      map['ctrl+pageup'] = map['ctrl+shift+tab'];
+
+      for (let i = 1; i <= 9; i++) {
+        const tabNumber = i;
+        map[`ctrl+${i}`] = () => {
+          const state = useTabsStore.getState();
+          if (tabNumber <= state.tabs.length) {
+            void state.activate(state.tabs[tabNumber - 1].id);
+          }
+        };
+      }
+    }
+
+    return map;
+  }, [
+    openWithDialog,
+    createNew,
+    save,
+    set,
+    viewMode,
+    outlineVisible,
+    zoomIn,
+    zoomOut,
+    zoomReset,
+    settingsOpen,
+    setSettingsOpen,
+  ]);
   useShortcuts(shortcuts, !dialogOpen);
 
   return (

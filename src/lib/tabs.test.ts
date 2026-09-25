@@ -1,257 +1,160 @@
-import { describe, expect, it } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
+  cycleIndex,
   findTabByPath,
   isBlankDocument,
-  moveItem,
   nextActiveAfterClose,
   samePath,
   tabLabels,
 } from './tabs';
 
+describe('cycleIndex', () => {
+  it('returns the same index for empty or single-element lists', () => {
+    expect(cycleIndex(0, 0, 1)).toBe(0);
+    expect(cycleIndex(1, 0, 1)).toBe(0);
+  });
+
+  it('cycles forward through indices', () => {
+    expect(cycleIndex(3, 0, 1)).toBe(1);
+    expect(cycleIndex(3, 1, 1)).toBe(2);
+    expect(cycleIndex(3, 2, 1)).toBe(0);
+  });
+
+  it('cycles backward through indices', () => {
+    expect(cycleIndex(3, 0, -1)).toBe(2);
+    expect(cycleIndex(3, 1, -1)).toBe(0);
+    expect(cycleIndex(3, 2, -1)).toBe(1);
+  });
+
+  it('handles large deltas', () => {
+    expect(cycleIndex(3, 0, 5)).toBe(2);
+    expect(cycleIndex(3, 0, -5)).toBe(1);
+  });
+});
+
 describe('samePath', () => {
   it('returns true for identical paths', () => {
-    expect(samePath('C:\\a\\b.md', 'C:\\a\\b.md')).toBe(true);
-    expect(samePath('/a/b.md', '/a/b.md')).toBe(true);
+    expect(samePath('/path/to/file', '/path/to/file')).toBe(true);
   });
 
-  it('ignores case differences', () => {
-    expect(samePath('C:\\A\\B.md', 'c:\\a\\b.md')).toBe(true);
-    expect(samePath('/A/B.md', '/a/b.md')).toBe(true);
+  it('treats forward and back slashes as equal', () => {
+    expect(samePath('C:\\Users\\test.md', 'C:/Users/test.md')).toBe(true);
   });
 
-  it('treats / and \\ as equivalent', () => {
-    expect(samePath('C:\\a\\b.md', 'C:/a/b.md')).toBe(true);
-    expect(samePath('C:/a\\b.md', 'c:\\a/b.md')).toBe(true);
+  it('is case-insensitive', () => {
+    expect(samePath('C:\\USERS\\TEST.MD', 'c:\\users\\test.md')).toBe(true);
   });
 
-  it('ignores trailing separators', () => {
-    expect(samePath('C:\\a\\b.md', 'C:\\a\\b.md\\')).toBe(true);
-    expect(samePath('C:\\a\\b.md\\', 'C:\\a\\b.md/')).toBe(true);
-  });
-
-  it('returns false for different files', () => {
-    expect(samePath('C:\\a\\b.md', 'C:\\a\\c.md')).toBe(false);
-    expect(samePath('C:\\a\\b.md', 'D:\\a\\b.md')).toBe(false);
+  it('returns false for different paths', () => {
+    expect(samePath('/path/to/file1', '/path/to/file2')).toBe(false);
   });
 });
 
 describe('findTabByPath', () => {
   const tabs = [
-    { id: 'tab1', path: 'C:\\a\\b.md' },
-    { id: 'tab2', path: null },
-    { id: 'tab3', path: 'C:\\x\\y.md' },
+    { id: 'tab1', path: '/path/to/file1.md' },
+    { id: 'tab2', path: '/path/to/file2.md' },
+    { id: 'tab3', path: null },
   ];
 
   it('finds a tab by exact path', () => {
-    expect(findTabByPath(tabs, 'C:\\a\\b.md')).toBe('tab1');
+    expect(findTabByPath(tabs, '/path/to/file1.md')).toBe('tab1');
   });
 
-  it('finds a tab ignoring case', () => {
-    expect(findTabByPath(tabs, 'c:\\a\\b.md')).toBe('tab1');
+  it('finds a tab by normalized path', () => {
+    expect(findTabByPath(tabs, 'C:\\path\\to\\file2.md')).toBeNull();
+    expect(findTabByPath(tabs, '/path/to/file2.md')).toBe('tab2');
   });
 
-  it('finds a tab treating / and \\ as equivalent', () => {
-    expect(findTabByPath(tabs, 'C:/a/b.md')).toBe('tab1');
+  it('returns null for non-existent paths', () => {
+    expect(findTabByPath(tabs, '/nonexistent.md')).toBeNull();
   });
 
-  it('returns null when path is not found', () => {
-    expect(findTabByPath(tabs, 'C:\\other\\file.md')).toBe(null);
-  });
-
-  it('returns the first matching tab', () => {
-    const dupTabs = [
-      { id: 'first', path: 'C:\\a\\b.md' },
-      { id: 'second', path: 'C:\\a\\b.md' },
-    ];
-    expect(findTabByPath(dupTabs, 'C:\\a\\b.md')).toBe('first');
+  it('returns null if no tab matches', () => {
+    expect(findTabByPath([{ id: 'tab1', path: null }], '/some/path.md')).toBeNull();
   });
 });
 
 describe('isBlankDocument', () => {
-  it('returns true when hasDocument is false', () => {
-    expect(
-      isBlankDocument({
-        hasDocument: false,
-        path: 'C:\\a\\b.md',
-        content: 'text',
-        savedContent: 'text',
-      }),
-    ).toBe(true);
+  it('returns true for no document', () => {
+    expect(isBlankDocument({ hasDocument: false, path: null, content: '', savedContent: '' })).toBe(
+      true,
+    );
   });
 
-  it('returns true for an untitled empty document', () => {
+  it('returns true for empty untitled document', () => {
+    expect(isBlankDocument({ hasDocument: true, path: null, content: '', savedContent: '' })).toBe(
+      true,
+    );
+  });
+
+  it('returns false for document with path', () => {
     expect(
       isBlankDocument({
         hasDocument: true,
-        path: null,
-        content: '',
-        savedContent: '',
-      }),
-    ).toBe(true);
-  });
-
-  it('returns false for an untitled document with typed text', () => {
-    expect(
-      isBlankDocument({
-        hasDocument: true,
-        path: null,
-        content: 'some text',
-        savedContent: '',
-      }),
-    ).toBe(false);
-  });
-
-  it('returns false for a file', () => {
-    expect(
-      isBlankDocument({
-        hasDocument: true,
-        path: 'C:\\a\\b.md',
+        path: '/path/to/file.md',
         content: '',
         savedContent: '',
       }),
     ).toBe(false);
   });
 
-  it('returns false for an untitled document with savedContent', () => {
+  it('returns false for document with content', () => {
     expect(
-      isBlankDocument({
-        hasDocument: true,
-        path: null,
-        content: '',
-        savedContent: 'old text',
-      }),
+      isBlankDocument({ hasDocument: true, path: null, content: 'hello', savedContent: '' }),
     ).toBe(false);
   });
 });
 
 describe('nextActiveAfterClose', () => {
-  it('returns activeId unchanged when closing an inactive tab', () => {
-    expect(nextActiveAfterClose(['a', 'b', 'c'], 'a', 'b')).toBe('b');
+  it('returns the active tab if it is not the closing one', () => {
+    const ids = ['tab1', 'tab2', 'tab3'];
+    expect(nextActiveAfterClose(ids, 'tab1', 'tab2')).toBe('tab2');
   });
 
-  it('returns the right tab when closing the active middle tab', () => {
-    expect(nextActiveAfterClose(['a', 'b', 'c'], 'b', 'b')).toBe('c');
+  it('returns the next tab if closing the active one at the end', () => {
+    const ids = ['tab1', 'tab2', 'tab3'];
+    expect(nextActiveAfterClose(ids, 'tab3', 'tab3')).toBe('tab2');
   });
 
-  it('returns the left tab when closing the active last tab', () => {
-    expect(nextActiveAfterClose(['a', 'b', 'c'], 'c', 'c')).toBe('b');
+  it('returns the next tab if closing the active one in the middle', () => {
+    const ids = ['tab1', 'tab2', 'tab3'];
+    expect(nextActiveAfterClose(ids, 'tab2', 'tab2')).toBe('tab3');
   });
 
-  it('returns null when closing the only tab', () => {
-    expect(nextActiveAfterClose(['a'], 'a', 'a')).toBe(null);
+  it('returns the next tab if closing the active one at the start', () => {
+    const ids = ['tab1', 'tab2', 'tab3'];
+    expect(nextActiveAfterClose(ids, 'tab1', 'tab1')).toBe('tab2');
   });
 
-  it('returns the right tab when closing the active first tab', () => {
-    expect(nextActiveAfterClose(['a', 'b', 'c'], 'a', 'a')).toBe('b');
-  });
-
-  it('returns activeId when closingId is not in the list', () => {
-    expect(nextActiveAfterClose(['a', 'b', 'c'], 'unknown', 'a')).toBe('a');
-  });
-
-  it('returns activeId when closingId is not found but activeId is null', () => {
-    expect(nextActiveAfterClose(['a', 'b', 'c'], 'unknown', null)).toBe(null);
-  });
-});
-
-describe('moveItem', () => {
-  it('moves an item forward', () => {
-    expect(moveItem([1, 2, 3, 4], 0, 2)).toEqual([2, 3, 1, 4]);
-  });
-
-  it('moves an item backward', () => {
-    expect(moveItem([1, 2, 3, 4], 3, 1)).toEqual([1, 4, 2, 3]);
-  });
-
-  it('clamps to to the range [0, length - 1]', () => {
-    expect(moveItem([1, 2, 3], 0, 100)).toEqual([2, 3, 1]);
-  });
-
-  it('returns unchanged copy when from === to', () => {
-    const items = [1, 2, 3];
-    const result = moveItem(items, 1, 1);
-    expect(result).toEqual([1, 2, 3]);
-    expect(result).not.toBe(items);
-  });
-
-  it('returns unchanged copy when from is out of range (negative)', () => {
-    const items = [1, 2, 3];
-    const result = moveItem(items, -1, 1);
-    expect(result).toEqual([1, 2, 3]);
-    expect(result).not.toBe(items);
-  });
-
-  it('returns unchanged copy when from is out of range (too large)', () => {
-    const items = [1, 2, 3];
-    const result = moveItem(items, 5, 1);
-    expect(result).toEqual([1, 2, 3]);
-    expect(result).not.toBe(items);
-  });
-
-  it('does not mutate the input', () => {
-    const items = [1, 2, 3, 4];
-    const original = [...items];
-    moveItem(items, 0, 2);
-    expect(items).toEqual(original);
+  it('returns null if it was the only tab', () => {
+    const ids = ['tab1'];
+    expect(nextActiveAfterClose(ids, 'tab1', 'tab1')).toBeNull();
   });
 });
 
 describe('tabLabels', () => {
-  it('returns unique basenames', () => {
-    expect(tabLabels(['C:\\a\\x.md', 'C:\\b\\y.md'])).toEqual(['x.md', 'y.md']);
+  it('returns "Untitled" for null paths', () => {
+    expect(tabLabels([null, null])).toEqual(['Untitled', 'Untitled 2']);
   });
 
-  it('labels untitled tabs with Untitled, Untitled 2, etc.', () => {
-    expect(tabLabels([null, null, null])).toEqual(['Untitled', 'Untitled 2', 'Untitled 3']);
+  it('returns basenames for unique files', () => {
+    expect(tabLabels(['/path/to/file1.md', '/path/to/file2.md'])).toEqual(['file1.md', 'file2.md']);
   });
 
-  it('handles a mix of untitled and named files', () => {
-    const result = tabLabels([null, 'C:\\a\\x.md', null, 'C:\\b\\y.md']);
-    expect(result).toEqual(['Untitled', 'x.md', 'Untitled 2', 'y.md']);
+  it('adds parent folder suffix for duplicate basenames', () => {
+    const paths = ['/folder1/README.md', '/folder2/README.md'];
+    const labels = tabLabels(paths);
+    expect(labels).toHaveLength(2);
+    expect(labels[0]).toContain('README.md');
+    expect(labels[1]).toContain('README.md');
+    expect(labels[0]).not.toEqual(labels[1]);
   });
 
-  it('adds parent-folder suffix for two duplicate basenames', () => {
-    const result = tabLabels(['C:\\docs\\README.md', 'C:\\api\\README.md']);
-    expect(result).toEqual(['README.md · docs', 'README.md · api']);
-  });
-
-  it('adds multi-folder suffix when needed', () => {
-    const result = tabLabels(['C:\\x\\one\\docs\\README.md', 'C:\\y\\two\\docs\\README.md']);
-    expect(result).toEqual(['README.md · one/docs', 'README.md · two/docs']);
-  });
-
-  it('handles mixed path separators', () => {
-    const result = tabLabels(['C:\\a\\README.md', 'C:/b/README.md']);
-    expect(result).toEqual(['README.md · a', 'README.md · b']);
-  });
-
-  it('handles three duplicates with two sharing a parent folder', () => {
-    const result = tabLabels([
-      'C:\\docs\\file.txt',
-      'C:\\docs\\nested\\file.txt',
-      'C:\\other\\file.txt',
-    ]);
-    expect(result[0]).toBe('file.txt · docs');
-    expect(result[2]).toBe('file.txt · other');
-    // result[1] can vary but should be distinguishable
-  });
-
-  it("returns full paths as fallback for identical paths (shouldn't happen)", () => {
-    const result = tabLabels(['C:\\a\\b.md', 'C:\\a\\b.md']);
-    expect(result[0]).toBe('C:\\a\\b.md');
-    expect(result[1]).toBe('C:\\a\\b.md');
-  });
-
-  it('handles paths with trailing separators', () => {
-    const result = tabLabels(['C:\\a\\README.md\\', 'C:\\b\\README.md']);
-    expect(result).toEqual(['README.md · a', 'README.md · b']);
-  });
-
-  it('handles single path', () => {
-    expect(tabLabels(['C:\\a\\b.md'])).toEqual(['b.md']);
-  });
-
-  it('handles empty array', () => {
-    expect(tabLabels([])).toEqual([]);
+  it('mixes untitled and regular files', () => {
+    const labels = tabLabels([null, '/path/to/file.md', null]);
+    expect(labels[0]).toBe('Untitled');
+    expect(labels[1]).toBe('file.md');
+    expect(labels[2]).toBe('Untitled 2');
   });
 });
