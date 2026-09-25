@@ -60,7 +60,10 @@ export function NumberInput({ value, onChange, min, max, step = 1, unit }: Numbe
 const FONT_SUGGESTIONS = [
   "'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif",
   "'Segoe UI', sans-serif",
+  "'Inter Variable', sans-serif",
   'Inter, sans-serif',
+  "'Open Sans Variable', sans-serif",
+  "'Open Sans', sans-serif",
   'Calibri, sans-serif',
   'Arial, sans-serif',
   'Verdana, sans-serif',
@@ -70,6 +73,7 @@ const FONT_SUGGESTIONS = [
   "'Cascadia Code', monospace",
   "'Cascadia Mono', Consolas, monospace",
   'Consolas, monospace',
+  "'JetBrains Mono Variable', monospace",
   "'JetBrains Mono', monospace",
   "'Fira Code', monospace",
 ];

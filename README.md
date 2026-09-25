@@ -14,13 +14,17 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
 - **Outline** sidebar (`Ctrl+\`) — collapsible, resizable, click to jump, follows your scroll.
 - **Styling presets** — GitHub, Obsidian-like, Claude-like, Boulayla and Sequoia built in. Every font, size, spacing
   and colour (separately for light and dark) is editable in Settings (`Ctrl+,`); presets can be
-  copied, renamed, imported and exported as JSON, and each has a custom-CSS slot.
+  copied, renamed, imported and exported as JSON, and each has a custom-CSS slot. Inter, Open Sans
+  and JetBrains Mono (used by Sequoia/Obsidian/Boulayla) are bundled so they render correctly even
+  though Windows doesn't ship them.
 - **Light / dark / follow-Windows** app theme.
 - GFM tables, task lists, footnotes, autolinks; fenced code with Shiki highlighting;
   **KaTeX** math (`$…$`, `$$…$$`); **Mermaid** diagrams.
 - **Live reload** when the file changes on disk (asks first if you have unsaved edits).
 - **Find** (`Ctrl+F`) in both views.
-- **Export** as a standalone HTML file, or print / save as PDF.
+- **Export** as a standalone HTML file, or print / save as PDF. The exported HTML links the
+  KaTeX stylesheet from a CDN (needs internet to render math when opened) and falls back to
+  system fonts for Inter/Open Sans/JetBrains Mono, since the bundled font files aren't embedded.
 - Registers itself for `.md` / `.markdown` so *Open with* and double-click work.
 
 ## Development

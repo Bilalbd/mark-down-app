@@ -3,9 +3,9 @@
   "name": "Obsidian-like",
   "builtin": true,
   "typography": {
-    "bodyFont": "Inter, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif",
+    "bodyFont": "'Inter Variable', Inter, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif",
     "headingFont": "",
-    "monoFont": "'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace",
+    "monoFont": "'Cascadia Code', 'Fira Code', 'JetBrains Mono Variable', 'JetBrains Mono', Consolas, monospace",
     "baseSize": 16,
     "lineHeight": 1.5,
     "contentWidth": 900,

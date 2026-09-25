@@ -3,9 +3,9 @@
   "name": "Boulayla",
   "builtin": true,
   "typography": {
-    "bodyFont": "'Open Sans', ui-sans-serif, system-ui, 'Segoe UI', sans-serif",
+    "bodyFont": "'Open Sans Variable', 'Open Sans', ui-sans-serif, system-ui, 'Segoe UI', sans-serif",
     "headingFont": "",
-    "monoFont": "'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', monospace",
+    "monoFont": "'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', monospace",
     "baseSize": 15,
     "lineHeight": 1.45,
     "contentWidth": 900,
