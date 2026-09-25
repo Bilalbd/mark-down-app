@@ -547,6 +547,8 @@ export async function routeExternalOpen(path: string): Promise<void> {
   if (openFilesIn === 'tab') {
     await useTabsStore.getState().openInTab(path);
   } else {
-    await openInNewWindow(path);
+    await openInNewWindow(path).catch((e) => {
+      useDocumentStore.setState({ error: `Could not open ${path}: ${String(e)}` });
+    });
   }
 }

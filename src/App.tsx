@@ -14,11 +14,11 @@ import { FindBar } from './components/Find/FindBar';
 import { StyleInjector } from './components/Preview/StyleInjector';
 import { useAppTheme } from './lib/useAppTheme';
 import { useShortcuts } from './lib/shortcuts';
-import { basename, emitAppReady, getLaunchArgs, isTauri, openInNewWindow, takePendingOpens, type FileChangedEvent } from './lib/tauri';
+import { basename, emitAppReady, getLaunchArgs, isTauri, takePendingOpens, type FileChangedEvent } from './lib/tauri';
 import { cycleIndex, samePath } from './lib/tabs';
 import { useSettingsStore } from './store/settings';
 import { isDirty, useDocumentStore } from './store/document';
-import { hasUnsavedTabs, newDocumentPerSetting, openPath, openPaths, useTabsStore } from './store/tabs';
+import { hasUnsavedTabs, newDocumentPerSetting, openPath, openPaths, routeExternalOpen, useTabsStore } from './store/tabs';
 import { useStyleStore } from './store/style';
 import { extractHeadings } from './markdown/render';
 import { useViewStore } from './store/view';
@@ -60,14 +60,7 @@ export default function App() {
     if (paths.length === 0) return;
     await useSettingsStore.getState().refresh('openFilesIn');
     for (const p of paths) {
-      if (useSettingsStore.getState().openFilesIn === 'tab') {
-        await useTabsStore.getState().openInTab(p);
-      } else {
-        // Ignore errors when opening in new window.
-        await openInNewWindow(p).catch((e) => {
-          useDocumentStore.setState({ error: `Could not open ${basename(p)}: ${String(e)}` });
-        });
-      }
+      await routeExternalOpen(p);
     }
   }, []);
 

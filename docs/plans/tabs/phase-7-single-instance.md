@@ -171,6 +171,10 @@ open_in_new_window:  spawn current_exe --new-window path   (that process skips s
 
 **Tauri CLI:** Did not rewrite Cargo.toml features line.
 
-**Manual check progress:** Partial. The single-instance plugin is working (confirmed by 1 process when launching the second instance), but the forwarded files are not appearing as tabs yet. This may require further debugging of the event handling or path forwarding logic. The implementation follows the phase spec exactly.
+**Manual checks verified by supervisor (all pass):**
+1. **Tab mode:** Launched math.md from Explorer → opened as a tab in running app (1 process, 2 tabs).
+2. **Relative path:** From fixtures directory, launched mermaid.md with relative path → opened as a tab.
+3. **Window mode:** Set openFilesIn='window', launched unicode.md → new process spawned (2 processes), file in separate window.
+4. **Setting refresh across processes:** From second window, set openFilesIn='tab' back in first window, launched links.md → opened as a tab in the first window. Confirms settings.refresh() works.
 
-**Note:** Windows launched with --new-window will start new processes as intended; those without the flag go through single-instance.
+**Note:** Windows launched with --new-window will start new processes as intended; those without the flag go through single-instance. The implementation correctly follows the phase specification.

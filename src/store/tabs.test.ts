@@ -2,13 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useDocumentStore } from '@/store/document';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
-import { hasUnsavedTabs, newDocumentPerSetting, openPath, openPaths, useTabsStore } from '@/store/tabs';
+import { hasUnsavedTabs, newDocumentPerSetting, openPath, openPaths, routeExternalOpen, useTabsStore } from '@/store/tabs';
 
 const mockReadFile = vi.fn();
 const mockWriteFile = vi.fn();
 const mockWatchFile = vi.fn().mockResolvedValue(undefined);
 const mockUnwatchFile = vi.fn().mockResolvedValue(undefined);
 const mockSetAssetRoot = vi.fn().mockResolvedValue(undefined);
+const mockOpenInNewWindow = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('@/lib/tauri', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/tauri')>();
@@ -20,6 +21,7 @@ vi.mock('@/lib/tauri', async (importOriginal) => {
     watchFile: (...args: Parameters<typeof actual.watchFile>) => mockWatchFile(...args),
     unwatchFile: (...args: Parameters<typeof actual.unwatchFile>) => mockUnwatchFile(...args),
     setAssetRoot: (...args: Parameters<typeof actual.setAssetRoot>) => mockSetAssetRoot(...args),
+    openInNewWindow: (...args: Parameters<typeof actual.openInNewWindow>) => mockOpenInNewWindow(...args),
   };
 });
 
@@ -573,5 +575,37 @@ describe('tabs store', () => {
 
     expect(useTabsStore.getState().tabs).toHaveLength(tabCountBefore);
     expect(useDocumentStore.getState().path).toBe('C:\\docs\\A.md');
+  });
+
+  it('routeExternalOpen in tab mode opens a tab', async () => {
+    useSettingsStore.setState({ openFilesIn: 'tab' });
+
+    await routeExternalOpen('C:\\docs\\A.md');
+
+    expect(useTabsStore.getState().tabs).toHaveLength(1);
+    expect(useDocumentStore.getState().path).toBe('C:\\docs\\A.md');
+    expect(mockReadFile).toHaveBeenCalledWith('C:\\docs\\A.md');
+    expect(mockOpenInNewWindow).not.toHaveBeenCalled();
+  });
+
+  it('routeExternalOpen in window mode calls openInNewWindow', async () => {
+    useSettingsStore.setState({ openFilesIn: 'window' });
+    await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+
+    const tabCountBefore = useTabsStore.getState().tabs.length;
+    await routeExternalOpen('C:\\docs\\B.md');
+
+    expect(mockOpenInNewWindow).toHaveBeenCalledWith('C:\\docs\\B.md');
+    expect(useTabsStore.getState().tabs).toHaveLength(tabCountBefore);
+  });
+
+  it('routeExternalOpen in window mode sets error when openInNewWindow rejects', async () => {
+    useSettingsStore.setState({ openFilesIn: 'window' });
+    mockOpenInNewWindow.mockRejectedValueOnce(new Error('spawn failed'));
+
+    await routeExternalOpen('C:\\docs\\A.md');
+
+    expect(useDocumentStore.getState().error).toContain('Could not open');
+    expect(useDocumentStore.getState().error).toContain('spawn failed');
   });
 });
