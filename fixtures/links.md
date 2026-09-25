@@ -12,7 +12,7 @@ Jump to [Section two](#section-two).
 - A relative image link: [an image with a space in its name](images/my%20image.png)
 - An external link: [example.com](https://example.com)
 
-![Inline image with a space in its name](images/my image.png)
+![Inline image with a space in its name](<images/my image.png>)
 
 ## Section two
 

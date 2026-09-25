@@ -91,7 +91,11 @@ export function SourceEditor() {
   const pendingScrollLine = useViewStore((s) => s.pendingScrollLine);
   const clearPendingScroll = useViewStore((s) => s.clearPendingScroll);
 
-  const isFirstLoadId = useRef(true);
+  // Snapshots, not a "first run" flag: comparing against a value already initialised
+  // to the current prop makes this naturally idempotent under React StrictMode's
+  // dev-only double-invoke of effects (a stale-flag pattern would instead see the
+  // second invoke as "not the first run" and wrongly reset a just-mounted editor).
+  const prevLoadIdRef = useRef(loadId);
   const prevPathRef = useRef(path);
 
   // Create the editor once, reusing the cached state (undo history included) when it
@@ -125,11 +129,8 @@ export function SourceEditor() {
   // A fresh open/newDocument/reload gets a fresh undo history. A reload of the same
   // path (live external-change reload) keeps the scroll position instead of jumping to top.
   useEffect(() => {
-    if (isFirstLoadId.current) {
-      isFirstLoadId.current = false;
-      prevPathRef.current = path;
-      return;
-    }
+    if (loadId === prevLoadIdRef.current) return; // just mounted/remounted, no new load
+    prevLoadIdRef.current = loadId;
     const view = viewRef.current;
     if (!view) return;
     const samePath = prevPathRef.current === path;
