@@ -30,6 +30,17 @@ export async function getLaunchArgs(): Promise<string | null> {
   return invoke<string | null>('get_launch_args');
 }
 
+/** Files forwarded by later launches of the app, waiting to be opened (clears the queue). */
+export async function takePendingOpens(): Promise<string[]> {
+  if (!isTauri()) return [];
+  return invoke<string[]>('take_pending_opens');
+}
+
+/** Starts another copy of the app showing `path` in its own window. */
+export function openInNewWindow(path: string): Promise<void> {
+  return invoke('open_in_new_window', { path });
+}
+
 export function readFile(path: string): Promise<FileData> {
   return invoke<FileData>('read_file', { path });
 }

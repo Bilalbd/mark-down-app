@@ -42,3 +42,12 @@ describe('useSettingsStore recent files', () => {
     expect(useSettingsStore.getState().recentFiles).toEqual(['a.md']);
   });
 });
+
+describe('useSettingsStore refresh', () => {
+  it('is a no-op outside Tauri', async () => {
+    const { refresh } = useSettingsStore.getState();
+    await refresh('appTheme');
+    // Should not throw and state should remain unchanged
+    expect(useSettingsStore.getState().appTheme).toBe('dark');
+  });
+});

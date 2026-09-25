@@ -2,7 +2,8 @@ mod assets;
 mod commands;
 mod watch;
 
-use tauri::{Listener, Manager};
+use tauri::{Listener, Manager, Emitter};
+use std::path::Path;
 
 /// Whether `url` is a location the app's own webview should be allowed to navigate to.
 /// Everything else (a relative `.md` link resolving to a real navigation, `file:`, a
@@ -24,7 +25,30 @@ fn is_app_url(url: &tauri::Url) -> bool {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let new_window = std::env::args().any(|a| a == "--new-window");
+
+    let mut builder = tauri::Builder::default();
+
+    // Add single-instance plugin first, but only if not launching with --new-window.
+    // Windows launched with --new-window skip the plugin so they don't take the lock
+    // or forward to the first window.
+    if !new_window {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+            if let Some(path) = commands::launch_path(&argv, Path::new(&cwd)) {
+                if let Ok(mut pending) = app.state::<commands::PendingOpens>().0.lock() {
+                    pending.push(path);
+                }
+                let _ = app.emit("open-requested", ());
+            }
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.unminimize();
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
+        }));
+    }
+
+    builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
@@ -36,11 +60,14 @@ pub fn run() {
         )
         .manage(watch::WatchState::default())
         .manage(assets::AssetRoot::default())
+        .manage(commands::PendingOpens::default())
         .register_uri_scheme_protocol("mdasset", |ctx, request| assets::handler(ctx, request))
         .invoke_handler(tauri::generate_handler![
             commands::get_launch_args,
             commands::read_file,
             commands::write_file,
+            commands::take_pending_opens,
+            commands::open_in_new_window,
             assets::set_asset_root,
             watch::watch_file,
             watch::unwatch_file

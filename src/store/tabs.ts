@@ -11,7 +11,7 @@ import {
 } from '@/store/document';
 import { useSettingsStore, type ViewMode } from '@/store/settings';
 import { useViewStore } from '@/store/view';
-import { dirname, isTauri, setAssetRoot, unwatchFile, type FileChangedEvent } from '@/lib/tauri';
+import { dirname, isTauri, openInNewWindow, setAssetRoot, unwatchFile, type FileChangedEvent } from '@/lib/tauri';
 import { pruneEditorCache } from '@/lib/editorCache';
 import {
   findTabByPath,
@@ -537,5 +537,16 @@ export async function openPaths(paths: string[]): Promise<void> {
     // Window mode: open first path only
     const first = paths[0];
     if (first) await openPath(first);
+  }
+}
+
+/** Routes a single path to either a tab or a new window based on the current setting. */
+export async function routeExternalOpen(path: string): Promise<void> {
+  const openFilesIn = useSettingsStore.getState().openFilesIn;
+
+  if (openFilesIn === 'tab') {
+    await useTabsStore.getState().openInTab(path);
+  } else {
+    await openInNewWindow(path);
   }
 }

@@ -14,7 +14,7 @@ import { FindBar } from './components/Find/FindBar';
 import { StyleInjector } from './components/Preview/StyleInjector';
 import { useAppTheme } from './lib/useAppTheme';
 import { useShortcuts } from './lib/shortcuts';
-import { basename, emitAppReady, getLaunchArgs, isTauri, type FileChangedEvent } from './lib/tauri';
+import { basename, emitAppReady, getLaunchArgs, isTauri, openInNewWindow, takePendingOpens, type FileChangedEvent } from './lib/tauri';
 import { cycleIndex, samePath } from './lib/tabs';
 import { useSettingsStore } from './store/settings';
 import { isDirty, useDocumentStore } from './store/document';
@@ -53,6 +53,24 @@ export default function App() {
 
   useAppTheme();
 
+  // Handle files forwarded by later launches (single-instance plugin).
+  const handleOpenRequests = useCallback(async () => {
+    if (!useSettingsStore.getState().loaded) return; // startup drains the queue once settings are in
+    const paths = await takePendingOpens().catch(() => []);
+    if (paths.length === 0) return;
+    await useSettingsStore.getState().refresh('openFilesIn');
+    for (const p of paths) {
+      if (useSettingsStore.getState().openFilesIn === 'tab') {
+        await useTabsStore.getState().openInTab(p);
+      } else {
+        // Ignore errors when opening in new window.
+        await openInNewWindow(p).catch((e) => {
+          useDocumentStore.setState({ error: `Could not open ${basename(p)}: ${String(e)}` });
+        });
+      }
+    }
+  }, []);
+
   // Startup: load settings, then open a file passed on the command line (file association).
   // Only once everything that affects the first paint's colours is settled do we tell
   // Rust to show the window, so it never flashes the default theme/preset first.
@@ -61,9 +79,10 @@ export default function App() {
       await Promise.all([loadSettings(), loadStyles()]);
       const arg = await getLaunchArgs();
       if (arg) await openPath(arg);
+      await handleOpenRequests();
       requestAnimationFrame(() => requestAnimationFrame(emitAppReady));
     })();
-  }, [loadSettings, loadStyles]);
+  }, [loadSettings, loadStyles, handleOpenRequests]);
 
   // Drag & drop from Explorer (Tauri-native event; browser DnD is disabled by dragDropEnabled).
   useEffect(() => {
@@ -81,6 +100,14 @@ export default function App() {
       .then((u) => (unlisten = u));
     return () => unlisten?.();
   }, []);
+
+  // Listen for files forwarded by the single-instance plugin when they arrive after startup.
+  useEffect(() => {
+    if (!isTauri()) return;
+    let unlisten: (() => void) | undefined;
+    void listen('open-requested', () => void handleOpenRequests()).then((u) => (unlisten = u));
+    return () => unlisten?.();
+  }, [handleOpenRequests]);
 
   // Outline headings come from a cheap headings-only parse so the outline works in every view.
   useEffect(() => {

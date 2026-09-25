@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
+use std::sync::Mutex;
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 #[serde(rename_all = "kebab-case")]
@@ -82,18 +83,55 @@ fn encode(content: &str, enc: Encoding) -> Vec<u8> {
     }
 }
 
+/// The file to open from a command line (`args[0]` is the exe): the first argument that isn't
+/// a flag, made absolute against `cwd` and normalised.
+pub fn launch_path(args: &[String], cwd: &Path) -> Option<String> {
+    args.iter()
+        .skip(1) // Skip args[0], which is the exe path
+        .find(|a| !a.starts_with('-'))
+        .map(|a| {
+            let path = PathBuf::from(a);
+            let absolute = if path.is_absolute() {
+                path
+            } else {
+                cwd.join(&path)
+            };
+            // Normalise redundant separators (e.g. doubled backslashes from shell quoting).
+            let normalised: PathBuf = absolute.components().collect();
+            normalised.to_string_lossy().into_owned()
+        })
+}
+
 /// Returns the file path passed on the command line, if any.
 /// Set when the app is launched via a `.md` file association or "Open With".
 #[tauri::command]
 pub fn get_launch_args() -> Option<String> {
-    std::env::args()
-        .skip(1)
-        .find(|a| !a.starts_with('-'))
-        .map(|a| {
-            // Normalise redundant separators (e.g. doubled backslashes from shell quoting).
-            let normalised: PathBuf = PathBuf::from(&a).components().collect();
-            normalised.to_string_lossy().into_owned()
-        })
+    launch_path(&std::env::args().collect::<Vec<_>>(), &std::env::current_dir().unwrap_or_default())
+}
+
+/// Files forwarded by later launches (single-instance), waiting for the frontend to open them.
+#[derive(Default)]
+pub struct PendingOpens(pub Mutex<Vec<String>>);
+
+/// Returns and clears the forwarded files.
+#[tauri::command]
+pub fn take_pending_opens(state: tauri::State<'_, PendingOpens>) -> Result<Vec<String>, String> {
+    let mut pending = state.0.lock().map_err(|e| e.to_string())?;
+    Ok(std::mem::take(&mut *pending))
+}
+
+/// Starts another copy of the app showing `path` in its own window ("Open files in: New window").
+#[tauri::command]
+pub fn open_in_new_window(path: String) -> Result<(), String> {
+    if !Path::new(&path).is_file() {
+        return Err("not a file".to_string());
+    }
+    std::process::Command::new(std::env::current_exe().map_err(|e| e.to_string())?)
+        .arg("--new-window")
+        .arg(&path)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[derive(Serialize)]
@@ -321,5 +359,45 @@ mod encoding_tests {
             serde_json::to_string(&Encoding::Utf16Be).unwrap(),
             "\"utf16-be\""
         );
+    }
+}
+
+#[cfg(test)]
+mod launch_path_tests {
+    use super::*;
+
+    #[test]
+    fn takes_absolute_path_as_is() {
+        let args = vec!["exe".to_string(), "C:\\Users\\test\\file.md".to_string()];
+        let result = launch_path(&args, Path::new("C:\\home"));
+        assert_eq!(result, Some("C:\\Users\\test\\file.md".to_string()));
+    }
+
+    #[test]
+    fn joins_relative_path_to_cwd() {
+        let args = vec!["exe".to_string(), "file.md".to_string()];
+        let result = launch_path(&args, Path::new("C:\\home"));
+        assert_eq!(result, Some("C:\\home\\file.md".to_string()));
+    }
+
+    #[test]
+    fn skips_flags_starting_with_dash() {
+        let args = vec!["exe".to_string(), "--new-window".to_string(), "C:\\file.md".to_string()];
+        let result = launch_path(&args, Path::new("C:\\home"));
+        assert_eq!(result, Some("C:\\file.md".to_string()));
+    }
+
+    #[test]
+    fn returns_none_when_no_file_argument() {
+        let args = vec!["exe".to_string(), "--new-window".to_string()];
+        let result = launch_path(&args, Path::new("C:\\home"));
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn normalises_doubled_backslashes() {
+        let args = vec!["exe".to_string(), "C:\\\\Users\\\\test\\\\file.md".to_string()];
+        let result = launch_path(&args, Path::new("C:\\home"));
+        assert_eq!(result, Some("C:\\Users\\test\\file.md".to_string()));
     }
 }
