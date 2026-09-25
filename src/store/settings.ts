@@ -48,6 +48,8 @@ interface SettingsState extends Settings {
   set: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
   /** Moves `path` to the front of recentFiles, deduped and capped. */
   addRecentFile: (path: string) => void;
+  /** Drops `path` from recentFiles (e.g. it became unreadable or was moved). */
+  removeRecentFile: (path: string) => void;
 }
 
 let store: Store | null = null;
@@ -95,6 +97,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       0,
       MAX_RECENT_FILES,
     );
+    get().set('recentFiles', next);
+  },
+
+  removeRecentFile: (path) => {
+    const next = get().recentFiles.filter((p) => p !== path);
+    if (next.length === get().recentFiles.length) return;
     get().set('recentFiles', next);
   },
 }));

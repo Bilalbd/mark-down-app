@@ -65,6 +65,15 @@ describe('renderMarkdown', () => {
     expect(html).toContain('src="https://h/b.png"');
   });
 
+  it('decodes percent-encoded and non-ASCII image paths before resolving them', async () => {
+    const { html } = await renderMarkdown('![a](<my image.png>) ![b](café.png)', {
+      baseDir: 'C:\\docs\\notes',
+      toAssetUrl: (p) => `asset://${p.replace(/\\/g, '/')}`,
+    });
+    expect(html).toContain('src="asset://C:/docs/notes/my image.png"');
+    expect(html).toContain('src="asset://C:/docs/notes/café.png"');
+  });
+
   it('renders footnotes', async () => {
     const { html } = await renderMarkdown('ref[^1]\n\n[^1]: note');
     expect(html).toContain('footnote');

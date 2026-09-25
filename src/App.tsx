@@ -14,7 +14,7 @@ import { FindBar } from './components/Find/FindBar';
 import { StyleInjector } from './components/Preview/StyleInjector';
 import { useAppTheme } from './lib/useAppTheme';
 import { useShortcuts } from './lib/shortcuts';
-import { basename, getLaunchArgs, isTauri, type FileChangedEvent } from './lib/tauri';
+import { basename, emitAppReady, getLaunchArgs, isTauri, type FileChangedEvent } from './lib/tauri';
 import { useSettingsStore } from './store/settings';
 import { isDirty, useDocumentStore } from './store/document';
 import { useStyleStore } from './store/style';
@@ -54,11 +54,14 @@ export default function App() {
   useAppTheme();
 
   // Startup: load settings, then open a file passed on the command line (file association).
+  // Only once everything that affects the first paint's colours is settled do we tell
+  // Rust to show the window, so it never flashes the default theme/preset first.
   useEffect(() => {
     void (async () => {
       await Promise.all([loadSettings(), loadStyles()]);
       const arg = await getLaunchArgs();
       if (arg) await openFile(arg);
+      requestAnimationFrame(() => requestAnimationFrame(emitAppReady));
     })();
   }, [loadSettings, loadStyles, openFile]);
 
@@ -144,8 +147,6 @@ export default function App() {
   );
   useShortcuts(shortcuts);
 
-  const hasDoc = hasDocument;
-
   return (
     <div className={`app ${dragOver ? 'is-drag-over' : ''}`}>
       <TitleBar
@@ -178,10 +179,10 @@ export default function App() {
         </div>
       )}
       <main className="app__body">
-        {hasDoc && outlineVisible && <Outline />}
+        {hasDocument && outlineVisible && <Outline />}
         <div className="app__content">
-          {hasDoc && <FindBar />}
-          {!hasDoc ? (
+          {hasDocument && <FindBar />}
+          {!hasDocument ? (
             <div className="empty-state">
               <p>Open a Markdown file to get started.</p>
               <p className="empty-state__hint">

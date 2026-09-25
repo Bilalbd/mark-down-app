@@ -1,8 +1,9 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
-import { openUrl } from '@tauri-apps/plugin-opener';
+import { openUrl, revealItemInDir } from '@tauri-apps/plugin-opener';
 import { renderMarkdown } from '@/markdown/render';
 import { renderMermaidBlocks } from '@/markdown/mermaid';
 import { useResolvedTheme } from '@/lib/useAppTheme';
+import { classifyLink } from '@/lib/links';
 import { dirname, isTauri, toAssetUrl } from '@/lib/tauri';
 import { useDocumentStore } from '@/store/document';
 import { useSettingsStore } from '@/store/settings';
@@ -103,20 +104,35 @@ export function Preview() {
   const onClick = (e: MouseEvent<HTMLDivElement>) => {
     const anchor = (e.target as HTMLElement).closest('a');
     if (!anchor) return;
-    const href = anchor.getAttribute('href') ?? '';
-    if (href.startsWith('#')) {
-      e.preventDefault();
-      const id = decodeURIComponent(href.slice(1));
-      scrollRef.current
-        ?.querySelector<HTMLElement>(`[id="${CSS.escape(id)}"]`)
-        ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-      return;
+    const href = anchor.getAttribute('href');
+    if (href === null) return;
+    e.preventDefault();
+
+    const classification = classifyLink(href, path);
+    switch (classification.kind) {
+      case 'anchor':
+        scrollRef.current
+          ?.querySelector<HTMLElement>(`[id="${CSS.escape(classification.id)}"]`)
+          ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        return;
+      case 'external':
+        if (isTauri()) void openUrl(href);
+        else window.open(href, '_blank', 'noopener');
+        return;
+      case 'markdown':
+        void useDocumentStore.getState().open(classification.path);
+        return;
+      case 'file':
+        if (isTauri()) void revealItemInDir(classification.path);
+        return;
+      case 'ignore':
+        return;
     }
-    if (/^(https?:|mailto:)/i.test(href)) {
-      e.preventDefault();
-      if (isTauri()) void openUrl(href);
-      else window.open(href, '_blank', 'noopener');
-    }
+  };
+
+  // Middle-click would otherwise let the webview open a new window on the raw href.
+  const onAuxClick = (e: MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('a')) e.preventDefault();
   };
 
   return (
@@ -125,6 +141,7 @@ export function Preview() {
         className="preview"
         style={{ '--md-zoom': zoom } as React.CSSProperties}
         onClick={onClick}
+        onAuxClick={onAuxClick}
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </div>

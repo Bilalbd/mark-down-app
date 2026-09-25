@@ -4,6 +4,7 @@ import { katex } from '@mdit/plugin-katex';
 import { headingIds, sourceLines, taskLists, type HeadingInfo } from './plugins';
 import { ensureLanguages, getHighlighter, highlightSync } from './shiki';
 import { sanitizeHtml } from './sanitize';
+import { joinPath, safeDecodeURI } from '@/lib/tauri';
 
 export interface RenderEnv extends Env {
   /** Absolute directory of the open file, used to resolve relative image paths. */
@@ -37,7 +38,8 @@ md.renderer.rules.image = (tokens, idx, options, env, self) => {
   const token = tokens[idx];
   const src = String(token.attrGet('src') ?? '');
   if (renv.baseDir && renv.toAssetUrl && isRelative(src)) {
-    token.attrSet('src', renv.toAssetUrl(joinPath(renv.baseDir, src)));
+    const clean = safeDecodeURI(src.replace(/[?#].*$/, ''));
+    token.attrSet('src', renv.toAssetUrl(joinPath(renv.baseDir, clean)));
   }
   return defaultImage(tokens, idx, options, env, self);
 };
@@ -65,16 +67,6 @@ type HighlighterLike = Awaited<ReturnType<typeof getHighlighter>>;
 
 function isRelative(src: string): boolean {
   return !/^(?:[a-z][a-z0-9+.-]*:|\/\/|\/|#)/i.test(src);
-}
-
-function joinPath(dir: string, rel: string): string {
-  const sep = dir.includes('\\') ? '\\' : '/';
-  const parts = dir.split(/[\\/]/);
-  for (const seg of rel.split(/[\\/]/)) {
-    if (seg === '..') parts.pop();
-    else if (seg !== '.' && seg !== '') parts.push(seg);
-  }
-  return parts.join(sep);
 }
 
 function collectFenceLangs(tokens: Token[]): string[] {

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { EditorState, Compartment } from '@codemirror/state';
+import { EditorState, Compartment, Transaction, type Extension } from '@codemirror/state';
 import {
   EditorView,
   keymap,
@@ -31,63 +31,79 @@ function topVisibleLine(view: EditorView): number {
   return view.state.doc.lineAt(block.from).number - 1;
 }
 
+function buildExtensions(): Extension[] {
+  const lineNumbersOn = useSettingsStore.getState().editorLineNumbers;
+  return [
+    gutterCompartment.of(lineNumbersOn ? [lineNumbers(), highlightActiveLineGutter()] : []),
+    highlightSpecialChars(),
+    history(),
+    drawSelection(),
+    dropCursor(),
+    EditorState.allowMultipleSelections.of(true),
+    indentOnInput(),
+    bracketMatching(),
+    rectangularSelection(),
+    crosshairCursor(),
+    highlightActiveLine(),
+    highlightSelectionMatches(),
+    // The app has its own find bar; CM only paints match decorations while a panel is
+    // open, so register an invisible one that FindBar opens/closes.
+    search({ top: true, createPanel: () => ({ dom: hiddenPanel(), top: true }) }),
+    EditorView.lineWrapping,
+    keymap.of([
+      ...defaultKeymap,
+      ...historyKeymap,
+      ...searchKeymap.filter((b) => b.key !== 'Mod-f'),
+      indentWithTab,
+    ]),
+    markdown({ base: markdownLanguage, codeLanguages: languages }),
+    editorTheme,
+    editorHighlighting,
+    EditorView.updateListener.of((u) => {
+      if (u.docChanged) useDocumentStore.getState().setContent(u.state.doc.toString());
+    }),
+    EditorView.domEventHandlers({
+      scroll: (_e, v) => {
+        useViewStore.getState().setTopLine(topVisibleLine(v));
+      },
+    }),
+  ];
+}
+
+function createEditorState(doc: string): EditorState {
+  return EditorState.create({ doc, extensions: buildExtensions() });
+}
+
+// Keeps undo history, selection and search state across unmount/remount (Ctrl+E toggle,
+// split-pane swap) as long as the document hasn't changed underneath us in the meantime.
+let cached: { loadId: number; state: EditorState } | null = null;
+
 export function SourceEditor() {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
 
   const content = useDocumentStore((s) => s.content);
-  const setContent = useDocumentStore((s) => s.setContent);
+  const loadId = useDocumentStore((s) => s.loadId);
+  const path = useDocumentStore((s) => s.path);
   const lineNumbersOn = useSettingsStore((s) => s.editorLineNumbers);
   const fontSize = useSettingsStore((s) => s.editorFontSize);
   const setEditorView = useViewStore((s) => s.setEditorView);
-  const setTopLine = useViewStore((s) => s.setTopLine);
   const pendingScrollLine = useViewStore((s) => s.pendingScrollLine);
   const clearPendingScroll = useViewStore((s) => s.clearPendingScroll);
 
-  // Create the editor once.
+  const isFirstLoadId = useRef(true);
+  const prevPathRef = useRef(path);
+
+  // Create the editor once, reusing the cached state (undo history included) when it
+  // still matches the current document.
   useEffect(() => {
     const host = hostRef.current!;
-    const view = new EditorView({
-      parent: host,
-      state: EditorState.create({
-        doc: useDocumentStore.getState().content,
-        extensions: [
-          gutterCompartment.of(lineNumbersOn ? [lineNumbers(), highlightActiveLineGutter()] : []),
-          highlightSpecialChars(),
-          history(),
-          drawSelection(),
-          dropCursor(),
-          EditorState.allowMultipleSelections.of(true),
-          indentOnInput(),
-          bracketMatching(),
-          rectangularSelection(),
-          crosshairCursor(),
-          highlightActiveLine(),
-          highlightSelectionMatches(),
-          // The app has its own find bar; CM only paints match decorations while a panel is
-          // open, so register an invisible one that FindBar opens/closes.
-          search({ top: true, createPanel: () => ({ dom: hiddenPanel(), top: true }) }),
-          EditorView.lineWrapping,
-          keymap.of([
-            ...defaultKeymap,
-            ...historyKeymap,
-            ...searchKeymap.filter((b) => b.key !== 'Mod-f'),
-            indentWithTab,
-          ]),
-          markdown({ base: markdownLanguage, codeLanguages: languages }),
-          editorTheme,
-          editorHighlighting,
-          EditorView.updateListener.of((u) => {
-            if (u.docChanged) setContent(u.state.doc.toString());
-          }),
-          EditorView.domEventHandlers({
-            scroll: (_e, v) => {
-              setTopLine(topVisibleLine(v));
-            },
-          }),
-        ],
-      }),
-    });
+    const docState = useDocumentStore.getState();
+    const state =
+      cached && cached.loadId === docState.loadId && cached.state.doc.toString() === docState.content
+        ? cached.state
+        : createEditorState(docState.content);
+    const view = new EditorView({ parent: host, state });
     viewRef.current = view;
     setEditorView(view);
     view.focus();
@@ -97,13 +113,33 @@ export function SourceEditor() {
     if (initial > 0) scrollToLine(view, initial);
 
     return () => {
+      cached = { loadId: useDocumentStore.getState().loadId, state: view.state };
       setEditorView(null);
       view.destroy();
       viewRef.current = null;
     };
   }, []);
 
-  // External content changes (file reload, opening another file) → replace the doc.
+  // A fresh open/newDocument/reload gets a fresh undo history. A reload of the same
+  // path (live external-change reload) keeps the scroll position instead of jumping to top.
+  useEffect(() => {
+    if (isFirstLoadId.current) {
+      isFirstLoadId.current = false;
+      prevPathRef.current = path;
+      return;
+    }
+    const view = viewRef.current;
+    if (!view) return;
+    const samePath = prevPathRef.current === path;
+    prevPathRef.current = path;
+    const savedLine = samePath ? topVisibleLine(view) : null;
+    view.setState(createEditorState(useDocumentStore.getState().content));
+    if (savedLine !== null) scrollToLine(view, savedLine);
+  }, [loadId]);
+
+  // Fallback sync for content changes that didn't come from a load (shouldn't normally
+  // happen, since edits flow the other way, but keeps the view from drifting if they do).
+  // Not added to history: it isn't a user edit.
   useEffect(() => {
     const view = viewRef.current;
     if (!view) return;
@@ -111,6 +147,7 @@ export function SourceEditor() {
     if (current === content) return;
     view.dispatch({
       changes: { from: 0, to: current.length, insert: content },
+      annotations: Transaction.addToHistory.of(false),
     });
   }, [content]);
 

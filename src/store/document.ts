@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialog';
 import { askSaveChanges } from '@/components/Dialog/ConfirmDialog';
 import { useSettingsStore } from '@/store/settings';
+import { applyEol, normalizeEol, type Eol } from '@/lib/eol';
 import {
   allowAssetDir,
   basename,
@@ -24,6 +25,11 @@ export interface DocumentState {
   content: string;
   savedContent: string;
   mtime: number;
+  /** Line ending to restore on save; the in-memory content is always LF-normalised. */
+  eol: Eol;
+  /** Incremented by open/newDocument/reload (not by setContent/save/saveAs), so the
+   * editor can tell a fresh load apart from ordinary edits and reset undo history. */
+  loadId: number;
   error: string | null;
   /**
    * Set when the file changed on disk while there are unsaved edits, so the UI can
@@ -59,6 +65,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   content: '',
   savedContent: '',
   mtime: 0,
+  eol: '\n',
+  loadId: 0,
   error: null,
   externalChange: null,
 
@@ -74,22 +82,26 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   open: async (path) => {
     if (!(await get().confirmDiscard())) return false;
     try {
-      const { content, mtime } = await readFile(path);
+      const { content: raw, mtime } = await readFile(path);
+      const { text: content, eol } = normalizeEol(raw);
       await allowAssetDir(dirname(path)).catch(() => undefined);
-      set({
+      set((s) => ({
         path,
         hasDocument: true,
         content,
         savedContent: content,
         mtime,
+        eol,
+        loadId: s.loadId + 1,
         error: null,
         externalChange: null,
-      });
+      }));
       await watchFile(path).catch(() => undefined);
       useSettingsStore.getState().addRecentFile(path);
       return true;
     } catch (e) {
       set({ error: `Could not open ${basename(path)}: ${String(e)}` });
+      useSettingsStore.getState().removeRecentFile(path);
       return false;
     }
   },
@@ -99,16 +111,19 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       // Browser fallback (Vite dev without Tauri): read a local file via <input type=file>.
       const file = await pickBrowserFile();
       if (file && (await get().confirmDiscard())) {
-        const content = await file.text();
-        set({
+        const raw = await file.text();
+        const { text: content, eol } = normalizeEol(raw);
+        set((s) => ({
           path: file.name,
           hasDocument: true,
           content,
           savedContent: content,
           mtime: file.lastModified,
+          eol,
+          loadId: s.loadId + 1,
           error: null,
           externalChange: null,
-        });
+        }));
       }
       return;
     }
@@ -126,15 +141,17 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   newDocument: async () => {
     if (!(await get().confirmDiscard())) return false;
     if (isTauri()) await unwatchFile().catch(() => undefined);
-    set({
+    set((s) => ({
       path: null,
       hasDocument: true,
       content: '',
       savedContent: '',
       mtime: 0,
+      eol: '\n',
+      loadId: s.loadId + 1,
       error: null,
       externalChange: null,
-    });
+    }));
     return true;
   },
 
@@ -148,9 +165,9 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       ],
     });
     if (!target) return false;
-    const { content } = get();
+    const { content, eol } = get();
     try {
-      const mtime = await writeFile(target, content);
+      const mtime = await writeFile(target, applyEol(content, eol));
       set({ path: target, savedContent: content, mtime, error: null, externalChange: null });
       await allowAssetDir(dirname(target)).catch(() => undefined);
       await watchFile(target).catch(() => undefined);
@@ -166,8 +183,17 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     const { path } = get();
     if (!path) return;
     try {
-      const { content, mtime } = await readFile(path);
-      set({ content, savedContent: content, mtime, error: null, externalChange: null });
+      const { content: raw, mtime } = await readFile(path);
+      const { text: content, eol } = normalizeEol(raw);
+      set((s) => ({
+        content,
+        savedContent: content,
+        mtime,
+        eol,
+        loadId: s.loadId + 1,
+        error: null,
+        externalChange: null,
+      }));
     } catch (e) {
       set({ error: String(e) });
     }
@@ -176,11 +202,11 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   setContent: (content) => set({ content }),
 
   save: async () => {
-    const { path, content, hasDocument } = get();
+    const { path, content, eol, hasDocument } = get();
     if (!hasDocument) return false;
     if (!path) return get().saveAs();
     try {
-      const mtime = await writeFile(path, content);
+      const mtime = await writeFile(path, applyEol(content, eol));
       set({ savedContent: content, mtime, error: null, externalChange: null });
       return true;
     } catch (e) {

@@ -3,10 +3,15 @@ import { emit } from '@tauri-apps/api/event';
 
 export const isTauri = (): boolean => '__TAURI_INTERNALS__' in window;
 
-/** Tells the Rust side the first frame has painted, so it can show the window
- * (which starts hidden — see tauri.conf.json) without a blank-window flash. */
+let readySent = false;
+
+/** Tells the Rust side the first *themed* frame has painted, so it can show the window
+ * (which starts hidden — see tauri.conf.json) without a flash of default colours.
+ * Idempotent: only the first call actually emits, so a fallback timer and the real
+ * ready signal can both call this without racing each other. */
 export function emitAppReady(): void {
-  if (!isTauri()) return;
+  if (!isTauri() || readySent) return;
+  readySent = true;
   void emit('app-ready');
 }
 
@@ -43,6 +48,26 @@ export function dirname(path: string): string {
 export function basename(path: string): string {
   const i = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
   return i < 0 ? path : path.slice(i + 1);
+}
+
+/** Joins a relative path (which may use `/` or `\`, and `..`/`.` segments) onto `dir`. */
+export function joinPath(dir: string, rel: string): string {
+  const sep = dir.includes('\\') ? '\\' : '/';
+  const parts = dir.split(/[\\/]/);
+  for (const seg of rel.split(/[\\/]/)) {
+    if (seg === '..') parts.pop();
+    else if (seg !== '.' && seg !== '') parts.push(seg);
+  }
+  return parts.join(sep);
+}
+
+/** decodeURI that never throws (malformed escapes are left as-is). */
+export function safeDecodeURI(s: string): string {
+  try {
+    return decodeURI(s);
+  } catch {
+    return s;
+  }
 }
 
 export interface FileChangedEvent {

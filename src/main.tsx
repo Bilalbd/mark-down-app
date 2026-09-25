@@ -31,7 +31,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   </React.StrictMode>,
 );
 
-// Two rAFs: the first fires before the browser paints the frame just rendered,
-// the second fires after — so the native window is only shown once there's
-// actually something on screen.
-requestAnimationFrame(() => requestAnimationFrame(emitAppReady));
+// The app itself calls emitAppReady once settings/styles are loaded and any launch
+// file is open, so the window only appears once it's actually themed correctly. This
+// is just a safety net in case that never happens (e.g. an error during startup).
+setTimeout(emitAppReady, 1500);
