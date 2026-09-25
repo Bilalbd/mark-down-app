@@ -7,6 +7,11 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
 
 ## Features
 
+- **Tabs** — open multiple files as tabs in one window. Drag files from Explorer, use `Ctrl+O` to
+  open several at once, or open from recent files. Each tab keeps its own view mode (Formatted /
+  Source / Split), scroll position and undo history. A file already open in a tab is focused
+  instead of opened again. Configure whether files open as tabs or new windows in **Settings →
+  General** (**Open files in:** New tab / New window, default New tab).
 - **Formatted / Source / Split** views (`Ctrl+E`, `Ctrl+Shift+E`) with the source line kept in
   place when switching, and bidirectional scroll sync in Split.
 - **Editing** in Source mode with markdown syntax highlighting, `Ctrl+S` to save, a dirty
@@ -35,6 +40,27 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
   system fonts for Inter/Open Sans/JetBrains Mono, since the bundled font files aren't embedded.
 - Registers itself for `.md` / `.markdown` so *Open with* and double-click work.
 
+**Note:** Open tabs are not restored when the app restarts; the app always starts with a blank
+tab or the default new document.
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|---|---|
+| Ctrl+N | New file |
+| Ctrl+O | Open file |
+| Ctrl+S | Save |
+| Ctrl+T | New tab |
+| Ctrl+W | Close tab |
+| Ctrl+Tab / Ctrl+Shift+Tab | Next / previous tab |
+| Ctrl+1 … Ctrl+9 | Go to tab |
+| Ctrl+E | Toggle formatted / source |
+| Ctrl+Shift+E | Toggle split view |
+| Ctrl+\ | Toggle outline |
+| Ctrl+F | Find |
+| Ctrl+, | Settings |
+| Ctrl+= / Ctrl+− / Ctrl+0 | Zoom preview |
+
 ## Development
 
 Prerequisites: Node 20+, pnpm, Rust (stable, MSVC toolchain), Visual Studio Build Tools with the
@@ -52,18 +78,20 @@ pnpm tauri build               # NSIS installer in src-tauri/target/release/bund
 `node scripts/cdp.mjs eval "<js>" | eval-file <file> | screenshot <out.png> | pdf <out.pdf>` drives it.
 In dev builds the stores are exposed on `window.__mdv`.
 
-Test documents live in `fixtures/`.
+Test documents live in `fixtures/`, including `fixtures/tabs/` for tab-specific testing.
 
 ## Layout
 
 ```
 src/
   markdown/    render pipeline: markdown-it + plugins, Shiki, KaTeX, Mermaid, DOMPurify
-  store/       zustand stores: document, settings, style presets, transient view state
-  components/  TitleBar, Toolbar, Preview, Editor (CodeMirror), Outline, Split, Find, Settings
+  store/       zustand stores: document, settings, style presets, transient view state, tabs
+  components/  TitleBar, Toolbar, Preview, Editor (CodeMirror), Outline, Split, Find, Settings,
+               Tabs (TabStrip)
   styles/      app chrome theme, preset → CSS variable mapping, built-in presets
-  lib/         Tauri invoke wrappers, shortcuts, scroll-sync maths, export
-src-tauri/     Rust shell: file read/write, asset scope, file watcher
+  lib/         Tauri invoke wrappers, shortcuts, scroll-sync maths, export, tab helpers,
+               editor cache per tab
+src-tauri/     Rust shell: file read/write, asset scope, file watcher (multiple files)
 ```
 
 Settings and presets are stored in `%APPDATA%\com.bilal.markdown-viewer\`.

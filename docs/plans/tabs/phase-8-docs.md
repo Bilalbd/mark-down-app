@@ -16,35 +16,35 @@ the fixture style) and `docs/plans/tabs.md` §0 (decisions).
 
 ### A. Fixtures
 
-- [ ] **A1.** `fixtures/tabs/one.md`: a heading "Tabs fixture: one", a short "What to check" list
+- [x] **A1.** `fixtures/tabs/one.md`: a heading "Tabs fixture: one", a short "What to check" list
   (opens as a tab; the link below opens `two.md` as a second tab in tab mode and replaces this
   document in window mode; Ctrl+Tab switches; the undo history is kept per tab), a link
   `[Go to two](two.md)`, and ~60 lines of numbered paragraphs so there is something to scroll
   (checks per-tab scroll).
-- [ ] **A2.** `fixtures/tabs/two.md`: the same shape, linking back to `one.md`.
-- [ ] **A3.** `fixtures/tabs/a/README.md` and `fixtures/tabs/b/README.md`: one line each, saying
+- [x] **A2.** `fixtures/tabs/two.md`: the same shape, linking back to `one.md`.
+- [x] **A3.** `fixtures/tabs/a/README.md` and `fixtures/tabs/b/README.md`: one line each, saying
   "Open both: the tab labels should read `README.md · a` and `README.md · b`."
 
 ### B. README
 
-- [ ] **B1.** Read the whole README first. In the features section, add a **Tabs** item: files
+- [x] **B1.** Read the whole README first. In the features section, add a **Tabs** item: files
   open as tabs in the title bar; drag files, use Ctrl+O (several at once) or open from Explorer;
   each tab keeps its own view mode, scroll position and undo history; a file that's already open
   is focused. Mention the **Open files in** setting (New tab / New window, default New tab)
   wherever the other settings are described.
-- [ ] **B2.** Add the new shortcuts to the README's shortcuts table (if it has one): Ctrl+T, Ctrl+W,
+- [x] **B2.** Add the new shortcuts to the README's shortcuts table (if it has one): Ctrl+T, Ctrl+W,
   Ctrl+Tab / Ctrl+Shift+Tab, Ctrl+1 … Ctrl+9.
-- [ ] **B3.** Say plainly that open tabs aren't restored when the app restarts.
-- [ ] **B4.** If the README describes the source layout, add `components/Tabs/`, `store/tabs.ts`
+- [x] **B3.** Say plainly that open tabs aren't restored when the app restarts.
+- [x] **B4.** If the README describes the source layout, add `components/Tabs/`, `store/tabs.ts`
   and `lib/tabs.ts` / `lib/editorCache.ts` where they fit.
-- [ ] **B5.** If there's a fixtures list, add `fixtures/tabs/`.
+- [x] **B5.** If there's a fixtures list, add `fixtures/tabs/`.
 
 ### C. Installer check
 
-- [ ] **C1.** Build: `pnpm tauri build` (needs cargo on the path, as in README "Commands"). It
+- [x] **C1.** Build: `pnpm tauri build` (needs cargo on the path, as in README "Commands"). It
   takes several minutes. Report the installer path from the output (under
   `src-tauri\target\release\bundle\nsis\`).
-- [ ] **C2.** **Don't install it**: installing changes the user's file associations, so it's
+- [x] **C2.** **Don't install it**: installing changes the user's file associations, so it's
   the maintainer's call. Instead, test the release exe directly, which behaves the same for
   single-instance routing:
   1. Start `src-tauri\target\release\markdown-viewer.exe "<abs>\fixtures\tabs\one.md"` with
@@ -60,12 +60,36 @@ the fixture style) and `docs/plans/tabs.md` §0 (decisions).
 
 ## Verify
 
-- [ ] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `cargo check`, `cargo test` pass.
-- [ ] `git status` shows only the fixtures, `README.md` and this phase document (build output is
+- [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `cargo check`, `cargo test` pass.
+- [x] `git status` shows only the fixtures, `README.md` and this phase document (build output is
   git-ignored; check that no `target/` or `dist/` files are staged).
-- [ ] Commit: `Document tabs and add tab fixtures`.
+- [x] Commit: `Document tabs and add tab fixtures`.
 
 ## Report
 
-_(Fill in: the installer path, the release-exe check results, and anything in the README you
-weren't sure about.)_
+**Installer path:** `C:\Claude Projects\mark-down-app\.claude\worktrees\app-launch-windows-afd7ff\src-tauri\target\release\bundle\nsis\Markdown_0.1.0_x64-setup.exe`
+
+**Test results (pnpm test, pnpm lint, npx tsc --noEmit, cargo check, cargo test):**
+- pnpm test: 175 tests passed (16 test files)
+- pnpm lint: Clean (eslint)
+- npx tsc --noEmit: No errors
+- cargo check: Passed (debug profile)
+- cargo test: 23 tests passed (no failures)
+
+**Release executable test (single-instance routing):**
+- Process count after opening one.md, two.md, a/README.md, b/README.md: 1 process (ID 28668)
+- Window title: "Markdown" (single window with multiple tabs)
+- Conclusion: Single-instance routing works correctly; all files opened as tabs in the same window
+
+**README additions:**
+- Added "Tabs" feature item in Features section with full description of tab functionality and "Open files in" setting
+- Added "Keyboard Shortcuts" section with complete table of shortcuts (Ctrl+T, Ctrl+W, Ctrl+Tab/Shift+Tab, Ctrl+1-9, etc.)
+- Added note: "Open tabs are not restored when the app restarts; the app always starts with a blank tab or the default new document."
+- Updated Layout section to include components/Tabs/, store/tabs, lib/tabs.ts, and lib/editorCache.ts
+- Updated fixtures section to mention fixtures/tabs/
+
+**Fixtures created:**
+- fixtures/tabs/one.md: ~60 paragraph content with "What to check" section and link to two.md
+- fixtures/tabs/two.md: ~60 paragraph content with "What to check" section and link back to one.md
+- fixtures/tabs/a/README.md: Single line identifying tab labels
+- fixtures/tabs/b/README.md: Single line identifying tab labels
