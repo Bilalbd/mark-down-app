@@ -223,6 +223,8 @@
   max-width: 100%;
 }
 .preview img.remote-image-blocked {
+  /* No src, so the browser already renders this as a broken image with the alt
+   * text alongside its icon - just style that instead of duplicating the text. */
   display: inline-block;
   min-width: 2em;
   min-height: 1.5em;
@@ -231,10 +233,6 @@
   padding: 0.3em 0.6em;
   font-size: 0.85em;
   color: var(--md-muted);
-}
-/* Shows the alt text in place of the blocked image, similar to a broken-image state. */
-.preview img.remote-image-blocked::after {
-  content: attr(alt);
 }
 
 .preview kbd {
