@@ -8,7 +8,7 @@ import { Preview } from './components/Preview/Preview';
 import { SourceEditor } from './components/Editor/SourceEditor';
 import { Outline } from './components/Outline/Outline';
 import { SplitView } from './components/Split/SplitView';
-import { ConfirmDialog } from './components/Dialog/ConfirmDialog';
+import { ConfirmDialog, useDialogStore } from './components/Dialog/ConfirmDialog';
 import { SettingsPanel } from './components/Settings/SettingsPanel';
 import { FindBar } from './components/Find/FindBar';
 import { StyleInjector } from './components/Preview/StyleInjector';
@@ -120,6 +120,18 @@ export default function App() {
     if (await newDocument()) set('viewMode', 'source');
   }, [newDocument, set]);
 
+  const zoomIn = useCallback(
+    () => set('previewZoom', Math.min(3, +(previewZoom + 0.1).toFixed(2))),
+    [set, previewZoom],
+  );
+  const zoomOut = useCallback(
+    () => set('previewZoom', Math.max(0.5, +(previewZoom - 0.1).toFixed(2))),
+    [set, previewZoom],
+  );
+  const zoomReset = useCallback(() => set('previewZoom', 1), [set]);
+
+  const dialogOpen = useDialogStore((s) => s.current !== null);
+
   const shortcuts = useMemo(
     () => ({
       'ctrl+o': () => void openWithDialog(),
@@ -128,9 +140,12 @@ export default function App() {
       'ctrl+e': () => set('viewMode', viewMode === 'source' ? 'formatted' : 'source'),
       'ctrl+shift+e': () => set('viewMode', viewMode === 'split' ? 'formatted' : 'split'),
       'ctrl+\\': () => set('outlineVisible', !outlineVisible),
-      'ctrl+=': () => set('previewZoom', Math.min(3, +(previewZoom + 0.1).toFixed(2))),
-      'ctrl+-': () => set('previewZoom', Math.max(0.5, +(previewZoom - 0.1).toFixed(2))),
-      'ctrl+0': () => set('previewZoom', 1),
+      'ctrl+=': zoomIn,
+      'ctrl++': zoomIn, // numpad plus (no shift)
+      'ctrl+shift++': zoomIn, // Shift+= on most US layouts
+      'ctrl+shift+=': zoomIn, // browsers that don't shift e.key for Shift+=
+      'ctrl+-': zoomOut, // also matches the numpad minus
+      'ctrl+0': zoomReset,
       'ctrl+,': () => setSettingsOpen(!settingsOpen),
       'ctrl+f': () => setFindOpen(true),
     }),
@@ -141,12 +156,14 @@ export default function App() {
       set,
       viewMode,
       outlineVisible,
-      previewZoom,
+      zoomIn,
+      zoomOut,
+      zoomReset,
       settingsOpen,
       setSettingsOpen,
     ],
   );
-  useShortcuts(shortcuts);
+  useShortcuts(shortcuts, !dialogOpen);
 
   return (
     <div className={`app ${dragOver ? 'is-drag-over' : ''}`}>

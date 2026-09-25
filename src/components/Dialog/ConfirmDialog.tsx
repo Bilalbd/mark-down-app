@@ -30,6 +30,9 @@ export const useDialogStore = create<DialogState>((set, get) => ({
   current: null,
   show: (title, message, buttons) =>
     new Promise((resolve) => {
+      // A second dialog request while one is open bumps the first one out as
+      // cancelled, rather than silently overwriting it and leaking its promise.
+      get().current?.resolve(null);
       set({
         current: { title, message, buttons, resolve: resolve as (id: string | null) => void },
       });
