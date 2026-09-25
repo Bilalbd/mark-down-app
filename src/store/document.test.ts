@@ -157,4 +157,35 @@ describe('document store', () => {
     expect(mockWriteFile).toHaveBeenCalled();
     expect(useDocumentStore.getState().lossy).toBe(false);
   });
+
+  it('unwatches the previous file when another one is opened', async () => {
+    mockReadFile
+      .mockResolvedValueOnce({ content: 'a', mtime: 1, encoding: 'utf8', lossy: false })
+      .mockResolvedValueOnce({ content: 'b', mtime: 2, encoding: 'utf8', lossy: false });
+
+    await useDocumentStore.getState().open('C:\\docs\\a.md');
+    expect(mockWatchFile).toHaveBeenLastCalledWith('C:\\docs\\a.md');
+
+    await useDocumentStore.getState().open('C:\\docs\\b.md');
+    expect(mockWatchFile).toHaveBeenLastCalledWith('C:\\docs\\b.md');
+    expect(mockUnwatchFile).toHaveBeenCalledWith('C:\\docs\\a.md');
+  });
+
+  it('unwatches the current file when a new document is started', async () => {
+    mockReadFile.mockResolvedValue({ content: 'a', mtime: 1, encoding: 'utf8', lossy: false });
+
+    await useDocumentStore.getState().open('C:\\docs\\a.md');
+    await useDocumentStore.getState().newDocument();
+    expect(mockUnwatchFile).toHaveBeenCalledWith('C:\\docs\\a.md');
+  });
+
+  it('does not unwatch when the same file is reopened', async () => {
+    mockReadFile.mockResolvedValue({ content: 'a', mtime: 1, encoding: 'utf8', lossy: false });
+
+    await useDocumentStore.getState().open('C:\\docs\\a.md');
+    mockUnwatchFile.mockClear();
+
+    await useDocumentStore.getState().open('C:\\docs\\a.md');
+    expect(mockUnwatchFile).not.toHaveBeenCalled();
+  });
 });

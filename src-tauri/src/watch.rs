@@ -1,8 +1,9 @@
-//! Watches the currently open file and notifies the frontend about external changes.
+//! Watches the files of the open documents (tabs) and notifies the frontend about external changes.
 
 use notify::RecursiveMode;
 use notify_debouncer_full::{new_debouncer, DebounceEventResult, Debouncer, RecommendedCache};
 use serde::Serialize;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::Duration;
@@ -12,7 +13,7 @@ type FileDebouncer = Debouncer<notify::RecommendedWatcher, RecommendedCache>;
 
 #[derive(Default)]
 pub struct WatchState {
-    inner: Mutex<Option<(PathBuf, FileDebouncer)>>,
+    inner: Mutex<HashMap<PathBuf, FileDebouncer>>,
 }
 
 #[derive(Serialize, Clone)]
@@ -33,12 +34,22 @@ fn mtime_ms(path: &Path) -> u64 {
         .unwrap_or(0)
 }
 
-/// Start watching `path`, replacing any previous watch. Editors commonly save by
-/// writing a temp file and renaming, so the parent directory is watched and events
-/// are filtered to the file of interest.
+/// Start watching `path` for external changes, alongside any files already watched.
+/// Does nothing if `path` is already watched. Editors commonly save by writing a temp
+/// file and renaming, so the parent directory is watched and events are filtered to the
+/// file of interest.
 #[tauri::command]
 pub fn watch_file(app: AppHandle, state: State<'_, WatchState>, path: String) -> Result<(), String> {
     let target = PathBuf::from(&path);
+
+    // If already watched, do nothing.
+    {
+        let guard = state.inner.lock().map_err(|e| e.to_string())?;
+        if guard.contains_key(&target) {
+            return Ok(());
+        }
+    }
+
     let dir = target
         .parent()
         .ok_or_else(|| "file has no parent directory".to_string())?
@@ -78,13 +89,14 @@ pub fn watch_file(app: AppHandle, state: State<'_, WatchState>, path: String) ->
         .map_err(|e| e.to_string())?;
 
     let mut guard = state.inner.lock().map_err(|e| e.to_string())?;
-    *guard = Some((target, debouncer));
+    guard.insert(target, debouncer);
     Ok(())
 }
 
+/// Stops watching `path` (other watched files keep their watches). Does nothing if it isn't watched.
 #[tauri::command]
-pub fn unwatch_file(state: State<'_, WatchState>) -> Result<(), String> {
+pub fn unwatch_file(state: State<'_, WatchState>, path: String) -> Result<(), String> {
     let mut guard = state.inner.lock().map_err(|e| e.to_string())?;
-    *guard = None;
+    guard.remove(&PathBuf::from(path));
     Ok(())
 }

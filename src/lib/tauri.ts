@@ -84,10 +84,12 @@ export interface FileChangedEvent {
   removed: boolean;
 }
 
+/** Starts watching `path` for external changes, alongside any files already watched. */
 export function watchFile(path: string): Promise<void> {
   return invoke('watch_file', { path });
 }
 
-export function unwatchFile(): Promise<void> {
-  return invoke('unwatch_file');
+/** Stops watching `path` (other watched files keep their watches). */
+export function unwatchFile(path: string): Promise<void> {
+  return invoke('unwatch_file', { path });
 }

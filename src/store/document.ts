@@ -89,6 +89,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
   open: async (path) => {
     if (!(await get().confirmDiscard())) return false;
+    const previous = get().path;
     try {
       const { content: raw, mtime, encoding, lossy } = await readFile(path);
       const { text: content, eol } = normalizeEol(raw);
@@ -107,6 +108,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         externalChange: null,
       }));
       await watchFile(path).catch(() => undefined);
+      // Best effort: a stale watch only causes an ignored event.
+      if (previous && previous !== path) {
+        await unwatchFile(previous).catch(() => undefined);
+      }
       useSettingsStore.getState().addRecentFile(path);
       return true;
     } catch (e) {
@@ -153,7 +158,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   newDocument: async () => {
     if (!(await get().confirmDiscard())) return false;
     if (isTauri()) {
-      await unwatchFile().catch(() => undefined);
+      const previous = get().path;
+      if (previous) await unwatchFile(previous).catch(() => undefined);
       await setAssetRoot(null).catch(() => undefined);
     }
     set((s) => ({
@@ -184,6 +190,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     });
     if (!target) return false;
     const { content, eol, encoding } = get();
+    const previous = get().path;
     try {
       const mtime = await writeFile(target, applyEol(content, eol), encoding);
       set({
@@ -196,6 +203,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       });
       await setAssetRoot(dirname(target)).catch(() => undefined);
       await watchFile(target).catch(() => undefined);
+      // Best effort: a stale watch only causes an ignored event.
+      if (previous && previous !== target) {
+        await unwatchFile(previous).catch(() => undefined);
+      }
       useSettingsStore.getState().addRecentFile(target);
       return true;
     } catch (e) {
