@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialog';
-import { askSaveChanges } from '@/components/Dialog/ConfirmDialog';
+import { askSaveChanges, useDialogStore } from '@/components/Dialog/ConfirmDialog';
 import { useSettingsStore } from '@/store/settings';
 import { applyEol, normalizeEol, type Eol } from '@/lib/eol';
 import {
@@ -12,6 +12,7 @@ import {
   unwatchFile,
   watchFile,
   writeFile,
+  type Encoding,
   type FileChangedEvent,
 } from '@/lib/tauri';
 
@@ -27,6 +28,11 @@ export interface DocumentState {
   mtime: number;
   /** Line ending to restore on save; the in-memory content is always LF-normalised. */
   eol: Eol;
+  /** Text encoding to restore on save. */
+  encoding: Encoding;
+  /** True when the file had bytes that aren't valid text, replaced with U+FFFD on
+   * load; saving asks for confirmation first, since it would make that permanent. */
+  lossy: boolean;
   /** Incremented by open/newDocument/reload (not by setContent/save/saveAs), so the
    * editor can tell a fresh load apart from ordinary edits and reset undo history. */
   loadId: number;
@@ -66,6 +72,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   savedContent: '',
   mtime: 0,
   eol: '\n',
+  encoding: 'utf8',
+  lossy: false,
   loadId: 0,
   error: null,
   externalChange: null,
@@ -82,7 +90,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   open: async (path) => {
     if (!(await get().confirmDiscard())) return false;
     try {
-      const { content: raw, mtime } = await readFile(path);
+      const { content: raw, mtime, encoding, lossy } = await readFile(path);
       const { text: content, eol } = normalizeEol(raw);
       await allowAssetDir(dirname(path)).catch(() => undefined);
       set((s) => ({
@@ -92,6 +100,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         savedContent: content,
         mtime,
         eol,
+        encoding,
+        lossy,
         loadId: s.loadId + 1,
         error: null,
         externalChange: null,
@@ -120,6 +130,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
           savedContent: content,
           mtime: file.lastModified,
           eol,
+          encoding: 'utf8',
+          lossy: false,
           loadId: s.loadId + 1,
           error: null,
           externalChange: null,
@@ -148,6 +160,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       savedContent: '',
       mtime: 0,
       eol: '\n',
+      encoding: 'utf8',
+      lossy: false,
       loadId: s.loadId + 1,
       error: null,
       externalChange: null,
@@ -157,6 +171,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
   saveAs: async () => {
     if (!isTauri()) return false;
+    if (get().lossy && !(await confirmLossySave())) return false;
     const target = await saveDialog({
       defaultPath: get().path ?? 'Untitled.md',
       filters: [
@@ -165,10 +180,17 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       ],
     });
     if (!target) return false;
-    const { content, eol } = get();
+    const { content, eol, encoding } = get();
     try {
-      const mtime = await writeFile(target, applyEol(content, eol));
-      set({ path: target, savedContent: content, mtime, error: null, externalChange: null });
+      const mtime = await writeFile(target, applyEol(content, eol), encoding);
+      set({
+        path: target,
+        savedContent: content,
+        mtime,
+        error: null,
+        externalChange: null,
+        lossy: false,
+      });
       await allowAssetDir(dirname(target)).catch(() => undefined);
       await watchFile(target).catch(() => undefined);
       useSettingsStore.getState().addRecentFile(target);
@@ -183,13 +205,15 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     const { path } = get();
     if (!path) return;
     try {
-      const { content: raw, mtime } = await readFile(path);
+      const { content: raw, mtime, encoding, lossy } = await readFile(path);
       const { text: content, eol } = normalizeEol(raw);
       set((s) => ({
         content,
         savedContent: content,
         mtime,
         eol,
+        encoding,
+        lossy,
         loadId: s.loadId + 1,
         error: null,
         externalChange: null,
@@ -202,12 +226,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   setContent: (content) => set({ content }),
 
   save: async () => {
-    const { path, content, eol, hasDocument } = get();
+    const { path, content, eol, encoding, lossy, hasDocument } = get();
     if (!hasDocument) return false;
     if (!path) return get().saveAs();
+    if (lossy && !(await confirmLossySave())) return false;
     try {
-      const mtime = await writeFile(path, applyEol(content, eol));
-      set({ savedContent: content, mtime, error: null, externalChange: null });
+      const mtime = await writeFile(path, applyEol(content, eol), encoding);
+      set({ savedContent: content, mtime, error: null, externalChange: null, lossy: false });
       return true;
     } catch (e) {
       set({ error: `Could not save: ${String(e)}` });
@@ -233,6 +258,20 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
   dismissExternalChange: () => set({ externalChange: null }),
 }));
+
+function confirmLossySave(): Promise<boolean> {
+  return useDialogStore
+    .getState()
+    .show(
+      'Save with replaced characters?',
+      "This file contained bytes that aren't valid text. Saving will replace them with �.",
+      [
+        { id: 'save', label: 'Save anyway', primary: true, danger: true },
+        { id: 'cancel', label: 'Cancel' },
+      ],
+    )
+    .then((choice) => choice === 'save');
+}
 
 function pickBrowserFile(): Promise<File | null> {
   return new Promise((resolve) => {

@@ -3,3 +3,5 @@
 *.ico binary
 *.icns binary
 fixtures/crlf.md -text
+fixtures/utf8-bom.md -text
+fixtures/utf16le.md -text

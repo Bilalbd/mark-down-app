@@ -15,9 +15,14 @@ export function emitAppReady(): void {
   void emit('app-ready');
 }
 
+export type Encoding = 'utf8' | 'utf8-bom' | 'utf16-le' | 'utf16-be';
+
 export interface FileData {
   content: string;
   mtime: number;
+  encoding: Encoding;
+  /** True when the file had bytes that aren't valid text; saving would replace them. */
+  lossy: boolean;
 }
 
 export async function getLaunchArgs(): Promise<string | null> {
@@ -29,8 +34,9 @@ export function readFile(path: string): Promise<FileData> {
   return invoke<FileData>('read_file', { path });
 }
 
-export function writeFile(path: string, content: string): Promise<number> {
-  return invoke<number>('write_file', { path, content });
+/** `encoding` defaults to UTF-8 (no BOM) on the Rust side when omitted. */
+export function writeFile(path: string, content: string, encoding?: Encoding): Promise<number> {
+  return invoke<number>('write_file', { path, content, encoding });
 }
 
 /** Allows the asset protocol to serve files under `dir` (for relative images). */

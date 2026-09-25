@@ -48,6 +48,7 @@ export default function App() {
   const onFileChanged = useDocumentStore((s) => s.onFileChanged);
   const reload = useDocumentStore((s) => s.reload);
   const dismissExternalChange = useDocumentStore((s) => s.dismissExternalChange);
+  const lossy = useDocumentStore((s) => s.lossy);
 
   const [dragOver, setDragOver] = useState(false);
 
@@ -175,6 +176,14 @@ export default function App() {
             <button className="banner__btn" onClick={dismissExternalChange}>
               Keep mine
             </button>
+          </span>
+        </div>
+      )}
+      {lossy && (
+        <div className="banner banner--warning" role="status">
+          <span>
+            This file had bytes that aren't valid text. They were shown as {'�'}; saving will
+            make that replacement permanent.
           </span>
         </div>
       )}
