@@ -100,7 +100,9 @@ export function SourceEditor() {
     const host = hostRef.current!;
     const docState = useDocumentStore.getState();
     const state =
-      cached && cached.loadId === docState.loadId && cached.state.doc.toString() === docState.content
+      cached &&
+      cached.loadId === docState.loadId &&
+      cached.state.doc.toString() === docState.content
         ? cached.state
         : createEditorState(docState.content);
     const view = new EditorView({ parent: host, state });

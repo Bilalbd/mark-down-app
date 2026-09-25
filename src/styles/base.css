@@ -152,6 +152,11 @@ button:focus-visible {
     overflow: visible !important;
     display: block !important;
   }
+  .preview-scroll {
+    /* The screen-only containment (Preview.css) would otherwise clip content
+     * taller than one page once overflow is forced to visible for printing. */
+    contain: none !important;
+  }
   .titlebar,
   .toolbar,
   .banner,

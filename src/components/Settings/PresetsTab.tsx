@@ -111,7 +111,11 @@ export function PresetsTab() {
               Export
             </button>
             {!p.builtin && (
-              <button title="Delete" className="is-danger" onClick={() => void doDelete(p.id, p.name)}>
+              <button
+                title="Delete"
+                className="is-danger"
+                onClick={() => void doDelete(p.id, p.name)}
+              >
                 Delete
               </button>
             )}

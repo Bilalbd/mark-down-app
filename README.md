@@ -11,6 +11,9 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
   place when switching, and bidirectional scroll sync in Split.
 - **Editing** in Source mode with markdown syntax highlighting, `Ctrl+S` to save, a dirty
   indicator in the title bar and a Save / Don't save / Cancel guard on close.
+- Reads and preserves UTF-8 (with or without BOM) and UTF-16 (LE/BE) files, and CRLF/LF line
+  endings, round-tripping each on save; a file with invalid-UTF-8 bytes asks before saving
+  over them.
 - **Outline** sidebar (`Ctrl+\`) — collapsible, resizable, click to jump, follows your scroll.
 - **Styling presets** — GitHub, Obsidian-like, Claude-like, Boulayla and Sequoia built in. Every font, size, spacing
   and colour (separately for light and dark) is editable in Settings (`Ctrl+,`); presets can be
@@ -21,7 +24,12 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
 - GFM tables, task lists, footnotes, autolinks; fenced code with Shiki highlighting;
   **KaTeX** math (`$…$`, `$$…$$`); **Mermaid** diagrams.
 - **Live reload** when the file changes on disk (asks first if you have unsaved edits).
+- **Block remote images** (off by default, in Settings) stops `http(s)` image sources from
+  loading in the preview, for documents from sources you don't fully trust.
 - **Find** (`Ctrl+F`) in both views.
+- **Links** in the preview: `http(s)`/`mailto:` open externally; a relative link to another
+  Markdown file opens it in the app (with the usual unsaved-changes prompt); a relative link
+  to anything else reveals it in File Explorer; in-page `#anchor` links scroll to the heading.
 - **Export** as a standalone HTML file, or print / save as PDF. The exported HTML links the
   KaTeX stylesheet from a CDN (needs internet to render math when opened) and falls back to
   system fonts for Inter/Open Sans/JetBrains Mono, since the bundled font files aren't embedded.

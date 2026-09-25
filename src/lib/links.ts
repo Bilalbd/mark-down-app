@@ -10,7 +10,12 @@ export type LinkClassification =
 const MARKDOWN_EXTENSIONS = new Set(['.md', '.markdown', '.mdown', '.mkd', '.txt']);
 
 /** Local/internal webview hosts that must never be treated as an external link. */
-const INTERNAL_HOSTS = new Set(['asset.localhost', 'mdasset.localhost', 'localhost', 'tauri.localhost']);
+const INTERNAL_HOSTS = new Set([
+  'asset.localhost',
+  'mdasset.localhost',
+  'localhost',
+  'tauri.localhost',
+]);
 
 function extname(path: string): string {
   const base = path.slice(Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\')) + 1);

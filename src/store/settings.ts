@@ -18,6 +18,8 @@ export interface Settings {
   splitEditorSide: SplitSide;
   /** Absolute paths of the most recently opened files, newest first. */
   recentFiles: string[];
+  /** Strips remote (http/https) image sources from the preview instead of loading them. */
+  blockRemoteImages: boolean;
 }
 
 const MAX_RECENT_FILES = 5;
@@ -40,6 +42,7 @@ const DEFAULTS: Settings = {
   splitRatio: 0.5,
   splitEditorSide: 'left',
   recentFiles: [],
+  blockRemoteImages: false,
 };
 
 interface SettingsState extends Settings {
@@ -47,11 +50,7 @@ interface SettingsState extends Settings {
   load: () => Promise<void>;
   /** `persist: false` updates in-memory state only, skipping the disk write - for
    * high-frequency updates (drag resize) that call `persist()` once at the end. */
-  set: <K extends keyof Settings>(
-    key: K,
-    value: Settings[K],
-    opts?: { persist?: boolean },
-  ) => void;
+  set: <K extends keyof Settings>(key: K, value: Settings[K], opts?: { persist?: boolean }) => void;
   /** Writes the current value of `key` to disk (see `set`'s `persist: false`). */
   persist: <K extends keyof Settings>(key: K) => void;
   /** Moves `path` to the front of recentFiles, deduped and capped. */
@@ -106,10 +105,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   addRecentFile: (path) => {
-    const next = [path, ...get().recentFiles.filter((p) => p !== path)].slice(
-      0,
-      MAX_RECENT_FILES,
-    );
+    const next = [path, ...get().recentFiles.filter((p) => p !== path)].slice(0, MAX_RECENT_FILES);
     get().set('recentFiles', next);
   },
 

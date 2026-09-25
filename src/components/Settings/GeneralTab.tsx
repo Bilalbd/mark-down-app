@@ -40,6 +40,9 @@ export function GeneralTab() {
             onChange={(v) => s.set('previewZoom', v)}
           />
         </Row>
+        <Row label="Block remote images" hint="Images loaded from http(s) URLs won't load">
+          <Toggle value={s.blockRemoteImages} onChange={(v) => s.set('blockRemoteImages', v)} />
+        </Row>
       </Section>
 
       <Section title="Source editor">

@@ -38,4 +38,44 @@ describe('sanitizeHtml', () => {
     expect(out).toContain('src="http://asset.localhost/C%3A/x.png"');
     expect(out).toContain('src="data:image/png;base64,AAAA"');
   });
+
+  it('does not allow DOM clobbering via name/id attributes (SANITIZE_DOM)', () => {
+    const out = sanitizeHtml('<img name="getElementById"><form id="test-form"></form>');
+    expect(out).not.toContain('name="getElementById"');
+    expect(out).not.toContain('<form');
+  });
+
+  describe('blockRemoteImages', () => {
+    it('strips http(s) and protocol-relative image sources when on', () => {
+      const out = sanitizeHtml(
+        '<img src="https://evil.example/track.png" alt="a"><img src="//evil.example/b.png" alt="b">',
+        { blockRemoteImages: true },
+      );
+      expect(out).not.toContain('src="https://evil.example/track.png"');
+      expect(out).not.toContain('src="//evil.example/b.png"');
+      expect(out).toContain('class="remote-image-blocked"');
+      expect(out).toContain('title="https://evil.example/track.png"');
+    });
+
+    it('leaves local and data: image sources alone when on', () => {
+      const out = sanitizeHtml('<img src="images/a.png"><img src="data:image/png;base64,AAAA">', {
+        blockRemoteImages: true,
+      });
+      expect(out).toContain('src="images/a.png"');
+      expect(out).toContain('src="data:image/png;base64,AAAA"');
+      expect(out).not.toContain('remote-image-blocked');
+    });
+
+    it('strips a style attribute containing url() when on', () => {
+      const out = sanitizeHtml('<div style="background:url(https://evil.example/x.png)">x</div>', {
+        blockRemoteImages: true,
+      });
+      expect(out).not.toContain('url(');
+    });
+
+    it('leaves remote images alone when off (default)', () => {
+      const out = sanitizeHtml('<img src="https://example.com/a.png">');
+      expect(out).toContain('src="https://example.com/a.png"');
+    });
+  });
 });

@@ -199,8 +199,8 @@ export default function App() {
       {lossy && (
         <div className="banner banner--warning" role="status">
           <span>
-            This file had bytes that aren't valid text. They were shown as {'�'}; saving will
-            make that replacement permanent.
+            This file had bytes that aren't valid text. They were shown as {'�'}; saving will make
+            that replacement permanent.
           </span>
         </div>
       )}

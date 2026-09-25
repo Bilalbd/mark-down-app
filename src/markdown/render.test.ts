@@ -78,6 +78,19 @@ describe('renderMarkdown', () => {
     const { html } = await renderMarkdown('ref[^1]\n\n[^1]: note');
     expect(html).toContain('footnote');
   });
+
+  it('blocks remote images when blockRemoteImages is set', async () => {
+    const { html } = await renderMarkdown('![x](https://evil.example/x.png)', {
+      blockRemoteImages: true,
+    });
+    expect(html).not.toContain('src="https://evil.example/x.png"');
+    expect(html).toContain('remote-image-blocked');
+  });
+
+  it('loads remote images when blockRemoteImages is unset', async () => {
+    const { html } = await renderMarkdown('![x](https://example.com/x.png)');
+    expect(html).toContain('src="https://example.com/x.png"');
+  });
 });
 
 describe('headings / outline', () => {

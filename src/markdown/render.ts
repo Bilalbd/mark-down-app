@@ -12,6 +12,8 @@ export interface RenderEnv extends Env {
   /** Converts an absolute local path to a URL the webview can load. */
   toAssetUrl?: (absPath: string) => string;
   headings?: HeadingInfo[];
+  /** Strips remote (http/https) image sources instead of loading them. */
+  blockRemoteImages?: boolean;
 }
 
 export interface RenderResult {
@@ -92,7 +94,10 @@ export async function renderMarkdown(source: string, env: RenderEnv = {}): Promi
     renderEnv.__hl = await getHighlighter();
   }
   const raw = md.renderer.render(tokens, md.options, renderEnv);
-  return { html: sanitizeHtml(raw), headings: renderEnv.headings ?? [] };
+  return {
+    html: sanitizeHtml(raw, { blockRemoteImages: env.blockRemoteImages }),
+    headings: renderEnv.headings ?? [],
+  };
 }
 
 /** Synchronous headings-only parse (cheap; used when only the outline is needed). */

@@ -8,6 +8,9 @@
   height: 100%;
   overflow: auto;
   background: var(--md-bg, var(--content-bg));
+  /* Makes this the containing block for any position:fixed element inside raw HTML
+   * in the document, so it can't draw over the title bar or toolbar. */
+  contain: paint;
 }
 
 .preview {
@@ -218,6 +221,20 @@
 
 .preview img {
   max-width: 100%;
+}
+.preview img.remote-image-blocked {
+  display: inline-block;
+  min-width: 2em;
+  min-height: 1.5em;
+  border: 1px dashed var(--md-border);
+  border-radius: 4px;
+  padding: 0.3em 0.6em;
+  font-size: 0.85em;
+  color: var(--md-muted);
+}
+/* Shows the alt text in place of the blocked image, similar to a broken-image state. */
+.preview img.remote-image-blocked::after {
+  content: attr(alt);
 }
 
 .preview kbd {

@@ -94,11 +94,9 @@ export function Outline() {
     const startX = e.clientX;
     const startW = width;
     const onMove = (ev: MouseEvent) => {
-      set(
-        'outlineWidth',
-        Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startW + ev.clientX - startX)),
-        { persist: false },
-      );
+      set('outlineWidth', Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startW + ev.clientX - startX)), {
+        persist: false,
+      });
     };
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);

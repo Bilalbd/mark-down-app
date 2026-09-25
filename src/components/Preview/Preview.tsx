@@ -41,6 +41,7 @@ export function Preview() {
   const content = useDocumentStore((s) => s.content);
   const path = useDocumentStore((s) => s.path);
   const zoom = useSettingsStore((s) => s.previewZoom);
+  const blockRemoteImages = useSettingsStore((s) => s.blockRemoteImages);
   const setPreviewScrollEl = useViewStore((s) => s.setPreviewScrollEl);
   const setTopLine = useViewStore((s) => s.setTopLine);
   const pendingScrollLine = useViewStore((s) => s.pendingScrollLine);
@@ -64,12 +65,13 @@ export function Preview() {
       const result = await renderMarkdown(content, {
         baseDir: path ? dirname(path) : undefined,
         toAssetUrl: isTauri() ? toAssetUrl : undefined,
+        blockRemoteImages,
       });
       if (seq !== renderSeq.current) return; // a newer render superseded this one
       setHtml(result.html);
     }, RENDER_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [content, path]);
+  }, [content, path, blockRemoteImages]);
 
   useLayoutEffect(() => {
     if (html) bumpPreviewVersion();
