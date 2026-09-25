@@ -18,7 +18,7 @@ import { basename, emitAppReady, getLaunchArgs, isTauri, type FileChangedEvent }
 import { cycleIndex, samePath } from './lib/tabs';
 import { useSettingsStore } from './store/settings';
 import { isDirty, useDocumentStore } from './store/document';
-import { hasUnsavedTabs, newDocumentPerSetting, openPath, useTabsStore } from './store/tabs';
+import { hasUnsavedTabs, newDocumentPerSetting, openPath, openPaths, useTabsStore } from './store/tabs';
 import { useStyleStore } from './store/style';
 import { extractHeadings } from './markdown/render';
 import { useViewStore } from './store/view';
@@ -75,17 +75,7 @@ export default function App() {
         else if (e.payload.type === 'leave') setDragOver(false);
         else if (e.payload.type === 'drop') {
           setDragOver(false);
-          const openFilesIn = useSettingsStore.getState().openFilesIn;
-          if (openFilesIn === 'tab') {
-            // Open all dropped files as tabs
-            for (const path of e.payload.paths) {
-              void openPath(path);
-            }
-          } else {
-            // Window mode: open first file only
-            const first = e.payload.paths[0];
-            if (first) void openPath(first);
-          }
+          void openPaths(e.payload.paths);
         }
       })
       .then((u) => (unlisten = u));

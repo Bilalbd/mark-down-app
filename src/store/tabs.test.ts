@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useDocumentStore } from '@/store/document';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
-import { hasUnsavedTabs, newDocumentPerSetting, openPath, useTabsStore } from '@/store/tabs';
+import { hasUnsavedTabs, newDocumentPerSetting, openPath, openPaths, useTabsStore } from '@/store/tabs';
 
 const mockReadFile = vi.fn();
 const mockWriteFile = vi.fn();
@@ -552,5 +552,26 @@ describe('tabs store', () => {
     expect(useDocumentStore.getState().path).toBeNull();
     expect(useDocumentStore.getState().hasDocument).toBe(true);
     expect(useSettingsStore.getState().viewMode).toBe('source');
+  });
+
+  it('openPaths in tab mode opens all files as tabs sequentially', async () => {
+    useSettingsStore.setState({ openFilesIn: 'tab' });
+
+    await openPaths(['C:\\docs\\A.md', 'C:\\docs\\B.md', 'C:\\docs\\C.md']);
+
+    expect(useTabsStore.getState().tabs).toHaveLength(3);
+    expect(useDocumentStore.getState().path).toBe('C:\\docs\\C.md');
+  });
+
+  it('openPaths in window mode opens only the first file', async () => {
+    useSettingsStore.setState({ openFilesIn: 'window' });
+
+    mockAskSaveChanges.mockResolvedValueOnce('discard');
+
+    const tabCountBefore = useTabsStore.getState().tabs.length;
+    await openPaths(['C:\\docs\\A.md', 'C:\\docs\\B.md']);
+
+    expect(useTabsStore.getState().tabs).toHaveLength(tabCountBefore);
+    expect(useDocumentStore.getState().path).toBe('C:\\docs\\A.md');
   });
 });

@@ -523,3 +523,19 @@ export async function newDocumentPerSetting(): Promise<void> {
     }
   }
 }
+
+/** Opens multiple paths according to the setting: all paths as tabs in tab mode, first path only in window mode. */
+export async function openPaths(paths: string[]): Promise<void> {
+  const openFilesIn = useSettingsStore.getState().openFilesIn;
+
+  if (openFilesIn === 'tab') {
+    // Tab mode: open all paths sequentially
+    for (const path of paths) {
+      await openPath(path);
+    }
+  } else {
+    // Window mode: open first path only
+    const first = paths[0];
+    if (first) await openPath(first);
+  }
+}
