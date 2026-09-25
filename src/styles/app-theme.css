@@ -1,4 +1,5 @@
-/* App chrome theme tokens. Formatted-preview styling lives separately (preview-vars.css). */
+/* App chrome theme tokens. Formatted-preview styling lives separately, in Preview.css
+   plus the --md-* variables StyleInjector writes from the active preset (presetCss.ts). */
 :root {
   --titlebar-height: 32px;
   --toolbar-height: 40px;

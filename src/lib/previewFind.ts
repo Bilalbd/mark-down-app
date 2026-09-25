@@ -11,6 +11,11 @@ export interface PreviewMatch {
   range: Range;
 }
 
+/** Escapes a string for literal use inside a RegExp pattern. */
+export function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export function findInPreview(
   root: HTMLElement,
   query: string,
@@ -20,7 +25,10 @@ export function findInPreview(
   const matches: PreviewMatch[] = [];
   if (!query) return matches;
 
-  const needle = caseSensitive ? query : query.toLowerCase();
+  // A case-insensitive regex, rather than lowercasing both sides, keeps offsets in
+  // the *original* text correct even when a character's lowercase form has a
+  // different length (e.g. 'İ'.toLowerCase() === 'i̇', two code points).
+  const re = new RegExp(escapeRegExp(query), caseSensitive ? 'gu' : 'giu');
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: (n) => {
       const parent = n.parentElement;
@@ -34,14 +42,17 @@ export function findInPreview(
   let node: Node | null;
   while ((node = walker.nextNode())) {
     const text = node.textContent ?? '';
-    const hay = caseSensitive ? text : text.toLowerCase();
-    let i = hay.indexOf(needle);
-    while (i !== -1) {
+    re.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text))) {
+      if (m[0].length === 0) {
+        re.lastIndex++;
+        continue;
+      }
       const range = document.createRange();
-      range.setStart(node, i);
-      range.setEnd(node, i + query.length);
+      range.setStart(node, m.index);
+      range.setEnd(node, m.index + m[0].length);
       matches.push({ range });
-      i = hay.indexOf(needle, i + needle.length);
     }
   }
 

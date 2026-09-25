@@ -16,6 +16,7 @@ export function SplitView() {
   const ratio = useSettingsStore((s) => s.splitRatio);
   const editorSide = useSettingsStore((s) => s.splitEditorSide);
   const set = useSettingsStore((s) => s.set);
+  const persist = useSettingsStore((s) => s.persist);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useScrollSync();
@@ -24,12 +25,15 @@ export function SplitView() {
     e.preventDefault();
     const rect = containerRef.current!.getBoundingClientRect();
     const onMove = (ev: MouseEvent) => {
-      set('splitRatio', clamp((ev.clientX - rect.left) / rect.width, MIN_RATIO, MAX_RATIO));
+      set('splitRatio', clamp((ev.clientX - rect.left) / rect.width, MIN_RATIO, MAX_RATIO), {
+        persist: false,
+      });
     };
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
       document.body.classList.remove('is-resizing');
+      persist('splitRatio');
     };
     document.body.classList.add('is-resizing');
     window.addEventListener('mousemove', onMove);

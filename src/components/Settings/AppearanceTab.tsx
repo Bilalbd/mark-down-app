@@ -137,7 +137,7 @@ export function AppearanceTab() {
           ))}
         </div>
         {(Object.keys(COLOR_LABELS) as (keyof ColorSet)[]).map((key) => (
-          <Row key={key} label={COLOR_LABELS[key]}>
+          <Row key={key} label={COLOR_LABELS[key]} asLabel={false}>
             <ColorInput value={preset.colors[editTheme][key]} onChange={(v) => setColor(key, v)} />
           </Row>
         ))}

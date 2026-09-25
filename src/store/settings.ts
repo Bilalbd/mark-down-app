@@ -45,7 +45,15 @@ const DEFAULTS: Settings = {
 interface SettingsState extends Settings {
   loaded: boolean;
   load: () => Promise<void>;
-  set: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
+  /** `persist: false` updates in-memory state only, skipping the disk write - for
+   * high-frequency updates (drag resize) that call `persist()` once at the end. */
+  set: <K extends keyof Settings>(
+    key: K,
+    value: Settings[K],
+    opts?: { persist?: boolean },
+  ) => void;
+  /** Writes the current value of `key` to disk (see `set`'s `persist: false`). */
+  persist: <K extends keyof Settings>(key: K) => void;
   /** Moves `path` to the front of recentFiles, deduped and capped. */
   addRecentFile: (path: string) => void;
   /** Drops `path` from recentFiles (e.g. it became unreadable or was moved). */
@@ -85,11 +93,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
   },
 
-  set: (key, value) => {
+  set: (key, value, opts) => {
     if (get()[key] === value) return;
     set({ [key]: value } as Partial<Settings>);
-    if (EPHEMERAL_KEYS.has(key)) return;
+    if (EPHEMERAL_KEYS.has(key) || opts?.persist === false) return;
     void getStore().then((s) => s?.set(key, value));
+  },
+
+  persist: (key) => {
+    if (EPHEMERAL_KEYS.has(key)) return;
+    void getStore().then((s) => s?.set(key, get()[key]));
   },
 
   addRecentFile: (path) => {

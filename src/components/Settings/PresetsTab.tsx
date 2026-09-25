@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialog';
+import { useDialogStore } from '@/components/Dialog/ConfirmDialog';
 import { isTauri, readFile, writeFile } from '@/lib/tauri';
 import { useStyleStore } from '@/store/style';
 import { Section } from './controls';
@@ -58,6 +59,16 @@ export function PresetsTab() {
     }
   };
 
+  const doDelete = async (id: string, name: string) => {
+    const choice = await useDialogStore
+      .getState()
+      .show('Delete preset?', `"${name}" will be permanently deleted.`, [
+        { id: 'delete', label: 'Delete', danger: true },
+        { id: 'cancel', label: 'Cancel', primary: true },
+      ]);
+    if (choice === 'delete') remove(id);
+  };
+
   const builtins = presets.filter((p) => p.builtin);
   const custom = presets.filter((p) => !p.builtin);
 
@@ -100,7 +111,7 @@ export function PresetsTab() {
               Export
             </button>
             {!p.builtin && (
-              <button title="Delete" className="is-danger" onClick={() => remove(p.id)}>
+              <button title="Delete" className="is-danger" onClick={() => void doDelete(p.id, p.name)}>
                 Delete
               </button>
             )}

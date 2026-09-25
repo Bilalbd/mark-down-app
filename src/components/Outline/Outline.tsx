@@ -56,6 +56,7 @@ export function Outline() {
   const requestScrollToLine = useViewStore((s) => s.requestScrollToLine);
   const width = useSettingsStore((s) => s.outlineWidth);
   const set = useSettingsStore((s) => s.set);
+  const persist = useSettingsStore((s) => s.persist);
 
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const tree = useMemo(() => buildTree(headings), [headings]);
@@ -93,12 +94,19 @@ export function Outline() {
     const startX = e.clientX;
     const startW = width;
     const onMove = (ev: MouseEvent) => {
-      set('outlineWidth', Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startW + ev.clientX - startX)));
+      set(
+        'outlineWidth',
+        Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startW + ev.clientX - startX)),
+        { persist: false },
+      );
     };
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      document.body.classList.remove('is-resizing');
+      persist('outlineWidth');
     };
+    document.body.classList.add('is-resizing');
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
   };

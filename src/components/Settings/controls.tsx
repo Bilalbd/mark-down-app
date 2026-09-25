@@ -4,19 +4,24 @@ export function Row({
   label,
   hint,
   children,
+  asLabel = true,
 }: {
   label: string;
   hint?: string;
   children: ReactNode;
+  /** False renders a <div> instead of a <label>, so clicking the row text doesn't
+   * forward-activate the control inside it (e.g. opening a colour picker). */
+  asLabel?: boolean;
 }) {
+  const Tag = asLabel ? 'label' : 'div';
   return (
-    <label className="settings__row">
+    <Tag className="settings__row">
       <span className="settings__label">
         {label}
         {hint && <span className="settings__hint">{hint}</span>}
       </span>
       <span className="settings__control">{children}</span>
-    </label>
+    </Tag>
   );
 }
 
