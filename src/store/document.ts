@@ -18,6 +18,53 @@ import {
 
 export type ExternalChange = 'modified' | 'removed' | null;
 
+/** The document's data, without actions: what a tab snapshot stores. */
+export type DocFields = Pick<
+  DocumentState,
+  | 'path'
+  | 'hasDocument'
+  | 'content'
+  | 'savedContent'
+  | 'mtime'
+  | 'eol'
+  | 'encoding'
+  | 'lossy'
+  | 'loadId'
+  | 'error'
+  | 'externalChange'
+>;
+
+export const EMPTY_DOC: DocFields = {
+  path: null,
+  hasDocument: false,
+  content: '',
+  savedContent: '',
+  mtime: 0,
+  eol: '\n',
+  encoding: 'utf8',
+  lossy: false,
+  loadId: 0,
+  error: null,
+  externalChange: null,
+};
+
+/** Copies just the document fields (so snapshots don't carry the store's functions). */
+export function pickDocFields(s: DocumentState): DocFields {
+  return {
+    path: s.path,
+    hasDocument: s.hasDocument,
+    content: s.content,
+    savedContent: s.savedContent,
+    mtime: s.mtime,
+    eol: s.eol,
+    encoding: s.encoding,
+    lossy: s.lossy,
+    loadId: s.loadId,
+    error: s.error,
+    externalChange: s.externalChange,
+  };
+}
+
 export interface DocumentState {
   /** Absolute path, or null for a new document that has not been saved yet. */
   path: string | null;
@@ -49,6 +96,8 @@ export interface DocumentState {
   openWithDialog: () => Promise<void>;
   /** Start a new, unsaved document (prompts if the current one has unsaved changes). */
   newDocument: () => Promise<boolean>;
+  /** Open a file by path without asking about unsaved changes (the caller already has). */
+  load: (path: string) => Promise<boolean>;
   /** Save to a location chosen in the OS dialog. */
   saveAs: () => Promise<boolean>;
   /** Re-read the current file from disk (used by live reload). */
@@ -65,18 +114,22 @@ export interface DocumentState {
 export const isDirty = (s: Pick<DocumentState, 'content' | 'savedContent'>) =>
   s.content !== s.savedContent;
 
+let loadCounter = 0;
+/** Returns a new load id, unique across all tabs, so a restored tab never looks like a fresh load. */
+export function nextLoadId(): number {
+  return ++loadCounter;
+}
+
+/** Decides whether Save As may write to `target`; the tabs store installs one. */
+export type SaveTargetGuard = (target: string) => 'ok' | 'blocked';
+let saveTargetGuard: SaveTargetGuard = () => 'ok';
+/** Installs the check `saveAs` runs before writing (see the tabs store). */
+export function setSaveTargetGuard(guard: SaveTargetGuard): void {
+  saveTargetGuard = guard;
+}
+
 export const useDocumentStore = create<DocumentState>((set, get) => ({
-  path: null,
-  hasDocument: false,
-  content: '',
-  savedContent: '',
-  mtime: 0,
-  eol: '\n',
-  encoding: 'utf8',
-  lossy: false,
-  loadId: 0,
-  error: null,
-  externalChange: null,
+  ...EMPTY_DOC,
 
   confirmDiscard: async () => {
     const state = get();
@@ -87,14 +140,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     return true;
   },
 
-  open: async (path) => {
-    if (!(await get().confirmDiscard())) return false;
+  load: async (path) => {
     const previous = get().path;
     try {
       const { content: raw, mtime, encoding, lossy } = await readFile(path);
       const { text: content, eol } = normalizeEol(raw);
       await setAssetRoot(dirname(path)).catch(() => undefined);
-      set((s) => ({
+      set(() => ({
         path,
         hasDocument: true,
         content,
@@ -103,7 +155,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         eol,
         encoding,
         lossy,
-        loadId: s.loadId + 1,
+        loadId: nextLoadId(),
         error: null,
         externalChange: null,
       }));
@@ -121,6 +173,11 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     }
   },
 
+  open: async (path) => {
+    if (!(await get().confirmDiscard())) return false;
+    return get().load(path);
+  },
+
   openWithDialog: async () => {
     if (!isTauri()) {
       // Browser fallback (Vite dev without Tauri): read a local file via <input type=file>.
@@ -128,7 +185,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       if (file && (await get().confirmDiscard())) {
         const raw = await file.text();
         const { text: content, eol } = normalizeEol(raw);
-        set((s) => ({
+        set(() => ({
           path: file.name,
           hasDocument: true,
           content,
@@ -137,7 +194,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
           eol,
           encoding: 'utf8',
           lossy: false,
-          loadId: s.loadId + 1,
+          loadId: nextLoadId(),
           error: null,
           externalChange: null,
         }));
@@ -162,7 +219,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       if (previous) await unwatchFile(previous).catch(() => undefined);
       await setAssetRoot(null).catch(() => undefined);
     }
-    set((s) => ({
+    set(() => ({
       path: null,
       hasDocument: true,
       content: '',
@@ -171,7 +228,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       eol: '\n',
       encoding: 'utf8',
       lossy: false,
-      loadId: s.loadId + 1,
+      loadId: nextLoadId(),
       error: null,
       externalChange: null,
     }));
@@ -189,6 +246,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       ],
     });
     if (!target) return false;
+    if (saveTargetGuard(target) === 'blocked') {
+      set({ error: 'That file is open in another tab with unsaved changes.' });
+      return false;
+    }
     const { content, eol, encoding } = get();
     const previous = get().path;
     try {
@@ -221,14 +282,14 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     try {
       const { content: raw, mtime, encoding, lossy } = await readFile(path);
       const { text: content, eol } = normalizeEol(raw);
-      set((s) => ({
+      set(() => ({
         content,
         savedContent: content,
         mtime,
         eol,
         encoding,
         lossy,
-        loadId: s.loadId + 1,
+        loadId: nextLoadId(),
         error: null,
         externalChange: null,
       }));
