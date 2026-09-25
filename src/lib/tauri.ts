@@ -39,12 +39,14 @@ export function writeFile(path: string, content: string, encoding?: Encoding): P
   return invoke<number>('write_file', { path, content, encoding });
 }
 
-/** Allows the asset protocol to serve files under `dir` (for relative images). */
-export function allowAssetDir(dir: string): Promise<void> {
-  return invoke('allow_asset_dir', { dir });
+/** Restricts the mdasset:// protocol to serving files under `dir` (for relative
+ * images), replacing whatever folder it previously served. `null` for an untitled
+ * document, so nothing is servable until a document with a folder is open. */
+export function setAssetRoot(dir: string | null): Promise<void> {
+  return invoke('set_asset_root', { dir });
 }
 
-export const toAssetUrl = (absPath: string): string => convertFileSrc(absPath);
+export const toAssetUrl = (absPath: string): string => convertFileSrc(absPath, 'mdasset');
 
 export function dirname(path: string): string {
   const i = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));

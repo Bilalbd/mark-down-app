@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
-use tauri::{AppHandle, Manager};
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 #[serde(rename_all = "kebab-case")]
@@ -226,15 +225,6 @@ mod write_atomic_tests {
         assert!(no_tmp_files_left(&path));
         std::fs::remove_file(&path).unwrap();
     }
-}
-
-/// Allow the asset protocol to serve files under `dir`, so relative images
-/// referenced by the open document can be displayed.
-#[tauri::command]
-pub fn allow_asset_dir(app: AppHandle, dir: String) -> Result<(), String> {
-    app.asset_protocol_scope()
-        .allow_directory(PathBuf::from(dir), true)
-        .map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

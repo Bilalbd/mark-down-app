@@ -106,6 +106,6 @@ function sanitizeHtmlInner(html: string): string {
     // every attribute value that looks like it could carry a URL, so it must keep
     // accepting plain words (SVG path data, MIME types, relative paths).
     ALLOWED_URI_REGEXP:
-      /^(?:(?:https?|mailto|tel|asset|blob):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+      /^(?:(?:https?|mailto|tel|asset|mdasset|blob):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
   });
 }

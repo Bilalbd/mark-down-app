@@ -4,11 +4,11 @@ import { askSaveChanges, useDialogStore } from '@/components/Dialog/ConfirmDialo
 import { useSettingsStore } from '@/store/settings';
 import { applyEol, normalizeEol, type Eol } from '@/lib/eol';
 import {
-  allowAssetDir,
   basename,
   dirname,
   isTauri,
   readFile,
+  setAssetRoot,
   unwatchFile,
   watchFile,
   writeFile,
@@ -92,7 +92,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     try {
       const { content: raw, mtime, encoding, lossy } = await readFile(path);
       const { text: content, eol } = normalizeEol(raw);
-      await allowAssetDir(dirname(path)).catch(() => undefined);
+      await setAssetRoot(dirname(path)).catch(() => undefined);
       set((s) => ({
         path,
         hasDocument: true,
@@ -152,7 +152,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
   newDocument: async () => {
     if (!(await get().confirmDiscard())) return false;
-    if (isTauri()) await unwatchFile().catch(() => undefined);
+    if (isTauri()) {
+      await unwatchFile().catch(() => undefined);
+      await setAssetRoot(null).catch(() => undefined);
+    }
     set((s) => ({
       path: null,
       hasDocument: true,
@@ -191,7 +194,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         externalChange: null,
         lossy: false,
       });
-      await allowAssetDir(dirname(target)).catch(() => undefined);
+      await setAssetRoot(dirname(target)).catch(() => undefined);
       await watchFile(target).catch(() => undefined);
       useSettingsStore.getState().addRecentFile(target);
       return true;

@@ -32,11 +32,16 @@ describe('sanitizeHtml', () => {
 
   it('allows relative and asset-protocol image sources', () => {
     const out = sanitizeHtml(
-      '<img src="images/a.png"><img src="http://asset.localhost/C%3A/x.png"><img src="data:image/png;base64,AAAA">',
+      '<img src="images/a.png"><img src="http://mdasset.localhost/C%3A/x.png"><img src="data:image/png;base64,AAAA">',
     );
     expect(out).toContain('src="images/a.png"');
-    expect(out).toContain('src="http://asset.localhost/C%3A/x.png"');
+    expect(out).toContain('src="http://mdasset.localhost/C%3A/x.png"');
     expect(out).toContain('src="data:image/png;base64,AAAA"');
+  });
+
+  it('allows a literal mdasset: scheme', () => {
+    const out = sanitizeHtml('<img src="mdasset://localhost/C%3A/x.png">');
+    expect(out).toContain('src="mdasset://localhost/C%3A/x.png"');
   });
 
   it('does not allow DOM clobbering via name/id attributes (SANITIZE_DOM)', () => {

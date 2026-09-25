@@ -13,7 +13,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.6", features = [] }
 
 [dependencies]
-tauri = { version = "2.11", features = ["protocol-asset"] }
+tauri = { version = "2.11" }
 tauri-plugin-dialog = "2.7"
 tauri-plugin-store = "2.4"
 tauri-plugin-opener = "2.5"
@@ -22,6 +22,7 @@ notify = "8"
 notify-debouncer-full = "0.7"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+percent-encoding = "2.3.2"
 
 [profile.release]
 codegen-units = 1

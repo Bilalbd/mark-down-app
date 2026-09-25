@@ -1,3 +1,4 @@
+mod assets;
 mod commands;
 mod watch;
 
@@ -34,11 +35,13 @@ pub fn run() {
                 .build(),
         )
         .manage(watch::WatchState::default())
+        .manage(assets::AssetRoot::default())
+        .register_uri_scheme_protocol("mdasset", |ctx, request| assets::handler(ctx, request))
         .invoke_handler(tauri::generate_handler![
             commands::get_launch_args,
             commands::read_file,
             commands::write_file,
-            commands::allow_asset_dir,
+            assets::set_asset_root,
             watch::watch_file,
             watch::unwatch_file
         ])

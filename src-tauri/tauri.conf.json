@@ -25,10 +25,9 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost https: data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'",
+      "csp": "default-src 'self'; img-src 'self' mdasset: http://mdasset.localhost https: data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'",
       "assetProtocol": {
-        "enable": true,
-        "scope": []
+        "enable": false
       }
     }
   },
