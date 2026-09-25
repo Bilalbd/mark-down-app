@@ -97,10 +97,18 @@ describe('headings / outline', () => {
     expect(html).toContain('id="hello-world"');
   });
 
-  it('slugifies unicode and punctuation', () => {
-    expect(slugify('Ünïcode & Symbols?')).toBe('ünïcode-symbols');
+  it('slugifies unicode and punctuation like github-slugger', () => {
+    expect(slugify('Ünïcode & Symbols?')).toBe('ünïcode--symbols');
     expect(slugify('中文 标题')).toBe('中文-标题');
     expect(slugify('!!!')).toBe('section');
+    expect(slugify('foo_bar')).toBe('foo_bar');
+    expect(slugify('A & B')).toBe('a--b');
+    expect(slugify('C++ / Rust')).toBe('c--rust');
+  });
+
+  it('never reuses an id, even one produced by a dedup suffix', () => {
+    const h = extractHeadings('# foo\n\n# foo\n\n# foo-1');
+    expect(h.map((x) => x.id)).toEqual(['foo', 'foo-1', 'foo-1-1']);
   });
 });
 

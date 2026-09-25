@@ -56,14 +56,17 @@ export interface HeadingInfo {
   line: number;
 }
 
+/**
+ * Matches github-slugger (GitHub's own heading-id algorithm): lowercase, drop
+ * everything except letters, marks, numbers, connector punctuation (`_`), spaces
+ * and `-`, then turn each space into a `-` (no collapsing, no extra trimming).
+ */
 export function slugify(text: string): string {
   return (
     text
       .toLowerCase()
-      .trim()
-      .replace(/[^\p{L}\p{N}\s-]/gu, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-') || 'section'
+      .replace(/[^\p{L}\p{M}\p{N}\p{Pc} -]/gu, '')
+      .replace(/ /g, '-') || 'section'
   );
 }
 
@@ -82,7 +85,10 @@ function inlineText(token: Token): string {
 export function headingIds(md: MarkdownIt): void {
   md.core.ruler.push('heading_ids', (state: StateCore) => {
     const headings: HeadingInfo[] = [];
-    const seen = new Map<string, number>();
+    // GitHub appends -1, -2, ... and never reuses an id, even one produced by a
+    // dedup suffix (so "foo", "foo", "foo-1" give foo, foo-1, foo-1-1).
+    const used = new Set<string>();
+    const counters = new Map<string, number>();
     const tokens = state.tokens;
     for (let i = 0; i < tokens.length; i++) {
       const t = tokens[i];
@@ -90,9 +96,13 @@ export function headingIds(md: MarkdownIt): void {
       const inline = tokens[i + 1];
       const text = inline?.type === 'inline' ? inlineText(inline) : '';
       const base = slugify(text);
-      const n = seen.get(base) ?? 0;
-      seen.set(base, n + 1);
-      const id = n === 0 ? base : `${base}-${n}`;
+      let id = base;
+      while (used.has(id)) {
+        const n = (counters.get(base) ?? 0) + 1;
+        counters.set(base, n);
+        id = `${base}-${n}`;
+      }
+      used.add(id);
       t.attrSet('id', id);
       headings.push({ level: Number(t.tag.slice(1)), text, id, line: t.map?.[0] ?? 0 });
     }
