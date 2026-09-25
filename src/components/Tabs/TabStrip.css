@@ -22,6 +22,7 @@
 
 .tabstrip__tab {
   flex: 0 1 200px;
+  width: 200px;
   min-width: 100px;
   display: flex;
   align-items: center;
@@ -75,7 +76,6 @@
   align-items: center;
   justify-content: center;
   cursor: default;
-  visibility: hidden;
   padding: 0;
 }
 
@@ -86,16 +86,21 @@
 .tabstrip__tab:hover .tabstrip__close,
 .tabstrip__tab.is-active .tabstrip__close,
 .tabstrip__tab:focus-visible .tabstrip__close {
-  visibility: visible;
+  display: flex;
 }
 
-/* When dirty and not hovered, show dot and hide close button */
+.tabstrip__tab .tabstrip__close {
+  display: none;
+}
+
+/* When dirty and not hovered/active, show dot and hide close button */
 .tabstrip__tab.is-dirty:not(:hover):not(.is-active):not(:focus-visible) .tabstrip__close {
-  visibility: hidden;
+  display: none;
 }
 
-.tabstrip__tab.is-dirty:not(:hover):not(.is-active):not(:focus-visible) .tabstrip__dirty {
-  visibility: visible;
+.tabstrip__tab.is-dirty:hover .tabstrip__dirty,
+.tabstrip__tab.is-dirty.is-active .tabstrip__dirty {
+  display: none;
 }
 
 .tabstrip__new {

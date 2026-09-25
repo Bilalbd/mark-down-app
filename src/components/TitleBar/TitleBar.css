@@ -27,7 +27,6 @@
 .titlebar__drag {
   flex: 1 1 40px;
   min-width: 40px;
-  data-tauri-drag-region: '';
 }
 
 .titlebar__title {
