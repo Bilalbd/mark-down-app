@@ -40,6 +40,7 @@ export function scrollPreviewToLine(scrollEl: HTMLElement, line: number, smooth 
 export function Preview() {
   const content = useDocumentStore((s) => s.content);
   const path = useDocumentStore((s) => s.path);
+  const loadId = useDocumentStore((s) => s.loadId);
   const zoom = useSettingsStore((s) => s.previewZoom);
   const blockRemoteImages = useSettingsStore((s) => s.blockRemoteImages);
   const setPreviewScrollEl = useViewStore((s) => s.setPreviewScrollEl);
@@ -48,11 +49,11 @@ export function Preview() {
   const clearPendingScroll = useViewStore((s) => s.clearPendingScroll);
   const bumpPreviewVersion = useViewStore((s) => s.bumpPreviewVersion);
 
-  const [html, setHtml] = useState('');
+  const [html, setHtml] = useState<{ html: string; loadId: number }>({ html: '', loadId: -1 });
   const theme = useResolvedTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
   const renderSeq = useRef(0);
-  const restoredRef = useRef(false);
+  const renderedLoadIdRef = useRef(-1);
 
   useEffect(() => {
     setPreviewScrollEl(scrollRef.current);
@@ -61,43 +62,51 @@ export function Preview() {
 
   useEffect(() => {
     const seq = ++renderSeq.current;
-    const timer = setTimeout(async () => {
-      const result = await renderMarkdown(content, {
-        baseDir: path ? dirname(path) : undefined,
-        toAssetUrl: isTauri() ? toAssetUrl : undefined,
-        blockRemoteImages,
-      });
-      if (seq !== renderSeq.current) return; // a newer render superseded this one
-      setHtml(result.html);
-    }, RENDER_DEBOUNCE_MS);
+    const isNewLoad = loadId !== renderedLoadIdRef.current;
+    const timer = setTimeout(
+      async () => {
+        const result = await renderMarkdown(content, {
+          baseDir: path ? dirname(path) : undefined,
+          toAssetUrl: isTauri() ? toAssetUrl : undefined,
+          blockRemoteImages,
+        });
+        if (seq !== renderSeq.current) return; // a newer render superseded this one
+        renderedLoadIdRef.current = loadId;
+        setHtml({ html: result.html, loadId });
+      },
+      isNewLoad ? 0 : RENDER_DEBOUNCE_MS,
+    );
     return () => clearTimeout(timer);
-  }, [content, path, blockRemoteImages]);
+  }, [content, path, loadId, blockRemoteImages]);
 
   useLayoutEffect(() => {
-    if (html) bumpPreviewVersion();
-  }, [html, bumpPreviewVersion]);
+    if (html.html) bumpPreviewVersion();
+  }, [html.html, bumpPreviewVersion]);
 
   // Mermaid diagrams render client-side after the HTML is in the DOM (and again on theme change).
   useEffect(() => {
     const root = scrollRef.current;
-    if (!root || !html.includes('mermaid-block')) return;
+    if (!root || !html.html.includes('mermaid-block')) return;
     void renderMermaidBlocks(root, theme);
-  }, [html, theme]);
+  }, [html.html, theme]);
 
   // After the first paint of real content, restore the position the other view was at.
   useLayoutEffect(() => {
-    if (!html || restoredRef.current || !scrollRef.current) return;
-    restoredRef.current = true;
-    const line = useViewStore.getState().topLine;
-    if (line > 0) scrollPreviewToLine(scrollRef.current, line);
-  }, [html]);
+    if (!html.html || !scrollRef.current) return;
+    // Only restore scroll for this loadId once (not on every render)
+    if (renderedLoadIdRef.current === loadId) {
+      const line = useViewStore.getState().topLine;
+      if (line > 0) scrollPreviewToLine(scrollRef.current, line);
+    }
+  }, [html.html, loadId]);
 
-  // Outline click / cross-view scroll request.
+  // Outline click / cross-view scroll request. Only run once HTML for the current loadId is rendered.
   useEffect(() => {
-    if (pendingScrollLine === null || !scrollRef.current || !html) return;
+    if (pendingScrollLine === null || !scrollRef.current || !html.html) return;
+    if (html.loadId !== loadId) return; // HTML is for a different load
     scrollPreviewToLine(scrollRef.current, pendingScrollLine);
     clearPendingScroll();
-  }, [pendingScrollLine, clearPendingScroll, html]);
+  }, [pendingScrollLine, clearPendingScroll, html.html, loadId]);
 
   const onScroll = () => {
     if (scrollRef.current) setTopLine(lineAtTop(scrollRef.current));
@@ -144,7 +153,7 @@ export function Preview() {
         style={{ '--md-zoom': zoom } as React.CSSProperties}
         onClick={onClick}
         onAuxClick={onAuxClick}
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: html.html }}
       />
     </div>
   );

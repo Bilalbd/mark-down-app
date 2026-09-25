@@ -20,13 +20,15 @@ if (import.meta.env.DEV) {
     import('./store/settings'),
     import('./store/view'),
     import('./store/style'),
+    import('./store/tabs'),
     import('./markdown/render'),
-  ]).then(([doc, settings, view, style, render]) => {
+  ]).then(([doc, settings, view, style, tabs, render]) => {
     (window as unknown as { __mdv: unknown }).__mdv = {
       document: doc.useDocumentStore,
       settings: settings.useSettingsStore,
       view: view.useViewStore,
       style: style.useStyleStore,
+      tabs: tabs.useTabsStore,
       render: render.renderMarkdown,
     };
   });

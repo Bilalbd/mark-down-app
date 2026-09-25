@@ -20,6 +20,7 @@ import { languages } from '@codemirror/language-data';
 import { useDocumentStore } from '@/store/document';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
+import { cacheEditorState, cachedEditorState } from '@/lib/editorCache';
 import { editorHighlighting, editorTheme } from './editorTheme';
 import './SourceEditor.css';
 
@@ -74,10 +75,6 @@ function createEditorState(doc: string): EditorState {
   return EditorState.create({ doc, extensions: buildExtensions() });
 }
 
-// Keeps undo history, selection and search state across unmount/remount (Ctrl+E toggle,
-// split-pane swap) as long as the document hasn't changed underneath us in the meantime.
-let cached: { loadId: number; state: EditorState } | null = null;
-
 export function SourceEditor() {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -98,17 +95,14 @@ export function SourceEditor() {
   const prevLoadIdRef = useRef(loadId);
   const prevPathRef = useRef(path);
 
-  // Create the editor once, reusing the cached state (undo history included) when it
-  // still matches the current document.
+  // Create the editor once, reusing the cached state (undo history included) per document
+  // load when it still matches the current content. Each tab gets its own editor state via
+  // per-load caching.
   useEffect(() => {
     const host = hostRef.current!;
     const docState = useDocumentStore.getState();
     const state =
-      cached &&
-      cached.loadId === docState.loadId &&
-      cached.state.doc.toString() === docState.content
-        ? cached.state
-        : createEditorState(docState.content);
+      cachedEditorState(docState.loadId, docState.content) ?? createEditorState(docState.content);
     const view = new EditorView({ parent: host, state });
     viewRef.current = view;
     setEditorView(view);
@@ -119,7 +113,7 @@ export function SourceEditor() {
     if (initial > 0) scrollToLine(view, initial);
 
     return () => {
-      cached = { loadId: useDocumentStore.getState().loadId, state: view.state };
+      cacheEditorState(prevLoadIdRef.current, view.state);
       setEditorView(null);
       view.destroy();
       viewRef.current = null;
@@ -128,17 +122,33 @@ export function SourceEditor() {
 
   // A fresh open/newDocument/reload gets a fresh undo history. A reload of the same
   // path (live external-change reload) keeps the scroll position instead of jumping to top.
+  // When switching to a tab that was previously loaded, restore its cached editor state
+  // (including undo history and selection) if available.
   useEffect(() => {
     if (loadId === prevLoadIdRef.current) return; // just mounted/remounted, no new load
+    const outgoingLoadId = prevLoadIdRef.current;
     prevLoadIdRef.current = loadId;
     const view = viewRef.current;
     if (!view) return;
-    const samePath = prevPathRef.current === path;
-    prevPathRef.current = path;
-    const savedLine = samePath ? topVisibleLine(view) : null;
-    view.setState(createEditorState(useDocumentStore.getState().content));
-    if (savedLine !== null) scrollToLine(view, savedLine);
-  }, [loadId]);
+
+    // Cache the outgoing state before switching
+    cacheEditorState(outgoingLoadId, view.state);
+
+    const content = useDocumentStore.getState().content;
+    const restored = cachedEditorState(loadId, content);
+
+    if (restored) {
+      // Restored from cache: use it directly (no scroll adjustment needed)
+      view.setState(restored);
+    } else {
+      // Fresh load: create new state
+      const samePath = prevPathRef.current === path;
+      prevPathRef.current = path;
+      const savedLine = samePath ? topVisibleLine(view) : null;
+      view.setState(createEditorState(content));
+      if (savedLine !== null) scrollToLine(view, savedLine);
+    }
+  }, [loadId, path]);
 
   // Fallback sync for content changes that didn't come from a load (shouldn't normally
   // happen, since edits flow the other way, but keeps the view from drifting if they do).

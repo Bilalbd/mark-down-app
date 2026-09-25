@@ -11,6 +11,7 @@ import {
 import { useSettingsStore, type ViewMode } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import { dirname, isTauri, setAssetRoot, unwatchFile, type FileChangedEvent } from '@/lib/tauri';
+import { pruneEditorCache } from '@/lib/editorCache';
 import {
   findTabByPath,
   isBlankDocument,
@@ -101,6 +102,21 @@ function updateSnapshot(tabs: Tab[], tabId: string, fn: (snap: TabSnapshot) => T
   );
 }
 
+/** Returns the active document's loadId plus every snapshot's loadId (all live load IDs). */
+function liveLoadIds(): number[] {
+  const state = useTabsStore.getState();
+  const activeLoadId = useDocumentStore.getState().loadId;
+  const ids = [activeLoadId];
+
+  for (const tab of state.tabs) {
+    if (tab.snapshot && tab.snapshot.doc.loadId !== activeLoadId) {
+      ids.push(tab.snapshot.doc.loadId);
+    }
+  }
+
+  return ids;
+}
+
 const firstTabId = newTabId();
 
 export const useTabsStore = create<TabsState>((set, get) => ({
@@ -137,6 +153,8 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     if (currentIncomingTab.snapshot.needsReload && !isDirty(currentIncomingTab.snapshot.doc)) {
       await useDocumentStore.getState().reload();
     }
+
+    pruneEditorCache(liveLoadIds());
   },
 
   openInTab: async (path) => {
@@ -273,6 +291,8 @@ export const useTabsStore = create<TabsState>((set, get) => ({
       if (tab.snapshot?.doc.path) {
         await unwatchFile(tab.snapshot.doc.path).catch(() => undefined);
       }
+
+      pruneEditorCache(liveLoadIds());
       return true;
     }
 
@@ -297,9 +317,9 @@ export const useTabsStore = create<TabsState>((set, get) => ({
         if (!finalNextTab?.snapshot) return false;
 
         set({
-          tabs: closeState.tabs.filter((t) => t.id !== id).map((t) =>
-            t.id === next ? { ...t, snapshot: null } : t,
-          ),
+          tabs: closeState.tabs
+            .filter((t) => t.id !== id)
+            .map((t) => (t.id === next ? { ...t, snapshot: null } : t)),
           activeId: next,
         });
 
@@ -332,6 +352,8 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     if (closingPath) {
       await unwatchFile(closingPath).catch(() => undefined);
     }
+
+    pruneEditorCache(liveLoadIds());
     return true;
   },
 

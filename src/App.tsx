@@ -15,8 +15,10 @@ import { StyleInjector } from './components/Preview/StyleInjector';
 import { useAppTheme } from './lib/useAppTheme';
 import { useShortcuts } from './lib/shortcuts';
 import { basename, emitAppReady, getLaunchArgs, isTauri, type FileChangedEvent } from './lib/tauri';
+import { samePath } from './lib/tabs';
 import { useSettingsStore } from './store/settings';
 import { isDirty, useDocumentStore } from './store/document';
+import { useTabsStore } from './store/tabs';
 import { useStyleStore } from './store/style';
 import { extractHeadings } from './markdown/render';
 import { useViewStore } from './store/view';
@@ -90,13 +92,18 @@ export default function App() {
     return () => clearTimeout(t);
   }, [content, setHeadings]);
 
-  // Live reload: the Rust watcher reports external edits to the open file.
+  // Live reload: the Rust watcher reports external edits to open files. Route each event
+  // to the active document or an inactive tab, depending on which one owns the path.
   useEffect(() => {
     if (!isTauri()) return;
     let unlisten: (() => void) | undefined;
-    void listen<FileChangedEvent>('file-changed', (e) => void onFileChanged(e.payload)).then(
-      (u) => (unlisten = u),
-    );
+    void listen<FileChangedEvent>('file-changed', (e) => {
+      if (samePath(e.payload.path, useDocumentStore.getState().path ?? '')) {
+        void onFileChanged(e.payload);
+      } else {
+        useTabsStore.getState().onInactiveFileChanged(e.payload);
+      }
+    }).then((u) => (unlisten = u));
     return () => unlisten?.();
   }, [onFileChanged]);
 
