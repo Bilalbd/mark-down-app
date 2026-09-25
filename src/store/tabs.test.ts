@@ -419,18 +419,33 @@ describe('tabs store', () => {
     await useTabsStore.getState().openInTab('C:\\docs\\A.md');
     await useTabsStore.getState().openInTab('C:\\docs\\B.md');
 
-    const aTabId = useTabsStore.getState().tabs[0].id;
+    const aId = useTabsStore.getState().tabs[0].id;
+    let release!: () => void;
+    mockSetAssetRoot.mockImplementationOnce(
+      () =>
+        new Promise<void>((r) => {
+          release = r;
+        }),
+    );
+    const pending = useTabsStore.getState().activate(aId);
 
+    useTabsStore.getState().onInactiveFileChanged({
+      path: 'C:\\docs\\A.md',
+      mtime: 999,
+      removed: false,
+    });
+
+    mockReadFile.mockClear();
     mockReadFile.mockResolvedValueOnce({
       content: '# Reloaded A',
-      mtime: 2,
+      mtime: 999,
       encoding: 'utf8' as const,
       lossy: false,
     });
+    release();
+    await pending;
 
-    await useTabsStore.getState().activate(aTabId);
-
-    expect(useDocumentStore.getState().path).toBe('C:\\docs\\A.md');
-    expect(useDocumentStore.getState().loadId).toBeGreaterThan(0);
+    expect(mockReadFile).toHaveBeenCalledWith('C:\\docs\\A.md');
+    expect(useDocumentStore.getState().content).toBe('# Reloaded A');
   });
 });
