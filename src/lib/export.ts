@@ -1,9 +1,11 @@
+import katex from 'katex';
 import previewCss from '@/components/Preview/Preview.css?raw';
 import type { ResolvedTheme } from '@/lib/useAppTheme';
 import type { StylePreset } from '@/store/style';
 import { presetToCssVars } from '@/styles/presetCss';
 
-const KATEX_CSS_URL = 'https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css';
+// Requires internet access to load; the exported HTML has no bundled fallback (see README).
+const KATEX_CSS_URL = `https://cdn.jsdelivr.net/npm/katex@${katex.version}/dist/katex.min.css`;
 
 export interface ExportOptions {
   title: string;
@@ -58,10 +60,34 @@ ${body}
 
 /** http://asset.localhost/C%3A%5Cdir%5Cimg.png → file:///C:/dir/img.png */
 export function rewriteAssetUrls(html: string): string {
-  return html.replace(/(src|href)="http:\/\/asset\.localhost\/([^"]+)"/g, (_m, attr, enc) => {
-    const decoded = decodeURIComponent(enc).replace(/\\/g, '/');
-    return `${attr}="file:///${decoded}"`;
-  });
+  return html.replace(
+    /(src|href)="http:\/\/(?:asset|mdasset)\.localhost\/([^"]+)"/g,
+    (_m, attr, enc) => `${attr}="${toFileUrl(decodeURIComponent(enc))}"`,
+  );
+}
+
+/**
+ * Converts a local filesystem path (`C:\dir\img.png` or a UNC `\\server\share\img.png`)
+ * to a `file://` URL, percent-encoding each path segment so spaces, `#`, `%` and
+ * non-ASCII characters survive, while leaving the drive letter and separators as-is.
+ */
+export function toFileUrl(path: string): string {
+  const norm = path.replace(/\\/g, '/');
+  const unc = /^\/\/([^/]+)\/(.*)$/.exec(norm);
+  if (unc) {
+    const [, host, rest] = unc;
+    return `file://${host}/${encodeSegments(rest)}`;
+  }
+  const drive = /^([a-zA-Z]:)\/(.*)$/.exec(norm);
+  if (drive) {
+    const [, letter, rest] = drive;
+    return `file:///${letter}/${encodeSegments(rest)}`;
+  }
+  return `file://${encodeSegments(norm)}`;
+}
+
+function encodeSegments(path: string): string {
+  return path.split('/').map(encodeURIComponent).join('/');
 }
 
 function escapeHtml(s: string): string {

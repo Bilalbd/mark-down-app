@@ -3,7 +3,8 @@ import { Download } from 'lucide-react';
 import { save as saveDialog } from '@tauri-apps/plugin-dialog';
 import { buildExportHtml } from '@/lib/export';
 import { basename, isTauri, writeFile } from '@/lib/tauri';
-import { useResolvedTheme } from '@/lib/useAppTheme';
+import { useResolvedTheme, type ResolvedTheme } from '@/lib/useAppTheme';
+import { renderMermaidBlocks, whenMermaidIdle } from '@/markdown/mermaid';
 import { useDocumentStore } from '@/store/document';
 import { useSettingsStore } from '@/store/settings';
 import { useStyleStore } from '@/store/style';
@@ -12,20 +13,32 @@ import { ICON } from './Toolbar';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+interface PreviewHandle {
+  el: HTMLElement;
+  /** Switches the view mode back if ensurePreview switched away from Source. */
+  restore: () => void;
+}
+
 /** Waits until a rendered preview exists in the DOM (switching view if necessary). */
-async function ensurePreview(): Promise<HTMLElement | null> {
+async function ensurePreview(theme: ResolvedTheme): Promise<PreviewHandle | null> {
   const settings = useSettingsStore.getState();
   const previous = settings.viewMode;
   if (previous === 'source') settings.set('viewMode', 'formatted');
+  const restore = () => {
+    if (previous === 'source') useSettingsStore.getState().set('viewMode', previous);
+  };
   for (let i = 0; i < 40; i++) {
     const el = useViewStore.getState().previewScrollEl?.querySelector<HTMLElement>('.preview');
-    if (el && el.innerHTML.trim()) {
-      // give Mermaid a moment if diagrams are present
-      if (el.querySelector('.mermaid-block:not([data-rendered])')) await sleep(300);
-      return el;
+    if (el) {
+      if (el.querySelector('.mermaid-block')) {
+        await renderMermaidBlocks(el, theme);
+        await whenMermaidIdle();
+      }
+      return { el, restore };
     }
     await sleep(50);
   }
+  restore();
   return null;
 }
 
@@ -54,35 +67,46 @@ export function ExportMenu() {
 
   const exportHtml = async () => {
     setOpen(false);
-    const preview = await ensurePreview();
+    const preview = await ensurePreview(theme);
     if (!preview) return;
-    const preset = presets.find((p) => p.id === activeId) ?? presets[0];
-    const title = path ? basename(path).replace(/\.[^.]+$/, '') : 'Untitled';
-    const html = buildExportHtml({ title, bodyHtml: preview.innerHTML, preset, theme });
-    if (!isTauri()) {
-      const blob = new Blob([html], { type: 'text/html' });
-      const a = Object.assign(document.createElement('a'), {
-        href: URL.createObjectURL(blob),
-        download: `${title}.html`,
+    try {
+      const preset = presets.find((p) => p.id === activeId) ?? presets[0];
+      const title = path ? basename(path).replace(/\.[^.]+$/, '') : 'Untitled';
+      const html = buildExportHtml({ title, bodyHtml: preview.el.innerHTML, preset, theme });
+      if (!isTauri()) {
+        const blob = new Blob([html], { type: 'text/html' });
+        const a = Object.assign(document.createElement('a'), {
+          href: URL.createObjectURL(blob),
+          download: `${title}.html`,
+        });
+        a.click();
+        return;
+      }
+      const target = await saveDialog({
+        defaultPath: `${title}.html`,
+        filters: [{ name: 'HTML', extensions: ['html'] }],
       });
-      a.click();
-      return;
+      if (!target) return;
+      try {
+        await writeFile(target, html);
+      } catch (e) {
+        useDocumentStore.setState({ error: `Could not export: ${String(e)}` });
+      }
+    } finally {
+      preview.restore();
     }
-    const target = await saveDialog({
-      defaultPath: `${title}.html`,
-      filters: [{ name: 'HTML', extensions: ['html'] }],
-    });
-    if (target) await writeFile(target, html);
   };
 
   const exportPdf = async () => {
     setOpen(false);
-    const previous = useSettingsStore.getState().viewMode;
-    const preview = await ensurePreview();
+    const preview = await ensurePreview(theme);
     if (!preview) return;
-    await sleep(100);
-    window.print();
-    if (previous === 'source') useSettingsStore.getState().set('viewMode', previous);
+    try {
+      await sleep(100);
+      window.print();
+    } finally {
+      preview.restore();
+    }
   };
 
   return (

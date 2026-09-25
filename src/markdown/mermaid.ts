@@ -23,11 +23,23 @@ async function getMermaid(theme: ResolvedTheme): Promise<Mermaid> {
   return mermaid;
 }
 
+const inflight = new Set<Promise<void>>();
+
 /**
  * Renders every `.mermaid-block` under `root` in place. Each block keeps its source in a
  * `<pre class="mermaid-source">` so re-rendering (e.g. on theme change) is idempotent.
  */
 export async function renderMermaidBlocks(root: HTMLElement, theme: ResolvedTheme): Promise<void> {
+  const run = renderMermaidBlocksInner(root, theme);
+  inflight.add(run);
+  try {
+    await run;
+  } finally {
+    inflight.delete(run);
+  }
+}
+
+async function renderMermaidBlocksInner(root: HTMLElement, theme: ResolvedTheme): Promise<void> {
   const blocks = Array.from(root.querySelectorAll<HTMLElement>('.mermaid-block'));
   if (blocks.length === 0) return;
   const mermaid = await getMermaid(theme);
@@ -52,5 +64,12 @@ export async function renderMermaidBlocks(root: HTMLElement, theme: ResolvedThem
       block.classList.add('is-error');
     }
     block.appendChild(out);
+  }
+}
+
+/** Resolves once every in-flight `renderMermaidBlocks` call has settled. */
+export async function whenMermaidIdle(): Promise<void> {
+  while (inflight.size > 0) {
+    await Promise.all(inflight);
   }
 }

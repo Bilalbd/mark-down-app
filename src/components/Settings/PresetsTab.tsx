@@ -34,9 +34,13 @@ export function PresetsTab() {
       filters: [{ name: 'Preset', extensions: ['json'] }],
     });
     if (typeof path !== 'string') return;
-    const { content } = await readFile(path);
-    const r = importPreset(content);
-    setMessage(r.ok ? 'Preset imported.' : r.error);
+    try {
+      const { content } = await readFile(path);
+      const r = importPreset(content);
+      setMessage(r.ok ? 'Preset imported.' : r.error);
+    } catch (e) {
+      setMessage(`Could not import: ${String(e)}`);
+    }
   };
 
   const doExport = async (id: string, name: string) => {
@@ -46,8 +50,12 @@ export function PresetsTab() {
       filters: [{ name: 'Preset', extensions: ['json'] }],
     });
     if (!path) return;
-    await writeFile(path, exportPreset(id));
-    setMessage('Preset exported.');
+    try {
+      await writeFile(path, exportPreset(id));
+      setMessage('Preset exported.');
+    } catch (e) {
+      setMessage(`Could not export: ${String(e)}`);
+    }
   };
 
   const builtins = presets.filter((p) => p.builtin);
