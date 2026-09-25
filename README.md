@@ -9,9 +9,11 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
 
 - **Tabs** — open multiple files as tabs in one window. Drag files from Explorer, use `Ctrl+O` to
   open several at once, or open from recent files. Each tab keeps its own view mode (Formatted /
-  Source / Split), scroll position and undo history. A file already open in a tab is focused
-  instead of opened again. Configure whether files open as tabs or new windows in **Settings →
-  General** (**Open files in:** New tab / New window, default New tab).
+  Source / Split), scroll position and undo history. A file already open in a tab is focussed
+  instead of opened again. When the app is already running and you open a `.md` file from
+  Explorer (double-click or *Open With*), it opens as a tab in the running window which comes to
+  the front (**New tab** mode) or in a separate window (**New window** mode). Configure the
+  behaviour in **Settings → General** (**Open files in:** New tab / New window, default New tab).
 - **Formatted / Source / Split** views (`Ctrl+E`, `Ctrl+Shift+E`) with the source line kept in
   place when switching, and bidirectional scroll sync in Split.
 - **Editing** in Source mode with markdown syntax highlighting, `Ctrl+S` to save, a dirty
@@ -40,8 +42,8 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
   system fonts for Inter/Open Sans/JetBrains Mono, since the bundled font files aren't embedded.
 - Registers itself for `.md` / `.markdown` so *Open with* and double-click work.
 
-**Note:** Open tabs are not restored when the app restarts; the app always starts with a blank
-tab or the default new document.
+**Note:** Open tabs aren't restored when the app restarts: it starts on the start screen, or with
+the file it was opened with.
 
 ## Keyboard Shortcuts
 
