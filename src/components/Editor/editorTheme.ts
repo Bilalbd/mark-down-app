@@ -41,7 +41,13 @@ export const editorTheme = EditorView.theme({
     color: 'color-mix(in srgb, var(--chrome-fg-muted) 90%, transparent)',
     fontWeight: '400',
   },
-  '.cm-lineNumbers .cm-gutterElement': { minWidth: '3ch', fontSize: '0.85em' },
+  '.cm-lineNumbers .cm-gutterElement': {
+    minWidth: '3ch',
+    fontSize: '0.85em',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
   '.cm-matchingBracket': {
     backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
     outline: 'none',

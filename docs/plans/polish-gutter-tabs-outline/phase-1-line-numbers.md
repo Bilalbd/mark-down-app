@@ -119,3 +119,34 @@ Key improvements:
 - Light theme, Sequoia preset: Line numbers are subtle, maintain proper contrast
 
 All screenshots confirm the line numbers are now visible but clearly quieter than the main text across all tested themes and presets.
+
+### Alignment Fix (Follow-up Commit)
+
+**Issue found:** Line numbers were misaligned - sitting at the TOP of each line box instead of being vertically centered, especially noticeable on heading lines.
+
+**Fix applied:** Added flexbox properties to `.cm-lineNumbers .cm-gutterElement`:
+```typescript
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'flex-end',
+```
+
+**Measurement verification:**
+- Line 3 (normal text): offset 0px (centered)
+- Line 5 (heading "## Text formatting"): offset 0px (centered)
+- Line 7 (normal text): offset 0px (centered)
+
+All measurements within ±3px tolerance (actually perfect at 0px offset). The flex layout properly centers the number text within its line box.
+
+**Visual verification:**
+- Dark theme + GitHub preset: Line numbers centered vertically with text, including headings
+- Light theme + Sequoia preset: Line numbers centered, proper alignment across line heights
+
+**Test results after alignment fix:**
+- `pnpm test`: 200 tests pass
+- `pnpm lint`: No errors  
+- `npx tsc --noEmit`: No errors
+
+**Screenshot paths (after alignment fix):**
+- Dark + GitHub: `C:\Users\bilal\AppData\Local\Temp\claude\...\scratchpad\polish-1\dark-github-fixed.png`
+- Light + Sequoia: `C:\Users\bilal\AppData\Local\Temp\claude\...\scratchpad\polish-1\light-sequoia-fixed.png`
