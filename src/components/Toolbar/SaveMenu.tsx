@@ -6,6 +6,7 @@ import { ICON } from './Toolbar';
 export function SaveMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const firstItemRef = useRef<HTMLButtonElement>(null);
   const hasDocument = useDocumentStore((s) => s.hasDocument);
   const save = useDocumentStore((s) => s.save);
@@ -19,12 +20,13 @@ export function SaveMenu() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setOpen(false);
+        buttonRef.current?.focus();
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
         const items = ref.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
         if (items && items.length > 0) {
-          const nextIdx = Array.from(items).findIndex((el) => el === document.activeElement) + 1;
-          items[(nextIdx + 1) % items.length]?.focus();
+          const currentIdx = Array.from(items).findIndex((el) => el === document.activeElement);
+          items[(currentIdx + 1) % items.length]?.focus();
         }
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
@@ -62,6 +64,7 @@ export function SaveMenu() {
   return (
     <div className="toolbar__menu" ref={ref}>
       <button
+        ref={buttonRef}
         className={`toolbar__btn ${open ? 'is-active' : ''}`}
         title="Save"
         aria-label="Save"
@@ -78,7 +81,7 @@ export function SaveMenu() {
             ref={firstItemRef}
             role="menuitem"
             onClick={() => void handleSave()}
-            className="toolbar__dropdown__item"
+            className="toolbar__menu-item"
           >
             <span>Save</span>
             <kbd>Ctrl+S</kbd>
@@ -86,7 +89,7 @@ export function SaveMenu() {
           <button
             role="menuitem"
             onClick={() => void handleSaveAs()}
-            className="toolbar__dropdown__item"
+            className="toolbar__menu-item"
           >
             <span>Save as…</span>
             <kbd>Ctrl+Shift+S</kbd>
