@@ -43,5 +43,11 @@ Follow `docs/plans/tabs/README.md` ("Rules for every phase agent", "Running the 
   put the theme back to what it was when you started (read it first).
 - Keep scratch files (logs, test output, scripts) in your scratchpad, **never** in the repo. Before
   committing, `git status` must show only the files your task lists.
+- **Never let the app write to files in the repo.** For anything that could save, open a **copy** of
+  the fixture from your scratchpad. To check that a button or shortcut calls an action without
+  running it (e.g. Save as, which opens a native dialog you can't see or drive), stub the store
+  action and restore it afterwards:
+  `const real = __mdv.document.getState().saveAs; __mdv.document.setState({ saveAs: () => { calls.push('saveAs'); return Promise.resolve(false); } }); … __mdv.document.setState({ saveAs: real });`.
+  Replacing `window.__TAURI_INTERNALS__.invoke` does **not** work (the assignment is ignored).
 - The Tauri CLI may rewrite `src-tauri/Cargo.toml` (`features = []`). Don't stage that.
 - Stop the app and the dev server before you finish.
