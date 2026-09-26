@@ -10,6 +10,7 @@
 :root[data-theme='light'] {
   color-scheme: light;
   --chrome-bg: #f3f3f3;
+  --chrome-titlebar-bg: #e8e8e8;
   --chrome-fg: #1b1b1b;
   --chrome-fg-muted: #616161;
   --chrome-border: #e0e0e0;
@@ -24,6 +25,7 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
   --chrome-bg: #202020;
+  --chrome-titlebar-bg: #161616;
   --chrome-fg: #f0f0f0;
   --chrome-fg-muted: #a0a0a0;
   --chrome-border: #333333;

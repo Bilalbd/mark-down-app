@@ -13,6 +13,7 @@ export function presetToChromeCss(preset: StylePreset, theme: ResolvedTheme): st
   --content-bg: ${c.bg};
   --content-fg: ${c.text};
   --chrome-bg: ${mix(theme === 'dark' ? 5 : 4)};
+  --chrome-titlebar-bg: ${theme === 'dark' ? `color-mix(in srgb, #000 35%, ${mix(5)})` : mix(10)};
   --chrome-fg: ${c.text};
   --chrome-fg-muted: ${c.muted};
   --chrome-border: ${c.border};

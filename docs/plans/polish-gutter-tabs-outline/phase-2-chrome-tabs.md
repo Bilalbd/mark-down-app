@@ -20,17 +20,17 @@ every chrome token has to be set in **both** places).
 
 ## Tasks
 
-- [ ] **1. New token `--chrome-titlebar-bg`**, a shade darker than `--chrome-bg`:
+- [x] **1. New token `--chrome-titlebar-bg`**, a shade darker than `--chrome-bg`:
   - `app-theme.css`: light `#e8e8e8`, dark `#161616` (next to `--chrome-bg` in both theme blocks).
   - `chromeCss.ts`: add
     `--chrome-titlebar-bg: ${theme === 'dark' ? \`color-mix(in srgb, #000 35%, ${mix(5)})\` : mix(10)};`
     right after `--chrome-bg`. Update the function's JSDoc if it lists the tokens. If there's a
     test for `presetToChromeCss`, add an expectation for the new token; if there isn't, add
     `src/styles/chromeCss.test.ts` with one test per theme that checks the token is present.
-- [ ] **2. Title bar background.** In `TitleBar.css`, `.titlebar` uses
+- [x] **2. Title bar background.** In `TitleBar.css`, `.titlebar` uses
   `background: var(--chrome-titlebar-bg);`. The window-control buttons stay as they are (their
   hover colours still work on the darker bar; check the close button's red hover).
-- [ ] **3. Tab shape** in `TabStrip.css`:
+- [x] **3. Tab shape** in `TabStrip.css`:
   - `.tabstrip`: tabs start below the top. Give it `padding-top: 6px` (keep its height at 100% of
     the title bar) and `align-items: stretch`, so each tab is `var(--titlebar-height)` minus 6px tall
     and touches the bottom of the title bar.
@@ -70,15 +70,15 @@ every chrome token has to be set in **both** places).
   - `.tabstrip__new` (+) and the `.tabstrip__menu` dropdown: the + becomes a 28×28px round
     button, vertically centred in the tab row, with the same hover colour. The dropdown must still
     open below it and not be clipped.
-- [ ] **4. Joined to the toolbar.** The active tab and the toolbar must look like one surface: no
+- [x] **4. Joined to the toolbar.** The active tab and the toolbar must look like one surface: no
   line between them under the active tab. Check `Toolbar.css` and `TitleBar.css` for a
   `border-top` / `border-bottom` between them. If there is one, remove it only where it would
   separate the active tab from the toolbar (Chrome has no line there at all, so removing it
   completely is fine).
-- [ ] **5. Drag region.** The empty title-bar area right of the tabs must still carry
+- [x] **5. Drag region.** The empty title-bar area right of the tabs must still carry
   `data-tauri-drag-region`, and the tabs must not. Check with a DOM query; don't change the
   markup unless task 3 needs a class.
-- [ ] **6. Window mode.** When the tab strip is hidden (the "Open files in: New window" setting
+- [x] **6. Window mode.** When the tab strip is hidden (the "Open files in: New window" setting
   with one tab), the title bar shows the old "Markdown – file" text. It must still look right
   on the darker title bar.
 
@@ -104,5 +104,45 @@ every chrome token has to be set in **both** places).
 
 ## Report
 
-_(Fill in: the verify outputs, the screenshot paths, how you did the hover pill, whether the curves
-stayed in.)_
+**Verify results:**
+- `pnpm test`: 202 passed (added 2 new tests for chromeCss token)
+- `pnpm lint`: passed
+- `npx tsc --noEmit`: passed
+- `pnpm format`: all files unchanged
+
+**Manual checks:**
+
+Computed styles (from eval output):
+- Title bar background: `color(srgb 0.122353 0.122098 0.11598)` (darker)
+- Toolbar background: `color(srgb 0.188235 0.187843 0.178431)` (lighter)
+- Active tab background: `color(srgb 0.188235 0.187843 0.178431)` (matches toolbar)
+- Active tab top position: 6px (rounded to nearest pixel) ✓
+- Active tab border-top-left-radius: 8px ✓
+- Drag region present: yes ✓
+
+**Screenshots (all cropped to top ~120px as appropriate):**
+1. Dark mode, current preset: `01-dark-current.png`
+2. Dark mode, GitHub preset: `02-dark-github.png`
+3. Light mode, GitHub preset: `03-light-github.png`
+4. Light mode, Sequoia preset: `04-light-sequoia.png`
+5. Dark mode, Sequoia preset: `05-dark-sequoia.png`
+6. Window mode (no tabs), dark theme: `06-window-mode.png`
+
+All screenshots are in: `C:\Users\bilal\AppData\Local\Temp\claude\C--Claude-Projects-mark-down-app--claude-worktrees-app-launch-windows-afd7ff\616d380a-62c7-4437-93b5-555683faa28b\scratchpad\polish-2\`
+
+**Visual inspection:**
+- Tabs have rounded top corners (8px radius) ✓
+- Title bar is darker than toolbar/active tab ✓
+- Active tab blends seamlessly with toolbar below it ✓
+- Inactive tabs show separators (thin vertical lines) ✓
+- Close button is round (18×18px) ✓
+- New/+ button is round (28×28px) ✓
+- Inactive tab hover effect shows rounded pill (using ::before with background) ✓
+- Active tab bottom curves (::before and ::after radial gradients) are present and look correct ✓
+- Window mode title bar displays correctly with darker background ✓
+
+**How hover pill was done:**
+Used `::before` pseudo-element on `.tabstrip__tab:not(.is-active)` with `inset: 0 2px 4px`, `border-radius: 8px`, and `z-index: -1` for proper stacking. On hover, the `::before` element gets `background: var(--chrome-hover)` to create the rounded pill effect.
+
+**Curves on active tab:**
+Implemented with `::before` (bottom-left curve) and `::after` (bottom-right curve) on `.tabstrip__tab.is-active`, each using `radial-gradient(circle at 0 0/100% 0, transparent 8px, var(--chrome-bg) 8.5px)`. They stayed in and look correct in all screenshots.
