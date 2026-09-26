@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, X, FilePlus2, FolderOpen } from 'lucide-react';
-import { useTabsStore } from '@/store/tabs';
+import { Plus, X, FilePlus2, FolderOpen, History, ChevronRight } from 'lucide-react';
+import { useTabsStore, openPath } from '@/store/tabs';
 import { useDocumentStore, isDirty } from '@/store/document';
+import { useSettingsStore } from '@/store/settings';
 import { ICON } from '@/components/Toolbar/Toolbar';
-import { tabLabels } from '@/lib/tabs';
+import { basename, dirname } from '@/lib/tauri';
+import { tabLabels, flyoutSide } from '@/lib/tabs';
 import './TabStrip.css';
 
 const MENU_ICON = { ...ICON, size: 14 } as const;
@@ -22,6 +24,13 @@ export function TabStrip() {
   const listRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [flyoutOpen, setFlyoutOpen] = useState(false);
+  const submenuRef = useRef<HTMLDivElement>(null);
+  const flyoutRef = useRef<HTMLDivElement>(null);
+  const leaveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const [flyoutIsLeft, setFlyoutIsLeft] = useState(false);
+
+  const recentFiles = useSettingsStore((s) => s.recentFiles);
 
   // Build items array with memoization to avoid re-renders on every state change
   const items = useMemo(() => {
@@ -68,9 +77,12 @@ export function TabStrip() {
     }
   }, [activeId]);
 
-  // Close menu on click outside or Escape key
+  // Close menu on click outside or Escape key, close flyout when menu closes
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen) {
+      setFlyoutOpen(false);
+      return;
+    }
     const onDown = (e: MouseEvent) => {
       if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
     };
@@ -90,6 +102,36 @@ export function TabStrip() {
     };
   }, [menuOpen]);
 
+  // Close flyout when clicking outside or on specific flyout actions
+  useEffect(() => {
+    if (!flyoutOpen) return;
+
+    const onDown = (e: MouseEvent) => {
+      if (!submenuRef.current?.contains(e.target as Node)) {
+        setFlyoutOpen(false);
+      }
+    };
+
+    window.addEventListener('mousedown', onDown);
+    return () => window.removeEventListener('mousedown', onDown);
+  }, [flyoutOpen]);
+
+  // Adjust flyout position (left vs right)
+  useEffect(() => {
+    if (!flyoutOpen || !submenuRef.current) return;
+
+    const updatePosition = () => {
+      const rect = submenuRef.current!.getBoundingClientRect();
+      const flyoutWidth = 240;
+      const isLeft = flyoutSide(rect.right, flyoutWidth, window.innerWidth) === 'left';
+      setFlyoutIsLeft(isLeft);
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    return () => window.removeEventListener('resize', updatePosition);
+  }, [flyoutOpen]);
+
   // Move focus to first menu item when menu opens and handle keyboard navigation
   useEffect(() => {
     if (!menuOpen) return;
@@ -100,9 +142,42 @@ export function TabStrip() {
     items[0].focus();
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const activeEl = document.activeElement as HTMLButtonElement;
+      const isOpenRecentBtn = activeEl === items[2];
+      const flyoutItems = flyoutRef.current?.querySelectorAll('[role=menuitem]') as
+        NodeListOf<HTMLButtonElement> | undefined;
+
+      if (isOpenRecentBtn && (e.key === 'ArrowRight' || e.key === 'Enter')) {
         e.preventDefault();
-        const activeIdx = Array.from(items).indexOf(document.activeElement as HTMLButtonElement);
+        setFlyoutOpen(true);
+        // Focus first flyout item after a microtask
+        setTimeout(() => {
+          const firstFlyoutItem = flyoutRef.current?.querySelector(
+            '[role=menuitem]',
+          ) as HTMLButtonElement;
+          firstFlyoutItem?.focus();
+        }, 0);
+      } else if (flyoutOpen && flyoutItems && flyoutItems.length > 0) {
+        const flyoutIdx = Array.from(flyoutItems).indexOf(activeEl);
+        if (flyoutIdx >= 0) {
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const nextIdx = (flyoutIdx + 1) % flyoutItems.length;
+            flyoutItems[nextIdx].focus();
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const nextIdx = (flyoutIdx - 1 + flyoutItems.length) % flyoutItems.length;
+            flyoutItems[nextIdx].focus();
+          } else if (e.key === 'ArrowLeft' || e.key === 'Escape') {
+            e.preventDefault();
+            setFlyoutOpen(false);
+            const openRecentBtn = items[2];
+            openRecentBtn?.focus();
+          }
+        }
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const activeIdx = Array.from(items).indexOf(activeEl);
         const nextIdx =
           e.key === 'ArrowDown'
             ? (activeIdx + 1) % items.length
@@ -114,7 +189,7 @@ export function TabStrip() {
     return () => {
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [menuOpen]);
+  }, [menuOpen, flyoutOpen]);
 
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>, tabId: string) => {
@@ -154,6 +229,30 @@ export function TabStrip() {
 
   // Find the index of the active tab
   const activeTabIndex = items.findIndex((t) => t.active);
+
+  // Handle mouse enter/leave for flyout with delay
+  const handleSubmenuMouseEnter = () => {
+    if (leaveTimeoutRef.current) {
+      clearTimeout(leaveTimeoutRef.current);
+    }
+    setFlyoutOpen(true);
+  };
+
+  const handleSubmenuMouseLeave = () => {
+    leaveTimeoutRef.current = setTimeout(() => {
+      setFlyoutOpen(false);
+    }, 150);
+  };
+
+  const handleOpenRecentClick = () => {
+    setFlyoutOpen((v) => !v);
+  };
+
+  const handleRecentFileClick = async (path: string) => {
+    setMenuOpen(false);
+    setFlyoutOpen(false);
+    await void openPath(path);
+  };
 
   return (
     <div className="tabstrip">
@@ -238,6 +337,45 @@ export function TabStrip() {
             >
               <FolderOpen {...MENU_ICON} /> <span>Open file…</span> <kbd>Ctrl+O</kbd>
             </button>
+            <div
+              className="tabstrip__submenu"
+              ref={submenuRef}
+              onMouseEnter={handleSubmenuMouseEnter}
+              onMouseLeave={handleSubmenuMouseLeave}
+            >
+              <button
+                role="menuitem"
+                aria-haspopup="menu"
+                aria-expanded={flyoutOpen}
+                onClick={handleOpenRecentClick}
+              >
+                <History {...MENU_ICON} /> <span>Open recent</span> <ChevronRight {...MENU_ICON} />
+              </button>
+              {flyoutOpen && (
+                <div
+                  ref={flyoutRef}
+                  className={`tabstrip__dropdown tabstrip__flyout${flyoutIsLeft ? ' is-left' : ''}`}
+                  role="menu"
+                  aria-label="Recent files"
+                >
+                  {recentFiles.length === 0 ? (
+                    <div className="tabstrip__empty">No recent files</div>
+                  ) : (
+                    recentFiles.map((p) => (
+                      <button
+                        key={p}
+                        role="menuitem"
+                        title={p}
+                        onClick={() => void handleRecentFileClick(p)}
+                      >
+                        <span className="tabstrip__recent-name">{basename(p)}</span>
+                        <span className="tabstrip__recent-dir">{dirname(p)}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

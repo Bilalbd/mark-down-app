@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   cycleIndex,
   findTabByPath,
+  flyoutSide,
   isBlankDocument,
   moveItem,
   nextActiveAfterClose,
@@ -282,5 +283,34 @@ describe('tabLabels', () => {
 
   it('handles empty array', () => {
     expect(tabLabels([])).toEqual([]);
+  });
+});
+
+describe('flyoutSide', () => {
+  it('returns right when flyout fits on the right', () => {
+    expect(flyoutSide(200, 240, 1024)).toBe('right');
+  });
+
+  it('returns left when flyout would overflow on the right', () => {
+    expect(flyoutSide(800, 240, 1024)).toBe('left');
+  });
+
+  it('returns right at the boundary (just fits)', () => {
+    expect(flyoutSide(780, 240, 1024)).toBe('right');
+  });
+
+  it('returns left at the boundary (just overflows)', () => {
+    expect(flyoutSide(781, 240, 1024)).toBe('left');
+  });
+
+  it('handles small viewports', () => {
+    expect(flyoutSide(200, 240, 400)).toBe('left');
+    expect(flyoutSide(156, 240, 400)).toBe('right');
+  });
+
+  it('accounts for the 4px gap between menu and flyout', () => {
+    // menuRight=100, gap=4, flyoutWidth=240 -> 100+4+240=344
+    expect(flyoutSide(100, 240, 344)).toBe('right');
+    expect(flyoutSide(100, 240, 343)).toBe('left');
   });
 });

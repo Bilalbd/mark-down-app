@@ -157,3 +157,13 @@ export function tabLabels(paths: readonly (string | null)[]): string[] {
 
   return result;
 }
+
+/** Returns 'right' or 'left' to position a flyout: 'left' if it would overflow the window's right edge. */
+export function flyoutSide(
+  menuRight: number,
+  flyoutWidth: number,
+  viewportWidth: number,
+): 'right' | 'left' {
+  const rightEdge = menuRight + 4 + flyoutWidth;
+  return rightEdge > viewportWidth ? 'left' : 'right';
+}
