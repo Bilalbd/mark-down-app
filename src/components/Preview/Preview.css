@@ -110,12 +110,17 @@
   margin: 0 0 var(--md-paragraph-spacing);
 }
 
+/* Links carry a soft underline so they're recognisable without relying on colour
+   (WCAG 1.4.1); it strengthens to the full link colour on hover. */
 .preview a {
   color: var(--md-link);
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  text-decoration-color: color-mix(in srgb, var(--md-link) 50%, transparent);
 }
 .preview a:hover {
-  text-decoration: underline;
+  text-decoration-color: var(--md-link);
 }
 
 .preview strong {
