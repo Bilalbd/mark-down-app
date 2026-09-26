@@ -36,12 +36,12 @@
       "link": "#8ca2ff",
       "muted": "#98a2b5",
       "border": "#272e3c",
-      "codeBg": "#1b2131",
+      "codeBg": "#1b1e27",
       "codeText": "#8ca2ff",
       "quoteBorder": "#2c3a66",
       "quoteText": "#c0c7d4",
       "tableBorder": "#232936",
-      "tableStripe": "#141822",
+      "tableStripe": "#111317",
       "hr": "#39414f"
     }
   },

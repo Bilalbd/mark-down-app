@@ -47,7 +47,7 @@ describe('buildExportHtml', () => {
     });
     expect(out).toContain('<title>A &quot;quoted&quot; &lt;title&gt;</title>');
     expect(out).toContain('data-theme="dark"');
-    expect(out).toContain('--md-bg: #262624');
+    expect(out).toContain('--md-bg: #151515');
     expect(out).toContain('.preview .shiki,.preview .shiki span{color:var(--shiki-dark);}');
     expect(out).toContain('katex.min.css'); // math present → KaTeX stylesheet linked
     expect(out).toContain('<h1 data-line="0"');
