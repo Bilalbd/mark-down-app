@@ -8,7 +8,7 @@
     "monoFont": "'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace",
     "baseSize": 16,
     "lineHeight": 1.65,
-    "contentWidth": 820,
+    "contentWidth": 900,
     "paragraphSpacing": 1,
     "headingWeight": 650
   },
