@@ -5,6 +5,11 @@ import obsidianPreset from '@/styles/presets/obsidian.json';
 import claudePreset from '@/styles/presets/claude.json';
 import boulaylaPreset from '@/styles/presets/boulayla.json';
 import sequoiaPreset from '@/styles/presets/sequoia.json';
+import manuscriptPreset from '@/styles/presets/manuscript.json';
+import nordPreset from '@/styles/presets/nord.json';
+import rosePinePreset from '@/styles/presets/rose-pine.json';
+import catppuccinPreset from '@/styles/presets/catppuccin.json';
+import solarizedPreset from '@/styles/presets/solarized.json';
 
 export interface ColorSet {
   bg: string;
@@ -70,6 +75,11 @@ export const BUILTIN_PRESETS: StylePreset[] = [
   claudePreset as StylePreset,
   boulaylaPreset as StylePreset,
   sequoiaPreset as StylePreset,
+  manuscriptPreset as StylePreset,
+  nordPreset as StylePreset,
+  rosePinePreset as StylePreset,
+  catppuccinPreset as StylePreset,
+  solarizedPreset as StylePreset,
 ];
 
 interface Persisted {

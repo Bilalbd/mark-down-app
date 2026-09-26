@@ -1,0 +1,49 @@
+{
+  "id": "builtin-rose-pine",
+  "name": "Rosé Pine",
+  "builtin": true,
+  "typography": {
+    "bodyFont": "'Open Sans Variable', 'Open Sans', ui-sans-serif, system-ui, 'Segoe UI', sans-serif",
+    "headingFont": "",
+    "monoFont": "'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace",
+    "baseSize": 16,
+    "lineHeight": 1.7,
+    "contentWidth": 820,
+    "paragraphSpacing": 1,
+    "headingWeight": 650
+  },
+  "headingScale": [1.9, 1.45, 1.2, 1.05, 1, 0.9],
+  "colors": {
+    "light": {
+      "bg": "#faf4ed",
+      "text": "#575279",
+      "heading": "#464261",
+      "link": "#286983",
+      "muted": "#797593",
+      "border": "#dfdad9",
+      "codeBg": "#f2e9e1",
+      "codeText": "#575279",
+      "quoteBorder": "#d7827e",
+      "quoteText": "#797593",
+      "tableBorder": "#dfdad9",
+      "tableStripe": "#fffaf3",
+      "hr": "#dfdad9"
+    },
+    "dark": {
+      "bg": "#191724",
+      "text": "#e0def4",
+      "heading": "#e0def4",
+      "link": "#c4a7e7",
+      "muted": "#908caa",
+      "border": "#26233a",
+      "codeBg": "#1f1d2e",
+      "codeText": "#e0def4",
+      "quoteBorder": "#ebbcba",
+      "quoteText": "#908caa",
+      "tableBorder": "#403d52",
+      "tableStripe": "#1f1d2e",
+      "hr": "#403d52"
+    }
+  },
+  "customCss": "/* Rosé Pine: Dawn (light) and Main (dark) from rosepinetheme.com */\n"
+}

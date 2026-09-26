@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { BUILTIN_PRESETS, normalizePreset, useStyleStore } from './style';
+import { BUILTIN_PRESETS, normalizePreset, useStyleStore, type StylePreset } from './style';
 import { presetToCssVars } from '@/styles/presetCss';
 
 describe('style store', () => {
@@ -40,6 +40,37 @@ describe('style store', () => {
     expect(normalizePreset({ nope: 1 }, 'x')).toBeNull();
     expect(s.importPreset('{not json').ok).toBe(false);
   });
+});
+
+// WCAG 2 relative luminance and contrast ratio, for checking the built-in presets stay readable.
+function luminance(hex: string): number {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function contrast(a: string, b: string): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+describe('built-in presets', () => {
+  it('have unique ids and are all marked built-in', () => {
+    const ids = BUILTIN_PRESETS.map((p) => p.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(BUILTIN_PRESETS.every((p) => p.builtin)).toBe(true);
+  });
+
+  it.each(BUILTIN_PRESETS.flatMap((p) => (['light', 'dark'] as const).map((m) => [p.name, m, p])))(
+    '%s (%s) keeps body text and headings at 4.5:1 contrast or better',
+    (_name, mode, preset) => {
+      const c = (preset as StylePreset).colors[mode as 'light' | 'dark'];
+      expect(contrast(c.text, c.bg)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(c.heading, c.bg)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(c.codeText, c.codeBg)).toBeGreaterThanOrEqual(4.5);
+    },
+  );
 });
 
 describe('presetToCssVars', () => {

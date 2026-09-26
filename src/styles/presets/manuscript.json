@@ -1,0 +1,49 @@
+{
+  "id": "builtin-manuscript",
+  "name": "Manuscript",
+  "builtin": true,
+  "typography": {
+    "bodyFont": "'Sitka Text', Charter, Georgia, Cambria, serif",
+    "headingFont": "'Sitka Text', Charter, Georgia, Cambria, serif",
+    "monoFont": "'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace",
+    "baseSize": 17,
+    "lineHeight": 1.75,
+    "contentWidth": 720,
+    "paragraphSpacing": 1,
+    "headingWeight": 600
+  },
+  "headingScale": [2, 1.5, 1.2, 1.05, 1, 0.9],
+  "colors": {
+    "light": {
+      "bg": "#fbfaf8",
+      "text": "#2f2f33",
+      "heading": "#1f1f22",
+      "link": "#c0392b",
+      "muted": "#6e6b67",
+      "border": "#e6e3de",
+      "codeBg": "#f2f0ec",
+      "codeText": "#3a3a3f",
+      "quoteBorder": "#d7494c",
+      "quoteText": "#5d5a56",
+      "tableBorder": "#e3dfd9",
+      "tableStripe": "#f6f4f0",
+      "hr": "#e6e3de"
+    },
+    "dark": {
+      "bg": "#1f2023",
+      "text": "#d7d5d0",
+      "heading": "#eeece8",
+      "link": "#ec6d67",
+      "muted": "#96938e",
+      "border": "#34353a",
+      "codeBg": "#28292d",
+      "codeText": "#d0cec8",
+      "quoteBorder": "#e0605b",
+      "quoteText": "#a9a6a0",
+      "tableBorder": "#36373c",
+      "tableStripe": "#242528",
+      "hr": "#34353a"
+    }
+  },
+  "customCss": "/* Manuscript: a serif reading page in the spirit of Bear and iA Writer */\n.preview blockquote { font-style: italic; }\n"
+}

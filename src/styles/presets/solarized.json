@@ -1,0 +1,49 @@
+{
+  "id": "builtin-solarized",
+  "name": "Solarized",
+  "builtin": true,
+  "typography": {
+    "bodyFont": "'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif",
+    "headingFont": "'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace",
+    "monoFont": "'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace",
+    "baseSize": 16,
+    "lineHeight": 1.65,
+    "contentWidth": 820,
+    "paragraphSpacing": 1,
+    "headingWeight": 700
+  },
+  "headingScale": [1.7, 1.35, 1.15, 1.05, 1, 0.9],
+  "colors": {
+    "light": {
+      "bg": "#fdf6e3",
+      "text": "#586e75",
+      "heading": "#073642",
+      "link": "#268bd2",
+      "muted": "#657b83",
+      "border": "#eee8d5",
+      "codeBg": "#eee8d5",
+      "codeText": "#52676e",
+      "quoteBorder": "#2aa198",
+      "quoteText": "#657b83",
+      "tableBorder": "#e4ddc8",
+      "tableStripe": "#f7f0dc",
+      "hr": "#eee8d5"
+    },
+    "dark": {
+      "bg": "#002b36",
+      "text": "#93a1a1",
+      "heading": "#eee8d5",
+      "link": "#268bd2",
+      "muted": "#839496",
+      "border": "#073642",
+      "codeBg": "#073642",
+      "codeText": "#93a1a1",
+      "quoteBorder": "#2aa198",
+      "quoteText": "#839496",
+      "tableBorder": "#0d4452",
+      "tableStripe": "#04313c",
+      "hr": "#073642"
+    }
+  },
+  "customCss": "/* Solarized: Ethan Schoonover's palette; light and dark share the same accents */\n"
+}

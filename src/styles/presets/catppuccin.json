@@ -1,0 +1,49 @@
+{
+  "id": "builtin-catppuccin",
+  "name": "Catppuccin",
+  "builtin": true,
+  "typography": {
+    "bodyFont": "'Inter Variable', Inter, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif",
+    "headingFont": "",
+    "monoFont": "'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace",
+    "baseSize": 16,
+    "lineHeight": 1.65,
+    "contentWidth": 820,
+    "paragraphSpacing": 1,
+    "headingWeight": 650
+  },
+  "headingScale": [1.9, 1.45, 1.2, 1.05, 1, 0.9],
+  "colors": {
+    "light": {
+      "bg": "#eff1f5",
+      "text": "#4c4f69",
+      "heading": "#4c4f69",
+      "link": "#1e66f5",
+      "muted": "#6c6f85",
+      "border": "#ccd0da",
+      "codeBg": "#e6e9ef",
+      "codeText": "#4c4f69",
+      "quoteBorder": "#8839ef",
+      "quoteText": "#6c6f85",
+      "tableBorder": "#ccd0da",
+      "tableStripe": "#e6e9ef",
+      "hr": "#ccd0da"
+    },
+    "dark": {
+      "bg": "#1e1e2e",
+      "text": "#cdd6f4",
+      "heading": "#cdd6f4",
+      "link": "#89b4fa",
+      "muted": "#a6adc8",
+      "border": "#313244",
+      "codeBg": "#181825",
+      "codeText": "#cdd6f4",
+      "quoteBorder": "#cba6f7",
+      "quoteText": "#a6adc8",
+      "tableBorder": "#45475a",
+      "tableStripe": "#181825",
+      "hr": "#45475a"
+    }
+  },
+  "customCss": "/* Catppuccin: Latte (light) and Mocha (dark) from catppuccin.com */\n"
+}
