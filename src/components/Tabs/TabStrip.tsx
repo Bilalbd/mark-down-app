@@ -152,6 +152,9 @@ export function TabStrip() {
     }
   };
 
+  // Find the index of the active tab
+  const activeTabIndex = items.findIndex((t) => t.active);
+
   return (
     <div className="tabstrip">
       <div
@@ -161,14 +164,14 @@ export function TabStrip() {
         ref={listRef}
         onWheel={handleWheel}
       >
-        {items.map((t) => (
+        {items.map((t, idx) => (
           <div
             key={t.id}
             role="tab"
             aria-selected={t.active}
             tabIndex={t.active ? 0 : -1}
             data-tab-id={t.id}
-            className={`tabstrip__tab${t.active ? ' is-active' : ''}${t.dirty ? ' is-dirty' : ''}`}
+            className={`tabstrip__tab${t.active ? ' is-active' : ''}${t.dirty ? ' is-dirty' : ''}${idx === activeTabIndex - 1 ? ' is-before-active' : ''}`}
             title={t.title}
             onClick={() => void activate(t.id)}
             onAuxClick={(e) => {

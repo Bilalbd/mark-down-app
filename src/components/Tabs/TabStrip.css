@@ -61,7 +61,18 @@
   background: var(--chrome-border);
 }
 
+/* Hide separator on the tab before the active tab */
+.tabstrip__tab.is-before-active::after {
+  display: none;
+}
+
+/* Hide separator while hovering */
 .tabstrip__tab:not(.is-active):hover::after {
+  display: none;
+}
+
+/* Hide separator on the tab after a hovered tab (if :has is supported) */
+.tabstrip__tab:not(.is-active):has(+ .tabstrip__tab:hover)::after {
   display: none;
 }
 

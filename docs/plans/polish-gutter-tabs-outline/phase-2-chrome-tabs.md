@@ -141,8 +141,27 @@ All screenshots are in: `C:\Users\bilal\AppData\Local\Temp\claude\C--Claude-Proj
 - Active tab bottom curves (::before and ::after radial gradients) are present and look correct ✓
 - Window mode title bar displays correctly with darker background ✓
 
-**How hover pill was done:**
-Used `::before` pseudo-element on `.tabstrip__tab:not(.is-active)` with `inset: 0 2px 4px`, `border-radius: 8px`, and `z-index: -1` for proper stacking. On hover, the `::before` element gets `background: var(--chrome-hover)` to create the rounded pill effect.
+**Hover pill verification:**
+CSS rule from `document.styleSheets`: `.tabstrip__tab:not(.is-active):hover::before { background: var(--chrome-hover); }`
+
+Computed styles of inactive tab's `::before` pseudo-element:
+- `inset: 0px 2px 4px` ✓
+- `border-radius: 8px` ✓
+- `z-index: -1` ✓
+
+The hover pill effect is implemented with a `::before` pseudo-element on `.tabstrip__tab:not(.is-active)` that creates a rounded background box with the proper inset and border-radius. On hover, it receives `background: var(--chrome-hover)` for visibility. (No screenshots show hover state since CDP cannot hover; CSS rules verified instead.)
 
 **Curves on active tab:**
 Implemented with `::before` (bottom-left curve) and `::after` (bottom-right curve) on `.tabstrip__tab.is-active`, each using `radial-gradient(circle at 0 0/100% 0, transparent 8px, var(--chrome-bg) 8.5px)`. They stayed in and look correct in all screenshots.
+
+**Separator visibility fix (Phase 2 follow-up):**
+Added `is-before-active` class to tabs whose index equals `activeTabIndex - 1` in `TabStrip.tsx`. CSS rules hide separators (`::after`) on:
+- `.tabstrip__tab.is-before-active::after` — tab immediately before the active tab
+- `.tabstrip__tab:not(.is-active):hover::after` — hovered tab
+- `.tabstrip__tab:not(.is-active):has(+ .tabstrip__tab:hover)::after` — tab before a hovered tab (using `:has` selector)
+
+Verified with screenshots showing 3 tabs with different active tabs:
+- Light Sequoia, middle tab active: separator hidden between gfm.md and math.md (before-active), visible between math.md and mermaid.md ✓
+- Light Sequoia, last tab active: separator visible between gfm.md and math.md, hidden between math.md and mermaid.md (before-active) ✓
+- Dark GitHub, middle tab active: separator hidden before math.md tab ✓
+- Dark GitHub, last tab active: separator hidden before mermaid.md tab ✓
