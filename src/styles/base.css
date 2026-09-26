@@ -90,6 +90,31 @@ button:focus-visible {
   outline-offset: -6px;
 }
 
+/* Slim, theme-coloured scrollbars (WebView2 / Chromium). */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--chrome-fg-muted) 35%, transparent);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--chrome-fg-muted) 60%, transparent);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
+
 .banner {
   padding: 6px 12px;
   font-size: 12px;
