@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { useSettingsStore } from '@/store/settings';
+import { useSettingsStore, isPreviewFullWidth } from '@/store/settings';
 
 // No Tauri in this environment, so the store falls back to memory-only persistence.
 describe('useSettingsStore recent files', () => {
@@ -49,5 +49,23 @@ describe('useSettingsStore refresh', () => {
     await refresh('appTheme');
     // Should not throw and state should remain unchanged
     expect(useSettingsStore.getState().appTheme).toBe('dark');
+  });
+});
+
+describe('isPreviewFullWidth', () => {
+  it('is false by default (previewFullWidth: false, viewMode: formatted)', () => {
+    expect(isPreviewFullWidth({ previewFullWidth: false, viewMode: 'formatted' })).toBe(false);
+  });
+
+  it('is true when previewFullWidth is on and viewMode is formatted', () => {
+    expect(isPreviewFullWidth({ previewFullWidth: true, viewMode: 'formatted' })).toBe(true);
+  });
+
+  it('is false when previewFullWidth is on but viewMode is split', () => {
+    expect(isPreviewFullWidth({ previewFullWidth: true, viewMode: 'split' })).toBe(false);
+  });
+
+  it('is false when previewFullWidth is on but viewMode is source', () => {
+    expect(isPreviewFullWidth({ previewFullWidth: true, viewMode: 'source' })).toBe(false);
   });
 });

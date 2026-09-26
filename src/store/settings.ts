@@ -23,6 +23,8 @@ export interface Settings {
   blockRemoteImages: boolean;
   /** Whether files opened from Explorer or inside the app become tabs or separate windows. */
   openFilesIn: OpenFilesIn;
+  /** Formatted view fills the window width instead of the preset's content width. */
+  previewFullWidth: boolean;
 }
 
 const MAX_RECENT_FILES = 5;
@@ -47,6 +49,7 @@ const DEFAULTS: Settings = {
   recentFiles: [],
   blockRemoteImages: false,
   openFilesIn: 'tab',
+  previewFullWidth: false,
 };
 
 interface SettingsState extends Settings {
@@ -129,3 +132,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     get().set('recentFiles', next);
   },
 }));
+
+/** Whether the preview should ignore the preset's content width (Formatted view only, not Split). */
+export function isPreviewFullWidth(s: Pick<Settings, 'previewFullWidth' | 'viewMode'>): boolean {
+  return s.previewFullWidth && s.viewMode === 'formatted';
+}

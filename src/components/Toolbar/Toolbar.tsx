@@ -1,5 +1,19 @@
-import { ArrowLeftRight, FilePlus2, Monitor, Moon, PanelLeft, Settings, Sun } from 'lucide-react';
-import { useSettingsStore, type AppTheme, type ViewMode } from '@/store/settings';
+import {
+  ArrowLeftRight,
+  FilePlus2,
+  Monitor,
+  Moon,
+  PanelLeft,
+  Settings,
+  Sun,
+  UnfoldHorizontal,
+} from 'lucide-react';
+import {
+  useSettingsStore,
+  type AppTheme,
+  type ViewMode,
+  isPreviewFullWidth,
+} from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import { ExportMenu } from './ExportMenu';
 import './Toolbar.css';
@@ -21,6 +35,7 @@ export function Toolbar({ onNew }: { onNew: () => void }) {
   const outlineVisible = useSettingsStore((s) => s.outlineVisible);
   const appTheme = useSettingsStore((s) => s.appTheme);
   const splitEditorSide = useSettingsStore((s) => s.splitEditorSide);
+  const previewFullWidth = useSettingsStore((s) => s.previewFullWidth);
   const set = useSettingsStore((s) => s.set);
   const settingsOpen = useViewStore((s) => s.settingsOpen);
   const setSettingsOpen = useViewStore((s) => s.setSettingsOpen);
@@ -61,6 +76,18 @@ export function Toolbar({ onNew }: { onNew: () => void }) {
           onClick={() => set('splitEditorSide', splitEditorSide === 'left' ? 'right' : 'left')}
         >
           <ArrowLeftRight {...ICON} />
+        </button>
+      )}
+
+      {viewMode === 'formatted' && (
+        <button
+          className={`toolbar__btn ${isPreviewFullWidth({ previewFullWidth, viewMode }) ? 'is-active' : ''}`}
+          title={previewFullWidth ? 'Return to preset width' : 'Full width (fit the window)'}
+          aria-label="Full width"
+          aria-pressed={previewFullWidth}
+          onClick={() => set('previewFullWidth', !previewFullWidth)}
+        >
+          <UnfoldHorizontal {...ICON} />
         </button>
       )}
 

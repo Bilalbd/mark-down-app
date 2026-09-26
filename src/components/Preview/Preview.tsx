@@ -6,7 +6,7 @@ import { useResolvedTheme } from '@/lib/useAppTheme';
 import { classifyLink } from '@/lib/links';
 import { dirname, isTauri, toAssetUrl } from '@/lib/tauri';
 import { useDocumentStore } from '@/store/document';
-import { useSettingsStore } from '@/store/settings';
+import { useSettingsStore, isPreviewFullWidth } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import { openPath } from '@/store/tabs';
 import './Preview.css';
@@ -44,6 +44,7 @@ export function Preview() {
   const loadId = useDocumentStore((s) => s.loadId);
   const zoom = useSettingsStore((s) => s.previewZoom);
   const blockRemoteImages = useSettingsStore((s) => s.blockRemoteImages);
+  const fullWidth = useSettingsStore((s) => isPreviewFullWidth(s));
   const setPreviewScrollEl = useViewStore((s) => s.setPreviewScrollEl);
   const setTopLine = useViewStore((s) => s.setTopLine);
   const pendingScrollLine = useViewStore((s) => s.pendingScrollLine);
@@ -152,7 +153,7 @@ export function Preview() {
   return (
     <div className="preview-scroll" ref={scrollRef} onScroll={onScroll}>
       <article
-        className="preview"
+        className={`preview${fullWidth ? ' preview--full' : ''}`}
         style={{ '--md-zoom': zoom } as React.CSSProperties}
         onClick={onClick}
         onAuxClick={onAuxClick}

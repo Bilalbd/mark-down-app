@@ -52,6 +52,11 @@
   word-wrap: break-word;
 }
 
+/* Full-width Formatted view (toolbar toggle): fill the window instead of the preset's width. */
+.preview--full {
+  max-width: none;
+}
+
 .preview > *:first-child {
   margin-top: 0;
 }
