@@ -1,0 +1,49 @@
+{
+  "id": "builtin-nord",
+  "name": "Nord",
+  "builtin": true,
+  "typography": {
+    "bodyFont": "'Inter Variable', Inter, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif",
+    "headingFont": "",
+    "monoFont": "'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace",
+    "baseSize": 16,
+    "lineHeight": 1.65,
+    "contentWidth": 820,
+    "paragraphSpacing": 1,
+    "headingWeight": 650
+  },
+  "headingScale": [1.9, 1.45, 1.2, 1.05, 1, 0.9],
+  "colors": {
+    "light": {
+      "bg": "#eceff4",
+      "text": "#2e3440",
+      "heading": "#2e3440",
+      "link": "#4a6a94",
+      "muted": "#4c566a",
+      "border": "#d8dee9",
+      "codeBg": "#e5e9f0",
+      "codeText": "#3b4252",
+      "quoteBorder": "#88c0d0",
+      "quoteText": "#4c566a",
+      "tableBorder": "#d8dee9",
+      "tableStripe": "#e5e9f0",
+      "hr": "#d8dee9"
+    },
+    "dark": {
+      "bg": "#2e3440",
+      "text": "#d8dee9",
+      "heading": "#eceff4",
+      "link": "#88c0d0",
+      "muted": "#a3abbd",
+      "border": "#434c5e",
+      "codeBg": "#3b4252",
+      "codeText": "#e5e9f0",
+      "quoteBorder": "#81a1c1",
+      "quoteText": "#b8c0d0",
+      "tableBorder": "#434c5e",
+      "tableStripe": "#353c4a",
+      "hr": "#434c5e"
+    }
+  },
+  "customCss": "/* Nord: arctic blue-grey (nordtheme.com palette) */\n"
+}
