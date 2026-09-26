@@ -4,7 +4,7 @@ import App from './App';
 import './styles/app-theme.css';
 import './styles/base.css';
 import 'katex/dist/katex.min.css';
-// Bundled so the Sequoia/Obsidian/Boulayla presets render correctly on Windows, which
+// Bundled so the Obsidian/Boulayla/Nord (and similar) presets render correctly on Windows, which
 // doesn't ship these families. No latin-only entry is published for these packages, so
 // this pulls in every subset (each behind its own unicode-range, so only the subsets a
 // document actually uses are fetched at runtime).

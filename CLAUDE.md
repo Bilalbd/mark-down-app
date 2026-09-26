@@ -211,7 +211,7 @@ Placement rules:
   says to; **never push, force-push or open PRs unless Bilal asks.**
 - **One logical change per commit.** Messages are imperative, sentence case, no conventional-commit
   prefix, and say what and why, e.g. `Preserve CRLF line endings on save`. A preset-specific
-  change may use a `Preset:` prefix (`Sequoia: lighten light-mode background`).
+  change may use a `Preset:` prefix (`Nord: lighten light-mode background`).
 - Never use a bare `git stash` / `git stash pop`; the stash is shared across worktrees and other
   agents. Use a temporary WIP commit instead.
 - Never skip hooks (`--no-verify`) or rewrite published history.

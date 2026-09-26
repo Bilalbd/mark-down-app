@@ -4,7 +4,6 @@ import githubPreset from '@/styles/presets/github.json';
 import obsidianPreset from '@/styles/presets/obsidian.json';
 import claudePreset from '@/styles/presets/claude.json';
 import boulaylaPreset from '@/styles/presets/boulayla.json';
-import sequoiaPreset from '@/styles/presets/sequoia.json';
 import manuscriptPreset from '@/styles/presets/manuscript.json';
 import nordPreset from '@/styles/presets/nord.json';
 import rosePinePreset from '@/styles/presets/rose-pine.json';
@@ -75,7 +74,6 @@ export const BUILTIN_PRESETS: StylePreset[] = [
   githubPreset as StylePreset,
   obsidianPreset as StylePreset,
   claudePreset as StylePreset,
-  sequoiaPreset as StylePreset,
   manuscriptPreset as StylePreset,
   nordPreset as StylePreset,
   rosePinePreset as StylePreset,

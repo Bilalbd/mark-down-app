@@ -23,7 +23,7 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
   endings, round-tripping each on save; a file with invalid-UTF-8 bytes asks before saving
   over them.
 - **Outline** sidebar (`Ctrl+\`) — collapsible, resizable, click to jump, follows your scroll.
-- **Styling presets** — Boulayla (the default), GitHub, Obsidian, Claude, Sequoia, Manuscript (serif,
+- **Styling presets** — Boulayla (the default), GitHub, Obsidian, Claude, Manuscript (serif,
   uses Windows' Sitka Text), Nord, Rosé Pine, Catppuccin and Solarized built in. Every font, size, spacing
   and colour (separately for light and dark) is editable in Settings (`Ctrl+,`); presets can be
   copied, renamed, imported and exported as JSON, and each has a custom-CSS slot. Inter, Open Sans
