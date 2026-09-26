@@ -2,9 +2,18 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { BUILTIN_PRESETS, normalizePreset, useStyleStore, type StylePreset } from './style';
 import { presetToCssVars } from '@/styles/presetCss';
 
+const builtin = (id: string): StylePreset => {
+  const p = BUILTIN_PRESETS.find((x) => x.id === id);
+  if (!p) throw new Error(`no built-in preset ${id}`);
+  return p;
+};
+const GITHUB = builtin('builtin-github');
+const OBSIDIAN = builtin('builtin-obsidian');
+const CLAUDE = builtin('builtin-claude');
+
 describe('style store', () => {
   beforeEach(() => {
-    useStyleStore.setState({ presets: BUILTIN_PRESETS, activePresetId: BUILTIN_PRESETS[0].id });
+    useStyleStore.setState({ presets: BUILTIN_PRESETS, activePresetId: GITHUB.id });
   });
 
   it('duplicates a built-in preset on edit and makes the copy active', () => {
@@ -15,24 +24,26 @@ describe('style store', () => {
     expect(after.active().builtin).toBe(false);
     expect(after.active().name).toBe('GitHub (custom)');
     expect(after.active().typography.baseSize).toBe(20);
-    expect(after.presets.find((p) => p.id === BUILTIN_PRESETS[0].id)?.typography.baseSize).toBe(16);
+    expect(after.presets.find((p) => p.id === GITHUB.id)?.typography.baseSize).toBe(16);
   });
 
   it('refuses to delete or rename built-ins', () => {
     const s = useStyleStore.getState();
-    s.remove(BUILTIN_PRESETS[1].id);
-    s.rename(BUILTIN_PRESETS[1].id, 'x');
+    s.remove(OBSIDIAN.id);
+    s.rename(OBSIDIAN.id, 'x');
     expect(useStyleStore.getState().presets).toHaveLength(BUILTIN_PRESETS.length);
-    expect(useStyleStore.getState().presets[1].name).toBe('Obsidian-like');
+    expect(useStyleStore.getState().presets.find((p) => p.id === OBSIDIAN.id)?.name).toBe(
+      'Obsidian',
+    );
   });
 
   it('round-trips export → import and fills missing fields', () => {
     const s = useStyleStore.getState();
-    const json = s.exportPreset(BUILTIN_PRESETS[2].id);
+    const json = s.exportPreset(CLAUDE.id);
     expect(JSON.parse(json).builtin).toBeUndefined();
     const r = s.importPreset(json);
     expect(r.ok).toBe(true);
-    expect(useStyleStore.getState().active().name).toBe('Claude-like');
+    expect(useStyleStore.getState().active().name).toBe('Claude');
 
     const partial = normalizePreset({ name: 'Mini', colors: { dark: { bg: '#000000' } } }, 'x');
     expect(partial?.colors.dark.bg).toBe('#000000');
@@ -56,6 +67,17 @@ function contrast(a: string, b: string): number {
 }
 
 describe('built-in presets', () => {
+  it('are listed Boulayla, GitHub, Obsidian, Claude first, with Boulayla as the default', () => {
+    expect(BUILTIN_PRESETS.slice(0, 4).map((p) => p.name)).toEqual([
+      'Boulayla',
+      'GitHub',
+      'Obsidian',
+      'Claude',
+    ]);
+    useStyleStore.setState({ presets: BUILTIN_PRESETS, activePresetId: 'no-such-preset' });
+    expect(useStyleStore.getState().active().name).toBe('Boulayla');
+  });
+
   it('have unique ids and are all marked built-in', () => {
     const ids = BUILTIN_PRESETS.map((p) => p.id);
     expect(new Set(ids).size).toBe(ids.length);
@@ -78,14 +100,14 @@ describe('built-in presets', () => {
 
 describe('presetToCssVars', () => {
   it('emits the theme-specific colours and typography', () => {
-    const css = presetToCssVars(BUILTIN_PRESETS[0], 'dark');
+    const css = presetToCssVars(GITHUB, 'dark');
     expect(css).toContain('--md-bg: #0d1117');
     expect(css).toContain('--md-font-size: 16px');
     expect(css).toContain('--md-h1: 2em');
-    expect(presetToCssVars(BUILTIN_PRESETS[0], 'light')).toContain('--md-bg: #ffffff');
+    expect(presetToCssVars(GITHUB, 'light')).toContain('--md-bg: #ffffff');
   });
   it('falls back to the body font when no heading font is set', () => {
-    const css = presetToCssVars(BUILTIN_PRESETS[0], 'light');
-    expect(css).toContain(`--md-font-heading: ${BUILTIN_PRESETS[0].typography.bodyFont}`);
+    const css = presetToCssVars(GITHUB, 'light');
+    expect(css).toContain(`--md-font-heading: ${GITHUB.typography.bodyFont}`);
   });
 });

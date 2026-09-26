@@ -1,6 +1,6 @@
 {
   "id": "builtin-claude",
-  "name": "Claude-like",
+  "name": "Claude",
   "builtin": true,
   "typography": {
     "bodyFont": "'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif",

@@ -69,11 +69,12 @@ export const COLOR_LABELS: Record<keyof ColorSet, string> = {
   hr: 'Horizontal rule',
 };
 
+/** Built-in presets in display order; the first one is the default. */
 export const BUILTIN_PRESETS: StylePreset[] = [
+  boulaylaPreset as StylePreset,
   githubPreset as StylePreset,
   obsidianPreset as StylePreset,
   claudePreset as StylePreset,
-  boulaylaPreset as StylePreset,
   sequoiaPreset as StylePreset,
   manuscriptPreset as StylePreset,
   nordPreset as StylePreset,

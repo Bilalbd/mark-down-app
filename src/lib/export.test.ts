@@ -42,7 +42,7 @@ describe('buildExportHtml', () => {
     const out = buildExportHtml({
       title: 'A "quoted" <title>',
       bodyHtml: body,
-      preset: BUILTIN_PRESETS[2],
+      preset: BUILTIN_PRESETS.find((p) => p.id === 'builtin-claude')!,
       theme: 'dark',
     });
     expect(out).toContain('<title>A &quot;quoted&quot; &lt;title&gt;</title>');

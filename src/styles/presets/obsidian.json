@@ -1,6 +1,6 @@
 {
   "id": "builtin-obsidian",
-  "name": "Obsidian-like",
+  "name": "Obsidian",
   "builtin": true,
   "typography": {
     "bodyFont": "'Inter Variable', Inter, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif",
