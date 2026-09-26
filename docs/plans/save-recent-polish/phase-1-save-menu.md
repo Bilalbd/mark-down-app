@@ -70,22 +70,50 @@ its menu pattern), `src/App.tsx` (the shortcut map and `<Toolbar onNew=…>`),
 
 ## Report
 
-**Tests:** `pnpm test` result: 213 tests passed (up from 211), no failures. `pnpm lint` and `npx tsc --noEmit` both passed. `pnpm format` ran and formatted `document.test.ts`.
+**Verify results (after fixes):**
+- ✓ `pnpm test`: 213 tests passed
+- ✓ `pnpm lint`: No errors
+- ✓ `npx tsc --noEmit`: No errors
+- ✓ `pnpm format`: All files already formatted
 
-**Manual verification with `fixtures/gfm.md`:**
+**Fixes applied:**
+1. **ArrowDown bug in SaveMenu.tsx (line 26-27):** Fixed double-increment. Changed from:
+   ```
+   const nextIdx = Array.from(items).findIndex((el) => el === document.activeElement) + 1;
+   items[(nextIdx + 1) % items.length]?.focus();
+   ```
+   to:
+   ```
+   const currentIdx = Array.from(items).findIndex((el) => el === document.activeElement);
+   items[(currentIdx + 1) % items.length]?.focus();
+   ```
 
-1. **New file button removed:** Confirmed. `document.querySelector('.toolbar [title^="New file"]')` returned `null`, and `document.querySelector('.toolbar [title="Save"]')` confirmed the Save button exists.
+2. **Focus restoration on Escape:** Added `buttonRef` to SaveMenu component. When Escape closes the menu, focus is now restored to the Save button: `setOpen(false); buttonRef.current?.focus();`.
 
-2. **Save menu:** Menu opened successfully via `.click()`. It displays two items with their shortcuts:
-   - Save (Ctrl+S)
-   - Save as… (Ctrl+Shift+S)
-   
-   Screenshots taken in both dark and light themes showing the menu at toolbar right (see dark-theme.png and light-theme.png in scratchpad).
+3. **CSS class naming:** Renamed `toolbar__dropdown__item` to `toolbar__menu-item` (proper BEM naming convention).
 
-3. **Menu close behavior:** Both Escape key and mousedown outside the menu close the menu correctly. Verified via JavaScript test script returning `{ menuOpenBefore: true, menuClosedByEscape: true, menuOpenAgain: true, menuClosedByClickOutside: true }`.
+4. **CSS kbd styling:** Removed duplicate `margin-left` declarations and updated to match TabStrip convention:
+   ```
+   .toolbar__menu-item kbd {
+     margin-left: 12px;
+     font: inherit;
+     font-size: 11px;
+     color: var(--chrome-fg-muted);
+   }
+   ```
 
-4. **Ctrl+Shift+S shortcut:** Tested the keydown event dispatch with Shift+Ctrl+S. The combo generates "ctrl+shift+s" as verified by comboOf. Save As menu button was clicked successfully (no errors). The native save dialog handling was tested but cannot be fully verified via CDP since native dialogs don't appear in the web context. The shortcut handler is correctly wired in App.tsx.
+**Keyboard navigation verification:**
+Tested with eval-file script showing correct sequence:
+- Open menu → Focus on "Save" (first item)
+- ArrowDown → Focus on "Save as…" (second item)
+- ArrowDown → Focus wraps to "Save" (first item again)
+- ArrowUp → Focus on "Save as…" (second item)
+- Escape → Menu closes AND focus restored to Save button
 
-5. **Theme:** Reset to 'system' before stopping the app. App stopped without errors.
+Test output: `{ menuClosedByEscape: true, focusRestoredToButton: true }`
 
-All tasks completed and verified.
+**Shortcut and functions:**
+- Ctrl+Shift+S combo correctly generates `"ctrl+shift+s"` per comboOf function
+- Save function works on dirty document
+- saveAs function exists and callable
+- No changes to fixtures directory (verified git status clean)
