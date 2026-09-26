@@ -8,7 +8,7 @@
     "monoFont": "'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace",
     "baseSize": 16,
     "lineHeight": 1.7,
-    "contentWidth": 900,
+    "contentWidth": 760,
     "paragraphSpacing": 1,
     "headingWeight": 650
   },
@@ -19,15 +19,15 @@
       "text": "#575279",
       "heading": "#464261",
       "link": "#286983",
-      "muted": "#797593",
-      "border": "#dfdad9",
+      "muted": "#6f6b89",
+      "border": "#d8d2d1",
       "codeBg": "#f2e9e1",
       "codeText": "#575279",
       "quoteBorder": "#d7827e",
-      "quoteText": "#797593",
+      "quoteText": "#6f6b89",
       "tableBorder": "#dfdad9",
       "tableStripe": "#fffaf3",
-      "hr": "#dfdad9"
+      "hr": "#d8d2d1"
     },
     "dark": {
       "bg": "#191724",
@@ -35,7 +35,7 @@
       "heading": "#e0def4",
       "link": "#c4a7e7",
       "muted": "#908caa",
-      "border": "#26233a",
+      "border": "#312d4b",
       "codeBg": "#1f1d2e",
       "codeText": "#e0def4",
       "quoteBorder": "#ebbcba",

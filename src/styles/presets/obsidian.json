@@ -8,7 +8,7 @@
     "monoFont": "'Cascadia Code', 'Fira Code', 'JetBrains Mono Variable', 'JetBrains Mono', Consolas, monospace",
     "baseSize": 16,
     "lineHeight": 1.5,
-    "contentWidth": 900,
+    "contentWidth": 760,
     "paragraphSpacing": 1,
     "headingWeight": 700
   },

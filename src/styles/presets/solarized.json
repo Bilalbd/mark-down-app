@@ -8,7 +8,7 @@
     "monoFont": "'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace",
     "baseSize": 16,
     "lineHeight": 1.65,
-    "contentWidth": 900,
+    "contentWidth": 760,
     "paragraphSpacing": 1,
     "headingWeight": 700
   },
@@ -18,31 +18,31 @@
       "bg": "#fdf6e3",
       "text": "#586e75",
       "heading": "#073642",
-      "link": "#268bd2",
-      "muted": "#657b83",
-      "border": "#eee8d5",
+      "link": "#2074af",
+      "muted": "#5e737a",
+      "border": "#e0d5b2",
       "codeBg": "#eee8d5",
       "codeText": "#52676e",
       "quoteBorder": "#2aa198",
-      "quoteText": "#657b83",
+      "quoteText": "#5e737a",
       "tableBorder": "#e4ddc8",
       "tableStripe": "#f7f0dc",
-      "hr": "#eee8d5"
+      "hr": "#e0d5b2"
     },
     "dark": {
       "bg": "#002b36",
-      "text": "#93a1a1",
+      "text": "#a9b4b4",
       "heading": "#eee8d5",
-      "link": "#268bd2",
+      "link": "#3295da",
       "muted": "#839496",
-      "border": "#073642",
+      "border": "#094251",
       "codeBg": "#073642",
       "codeText": "#93a1a1",
       "quoteBorder": "#2aa198",
       "quoteText": "#839496",
       "tableBorder": "#0d4452",
       "tableStripe": "#04313c",
-      "hr": "#073642"
+      "hr": "#094251"
     }
   },
   "customCss": "/* Solarized: Ethan Schoonover's palette; light and dark share the same accents */\n"

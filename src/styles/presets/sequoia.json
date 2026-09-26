@@ -8,7 +8,7 @@
     "monoFont": "'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', monospace",
     "baseSize": 16,
     "lineHeight": 1.65,
-    "contentWidth": 900,
+    "contentWidth": 760,
     "paragraphSpacing": 1.05,
     "headingWeight": 700
   },
@@ -35,7 +35,7 @@
       "heading": "#f2eee3",
       "link": "#d3703f",
       "muted": "#8a8272",
-      "border": "#29221c",
+      "border": "#302821",
       "codeBg": "#161210",
       "codeText": "#d2c7b6",
       "quoteBorder": "#4f7a56",

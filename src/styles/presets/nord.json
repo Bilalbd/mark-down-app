@@ -8,7 +8,7 @@
     "monoFont": "'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace",
     "baseSize": 16,
     "lineHeight": 1.65,
-    "contentWidth": 900,
+    "contentWidth": 760,
     "paragraphSpacing": 1,
     "headingWeight": 650
   },
@@ -20,14 +20,14 @@
       "heading": "#2e3440",
       "link": "#4a6a94",
       "muted": "#4c566a",
-      "border": "#d8dee9",
+      "border": "#c6cfdf",
       "codeBg": "#e5e9f0",
       "codeText": "#3b4252",
       "quoteBorder": "#88c0d0",
       "quoteText": "#4c566a",
       "tableBorder": "#d8dee9",
       "tableStripe": "#e5e9f0",
-      "hr": "#d8dee9"
+      "hr": "#c6cfdf"
     },
     "dark": {
       "bg": "#2e3440",

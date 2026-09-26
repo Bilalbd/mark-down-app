@@ -8,7 +8,7 @@
     "monoFont": "'Cascadia Mono', Consolas, monospace",
     "baseSize": 16,
     "lineHeight": 1.65,
-    "contentWidth": 900,
+    "contentWidth": 760,
     "paragraphSpacing": 1.1,
     "headingWeight": 500
   },
@@ -18,16 +18,16 @@
       "bg": "#faf9f5",
       "text": "#29261b",
       "heading": "#29261b",
-      "link": "#c96442",
+      "link": "#a85033",
       "muted": "#6e6a5e",
-      "border": "#e5e2d9",
+      "border": "#dcd8cc",
       "codeBg": "#f0eee6",
       "codeText": "#a85033",
       "quoteBorder": "#d9b99b",
       "quoteText": "#5d584c",
       "tableBorder": "#e5e2d9",
       "tableStripe": "#f4f2eb",
-      "hr": "#e5e2d9"
+      "hr": "#dcd8cc"
     },
     "dark": {
       "bg": "#262624",

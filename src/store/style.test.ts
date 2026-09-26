@@ -63,12 +63,15 @@ describe('built-in presets', () => {
   });
 
   it.each(BUILTIN_PRESETS.flatMap((p) => (['light', 'dark'] as const).map((m) => [p.name, m, p])))(
-    '%s (%s) keeps body text and headings at 4.5:1 contrast or better',
+    '%s (%s) keeps every text colour at 4.5:1 contrast or better',
     (_name, mode, preset) => {
       const c = (preset as StylePreset).colors[mode as 'light' | 'dark'];
       expect(contrast(c.text, c.bg)).toBeGreaterThanOrEqual(4.5);
       expect(contrast(c.heading, c.bg)).toBeGreaterThanOrEqual(4.5);
       expect(contrast(c.codeText, c.codeBg)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(c.muted, c.bg)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(c.quoteText, c.bg)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(c.link, c.bg)).toBeGreaterThanOrEqual(4.5);
     },
   );
 });
