@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronUp, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import type { HeadingInfo } from '@/markdown/plugins';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import './Outline.css';
 
-interface Node extends HeadingInfo {
-  children: Node[];
+export interface OutlineNode extends HeadingInfo {
+  children: OutlineNode[];
 }
 
 /** Builds a tree from the flat heading list; deeper levels nest under the nearest shallower one. */
-export function buildTree(headings: HeadingInfo[]): Node[] {
-  const root: Node[] = [];
-  const stack: Node[] = [];
+export function buildTree(headings: HeadingInfo[]): OutlineNode[] {
+  const root: OutlineNode[] = [];
+  const stack: OutlineNode[] = [];
   for (const h of headings) {
-    const node: Node = { ...h, children: [] };
+    const node: OutlineNode = { ...h, children: [] };
     while (stack.length && stack[stack.length - 1].level >= h.level) stack.pop();
     (stack.length ? stack[stack.length - 1].children : root).push(node);
     stack.push(node);
@@ -33,9 +33,9 @@ export function activeHeadingFor(headings: HeadingInfo[], line: number): Heading
 }
 
 /** Ids of every node that has children, i.e. every node a twisty could collapse. */
-export function collapsibleIds(nodes: Node[]): string[] {
+export function collapsibleIds(nodes: OutlineNode[]): string[] {
   const ids: string[] = [];
-  const walk = (list: Node[]) => {
+  const walk = (list: OutlineNode[]) => {
     for (const n of list) {
       if (n.children.length > 0) {
         ids.push(n.id);
@@ -45,6 +45,72 @@ export function collapsibleIds(nodes: Node[]): string[] {
   };
   walk(nodes);
   return ids;
+}
+
+/** Parents (nodes with children) that are visible given `collapsed`, with their depth. */
+export function visibleParents(
+  tree: OutlineNode[],
+  collapsed: ReadonlySet<string>,
+): { id: string; depth: number; collapsed: boolean }[] {
+  const result: { id: string; depth: number; collapsed: boolean }[] = [];
+  const walk = (list: OutlineNode[], depth: number, ancestorCollapsed: boolean) => {
+    for (const n of list) {
+      // A node is visible if none of its ancestors are collapsed
+      const isNodeVisible = !ancestorCollapsed;
+      if (n.children.length > 0 && isNodeVisible) {
+        result.push({ id: n.id, depth, collapsed: collapsed.has(n.id) });
+      }
+      // Children are hidden if this node is collapsed, OR if an ancestor is already collapsed
+      const childAncestorCollapsed = ancestorCollapsed || collapsed.has(n.id);
+      if (n.children.length > 0) {
+        walk(n.children, depth + 1, childAncestorCollapsed);
+      }
+    }
+  };
+  walk(tree, 0, false);
+  return result;
+}
+
+/** `collapsed` after expanding the shallowest level of visible collapsed parents. */
+export function expandOneLevel(tree: OutlineNode[], collapsed: ReadonlySet<string>): Set<string> {
+  const visible = visibleParents(tree, collapsed);
+  const collapsedVisible = visible.filter((p) => p.collapsed);
+  if (collapsedVisible.length === 0) return new Set(collapsed);
+
+  const minDepth = Math.min(...collapsedVisible.map((p) => p.depth));
+  const next = new Set(collapsed);
+  for (const p of collapsedVisible) {
+    if (p.depth === minDepth) next.delete(p.id);
+  }
+  return next;
+}
+
+/** `collapsed` after collapsing the deepest level of visible expanded parents. */
+export function collapseOneLevel(tree: OutlineNode[], collapsed: ReadonlySet<string>): Set<string> {
+  const visible = visibleParents(tree, collapsed);
+  const expandedVisible = visible.filter((p) => !p.collapsed);
+  if (expandedVisible.length === 0) return new Set(collapsed);
+
+  const maxDepth = Math.max(...expandedVisible.map((p) => p.depth));
+  const next = new Set(collapsed);
+  for (const p of expandedVisible) {
+    if (p.depth === maxDepth) next.add(p.id);
+  }
+  return next;
+}
+
+/** Which of the four level actions would change anything. */
+export function levelActions(
+  tree: OutlineNode[],
+  collapsed: ReadonlySet<string>,
+): { canExpand: boolean; canCollapse: boolean } {
+  const allParents = collapsibleIds(tree);
+  const canExpand = allParents.some((id) => collapsed.has(id));
+
+  const visible = visibleParents(tree, collapsed);
+  const canCollapse = visible.some((p) => !p.collapsed);
+
+  return { canExpand, canCollapse };
 }
 
 const MIN_WIDTH = 160;
@@ -82,16 +148,11 @@ export function Outline() {
     });
   }, []);
 
-  // A single button that collapses every section, or expands them all when everything
-  // collapsible is already collapsed.
-  const allCollapsed = allParentIds.length > 0 && allParentIds.every((id) => collapsed.has(id));
-  const toggleAll = useCallback(() => {
-    setCollapsed(allCollapsed ? new Set() : new Set(allParentIds));
-  }, [allCollapsed, allParentIds]);
+  const levelActionState = useMemo(() => levelActions(tree, collapsed), [tree, collapsed]);
 
   const onItemKeyDown = (
     e: React.KeyboardEvent<HTMLDivElement>,
-    n: Node,
+    n: OutlineNode,
     isCollapsed: boolean,
     hasChildren: boolean,
   ) => {
@@ -148,7 +209,7 @@ export function Outline() {
     window.addEventListener('mouseup', onUp);
   };
 
-  const renderNodes = (nodes: Node[], depth: number) => (
+  const renderNodes = (nodes: OutlineNode[], depth: number) => (
     <ul className="outline__list" role={depth === 0 ? 'tree' : 'group'}>
       {nodes.map((n) => {
         const isCollapsed = collapsed.has(n.id);
@@ -196,18 +257,44 @@ export function Outline() {
       <div className="outline__header">
         <span>Outline</span>
         {allParentIds.length > 0 && (
-          <button
-            className="outline__collapse-all"
-            title={allCollapsed ? 'Expand all' : 'Collapse all'}
-            aria-label={allCollapsed ? 'Expand all' : 'Collapse all'}
-            onClick={toggleAll}
-          >
-            {allCollapsed ? (
+          <div className="outline__actions" role="group" aria-label="Expand and collapse">
+            <button
+              className="outline__action"
+              title="Expand all"
+              aria-label="Expand all"
+              disabled={!levelActionState.canExpand}
+              onClick={() => setCollapsed(new Set())}
+            >
               <ChevronsUpDown size={13} strokeWidth={1.75} absoluteStrokeWidth />
-            ) : (
+            </button>
+            <button
+              className="outline__action"
+              title="Expand one level"
+              aria-label="Expand one level"
+              disabled={!levelActionState.canExpand}
+              onClick={() => setCollapsed((c) => expandOneLevel(tree, c))}
+            >
+              <ChevronDown size={13} strokeWidth={1.75} absoluteStrokeWidth />
+            </button>
+            <button
+              className="outline__action"
+              title="Collapse one level"
+              aria-label="Collapse one level"
+              disabled={!levelActionState.canCollapse}
+              onClick={() => setCollapsed((c) => collapseOneLevel(tree, c))}
+            >
+              <ChevronUp size={13} strokeWidth={1.75} absoluteStrokeWidth />
+            </button>
+            <button
+              className="outline__action"
+              title="Collapse all"
+              aria-label="Collapse all"
+              disabled={!levelActionState.canCollapse}
+              onClick={() => setCollapsed(new Set(allParentIds))}
+            >
               <ChevronsDownUp size={13} strokeWidth={1.75} absoluteStrokeWidth />
-            )}
-          </button>
+            </button>
+          </div>
         )}
       </div>
       <div className="outline__scroll" ref={listRef}>
