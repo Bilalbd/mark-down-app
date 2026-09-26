@@ -27,8 +27,7 @@ export function TabStrip() {
   const [flyoutOpen, setFlyoutOpen] = useState(false);
   const submenuRef = useRef<HTMLDivElement>(null);
   const flyoutRef = useRef<HTMLDivElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const leaveTimeoutRef = useRef<any>(undefined);
+  const leaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [flyoutIsLeft, setFlyoutIsLeft] = useState(false);
 
   const recentFiles = useSettingsStore((s) => s.recentFiles);
