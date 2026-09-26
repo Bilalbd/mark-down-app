@@ -66,12 +66,17 @@
   display: none;
 }
 
+/* Like Chrome, no separator between the last tab and the + button */
+.tabstrip__tab:not(.is-active):last-child::after {
+  display: none;
+}
+
 /* Hide separator while hovering */
 .tabstrip__tab:not(.is-active):hover::after {
   display: none;
 }
 
-/* Hide separator on the tab after a hovered tab (if :has is supported) */
+/* Hide separator on the tab before a hovered tab (if :has is supported) */
 .tabstrip__tab:not(.is-active):has(+ .tabstrip__tab:hover)::after {
   display: none;
 }
