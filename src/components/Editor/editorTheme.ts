@@ -31,12 +31,17 @@ export const editorTheme = EditorView.theme({
   '.cm-activeLine': { backgroundColor: 'color-mix(in srgb, var(--content-fg) 4%, transparent)' },
   '.cm-gutters': {
     backgroundColor: 'var(--content-bg)',
-    color: 'var(--chrome-fg-muted)',
+    color: 'color-mix(in srgb, var(--chrome-fg-muted) 55%, transparent)',
     border: 'none',
     paddingLeft: '8px',
+    fontWeight: '400',
   },
-  '.cm-activeLineGutter': { backgroundColor: 'transparent', color: 'var(--content-fg)' },
-  '.cm-lineNumbers .cm-gutterElement': { minWidth: '3ch' },
+  '.cm-activeLineGutter': {
+    backgroundColor: 'transparent',
+    color: 'color-mix(in srgb, var(--chrome-fg-muted) 90%, transparent)',
+    fontWeight: '400',
+  },
+  '.cm-lineNumbers .cm-gutterElement': { minWidth: '3ch', fontSize: '0.85em' },
   '.cm-matchingBracket': {
     backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
     outline: 'none',
