@@ -120,3 +120,60 @@
 .tabstrip__new:hover {
   background: var(--chrome-hover);
 }
+
+.tabstrip__new.is-active {
+  background: var(--chrome-hover);
+}
+
+.tabstrip__menu {
+  position: relative;
+  display: flex;
+}
+
+.tabstrip__dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 40;
+  min-width: 200px;
+  padding: 4px;
+  border-radius: 6px;
+  background: var(--chrome-bg);
+  border: 1px solid var(--chrome-border);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.tabstrip__dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--chrome-fg);
+  font-size: 12.5px;
+  text-align: left;
+}
+
+.tabstrip__dropdown button:hover,
+.tabstrip__dropdown button:focus-visible {
+  background: var(--chrome-hover);
+}
+
+.tabstrip__dropdown button:focus-visible {
+  outline: none;
+  background: var(--chrome-hover);
+}
+
+.tabstrip__dropdown span {
+  flex: 1;
+}
+
+.tabstrip__dropdown kbd {
+  font: inherit;
+  font-size: 11px;
+  color: var(--chrome-fg-muted);
+}

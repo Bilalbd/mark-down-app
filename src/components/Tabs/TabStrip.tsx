@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { Plus, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Plus, X, FilePlus2, FolderOpen } from 'lucide-react';
 import { useTabsStore } from '@/store/tabs';
 import { useDocumentStore, isDirty } from '@/store/document';
 import { ICON } from '@/components/Toolbar/Toolbar';
 import { tabLabels } from '@/lib/tabs';
 import './TabStrip.css';
+
+const MENU_ICON = { ...ICON, size: 14 } as const;
 
 export function TabStrip() {
   const tabs = useTabsStore((s) => s.tabs);
@@ -18,6 +20,8 @@ export function TabStrip() {
   const documentDirty = useDocumentStore(isDirty);
 
   const listRef = useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // Build items array with memoization to avoid re-renders on every state change
   const items = useMemo(() => {
@@ -63,6 +67,54 @@ export function TabStrip() {
       activeTabEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
   }, [activeId]);
+
+  // Close menu on click outside or Escape key
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setMenuOpen(false);
+        const btn = menuRef.current?.querySelector('.tabstrip__new') as HTMLButtonElement;
+        btn?.focus();
+      }
+    };
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  // Move focus to first menu item when menu opens and handle keyboard navigation
+  useEffect(() => {
+    if (!menuOpen) return;
+    const items = menuRef.current?.querySelectorAll(
+      '[role=menuitem]',
+    ) as NodeListOf<HTMLButtonElement>;
+    if (items.length === 0) return;
+    items[0].focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const activeIdx = Array.from(items).indexOf(document.activeElement as HTMLButtonElement);
+        const nextIdx =
+          e.key === 'ArrowDown'
+            ? (activeIdx + 1) % items.length
+            : (activeIdx - 1 + items.length) % items.length;
+        items[nextIdx].focus();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [menuOpen]);
 
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>, tabId: string) => {
@@ -152,14 +204,40 @@ export function TabStrip() {
           </div>
         ))}
       </div>
-      <button
-        className="tabstrip__new"
-        aria-label="New tab"
-        title="New tab (Ctrl+T)"
-        onClick={() => void newTab()}
-      >
-        <Plus {...ICON} />
-      </button>
+      <div className="tabstrip__menu" ref={menuRef}>
+        <button
+          className={`tabstrip__new${menuOpen ? ' is-active' : ''}`}
+          aria-label="New or open"
+          title="New or open a file"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          <Plus {...ICON} />
+        </button>
+        {menuOpen && (
+          <div className="tabstrip__dropdown" role="menu">
+            <button
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                void newTab();
+              }}
+            >
+              <FilePlus2 {...MENU_ICON} /> <span>New file</span> <kbd>Ctrl+T</kbd>
+            </button>
+            <button
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                void useDocumentStore.getState().openWithDialog();
+              }}
+            >
+              <FolderOpen {...MENU_ICON} /> <span>Open file…</span> <kbd>Ctrl+O</kbd>
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
