@@ -91,3 +91,16 @@
 .toolbar__dropdown button:hover {
   background: var(--chrome-hover);
 }
+
+.toolbar__dropdown__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.toolbar__dropdown__item kbd {
+  margin-left: auto;
+  margin-left: 12px;
+  font-size: 11px;
+  color: var(--chrome-fg-muted);
+  font-family: monospace;
+}

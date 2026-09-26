@@ -188,4 +188,49 @@ describe('document store', () => {
     await useDocumentStore.getState().open('C:\\docs\\a.md');
     expect(mockUnwatchFile).not.toHaveBeenCalled();
   });
+
+  it('saveAs writes to the chosen path, updates path, watches new, unwatches old, and adds to recent', async () => {
+    mockReadFile.mockResolvedValue({ content: 'a', mtime: 1, encoding: 'utf8', lossy: false });
+    mockWriteFile.mockResolvedValue(99);
+
+    // Mock the save dialog to return a new path
+    const mockDialogModule = vi.mocked(await import('@tauri-apps/plugin-dialog'), {
+      partial: true,
+    });
+    mockDialogModule.save.mockResolvedValue('C:\\docs\\new.md');
+
+    await useDocumentStore.getState().open('C:\\docs\\old.md');
+    mockWatchFile.mockClear();
+    mockUnwatchFile.mockClear();
+
+    const ok = await useDocumentStore.getState().saveAs();
+
+    expect(ok).toBe(true);
+    expect(mockWriteFile).toHaveBeenCalledWith('C:\\docs\\new.md', 'a', 'utf8');
+    expect(useDocumentStore.getState().path).toBe('C:\\docs\\new.md');
+    expect(useDocumentStore.getState().mtime).toBe(99);
+    expect(mockWatchFile).toHaveBeenCalledWith('C:\\docs\\new.md');
+    expect(mockUnwatchFile).toHaveBeenCalledWith('C:\\docs\\old.md');
+    expect(useSettingsStore.getState().recentFiles).toContain('C:\\docs\\new.md');
+  });
+
+  it('saveAs with cancelled dialog writes nothing and leaves path unchanged', async () => {
+    mockReadFile.mockResolvedValue({ content: 'a', mtime: 1, encoding: 'utf8', lossy: false });
+
+    // Mock the save dialog to return null (cancelled)
+    const mockDialogModule = vi.mocked(await import('@tauri-apps/plugin-dialog'), {
+      partial: true,
+    });
+    mockDialogModule.save.mockResolvedValue(null);
+
+    await useDocumentStore.getState().open('C:\\docs\\a.md');
+    const originalPath = useDocumentStore.getState().path;
+    mockWriteFile.mockClear();
+
+    const ok = await useDocumentStore.getState().saveAs();
+
+    expect(ok).toBe(false);
+    expect(mockWriteFile).not.toHaveBeenCalled();
+    expect(useDocumentStore.getState().path).toBe(originalPath);
+  });
 });

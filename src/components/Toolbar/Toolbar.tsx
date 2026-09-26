@@ -1,6 +1,5 @@
 import {
   ArrowLeftRight,
-  FilePlus2,
   Monitor,
   Moon,
   PanelLeft,
@@ -16,6 +15,7 @@ import {
 } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import { ExportMenu } from './ExportMenu';
+import { SaveMenu } from './SaveMenu';
 import './Toolbar.css';
 
 export const ICON = { size: 16, strokeWidth: 1.75, absoluteStrokeWidth: true } as const;
@@ -30,7 +30,7 @@ const THEME_CYCLE: AppTheme[] = ['system', 'light', 'dark'];
 const THEME_ICON = { light: Sun, dark: Moon, system: Monitor } as const;
 const THEME_LABEL = { light: 'Light', dark: 'Dark', system: 'Follow Windows' } as const;
 
-export function Toolbar({ onNew }: { onNew: () => void }) {
+export function Toolbar() {
   const viewMode = useSettingsStore((s) => s.viewMode);
   const outlineVisible = useSettingsStore((s) => s.outlineVisible);
   const appTheme = useSettingsStore((s) => s.appTheme);
@@ -93,9 +93,7 @@ export function Toolbar({ onNew }: { onNew: () => void }) {
 
       <div className="toolbar__spacer" />
 
-      <button className="toolbar__btn" title="New file (Ctrl+N)" onClick={onNew}>
-        <FilePlus2 {...ICON} />
-      </button>
+      <SaveMenu />
       <ExportMenu />
 
       <button

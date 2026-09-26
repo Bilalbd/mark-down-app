@@ -17,8 +17,8 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
 - **Formatted / Source / Split** views (`Ctrl+E`, `Ctrl+Shift+E`) with the source line kept in
   place when switching, and bidirectional scroll sync in Split. Formatted view has a full-width
   toggle in the toolbar that fits the document to the window, and it's remembered.
-- **Editing** in Source mode with markdown syntax highlighting, `Ctrl+S` to save, a dirty
-  indicator in the title bar and a Save / Don't save / Cancel guard on close.
+- **Editing** in Source mode with markdown syntax highlighting, `Ctrl+S` to save and `Ctrl+Shift+S`
+  to save as, a dirty indicator in the title bar and a Save / Don't save / Cancel guard on close.
 - Reads and preserves UTF-8 (with or without BOM) and UTF-16 (LE/BE) files, and CRLF/LF line
   endings, round-tripping each on save; a file with invalid-UTF-8 bytes asks before saving
   over them.
@@ -54,6 +54,7 @@ the file it was opened with.
 | Ctrl+N | New file |
 | Ctrl+O | Open file |
 | Ctrl+S | Save |
+| Ctrl+Shift+S | Save as |
 | Ctrl+T | New tab |
 | Ctrl+W | Close tab |
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous tab |

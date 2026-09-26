@@ -82,6 +82,7 @@ export function GeneralTab() {
               ['Ctrl+N', 'New file'],
               ['Ctrl+O', 'Open file'],
               ['Ctrl+S', 'Save'],
+              ['Ctrl+Shift+S', 'Save as'],
               ['Ctrl+T', 'New tab'],
               ['Ctrl+W', 'Close tab'],
               ['Ctrl+Tab / Ctrl+Shift+Tab', 'Next / previous tab'],

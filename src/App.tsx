@@ -174,6 +174,7 @@ export default function App() {
       'ctrl+o': () => void openWithDialog(),
       'ctrl+n': () => void createNew(),
       'ctrl+s': () => void save(),
+      'ctrl+shift+s': () => void useDocumentStore.getState().saveAs(),
       'ctrl+e': () => set('viewMode', viewMode === 'source' ? 'formatted' : 'source'),
       'ctrl+shift+e': () => set('viewMode', viewMode === 'split' ? 'formatted' : 'split'),
       'ctrl+\\': () => set('outlineVisible', !outlineVisible),
@@ -335,7 +336,7 @@ export default function App() {
         fileName={path ? basename(path) : hasDocument ? 'Untitled' : undefined}
         dirty={dirty}
       />
-      <Toolbar onNew={() => void createNew()} />
+      <Toolbar />
       {error && (
         <div className="banner banner--error" role="alert">
           {error}
