@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Plus, X, FilePlus2, FolderOpen, History, ChevronRight } from 'lucide-react';
 import { useTabsStore, openPath } from '@/store/tabs';
 import { useDocumentStore, isDirty } from '@/store/document';
 import { useSettingsStore } from '@/store/settings';
 import { ICON } from '@/components/Toolbar/Toolbar';
 import { basename, dirname } from '@/lib/tauri';
-import { tabLabels, flyoutSide } from '@/lib/tabs';
+import { tabLabels, flyoutSide, shortDir } from '@/lib/tabs';
 import './TabStrip.css';
 
 const MENU_ICON = { ...ICON, size: 14 } as const;
@@ -27,7 +27,8 @@ export function TabStrip() {
   const [flyoutOpen, setFlyoutOpen] = useState(false);
   const submenuRef = useRef<HTMLDivElement>(null);
   const flyoutRef = useRef<HTMLDivElement>(null);
-  const leaveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const leaveTimeoutRef = useRef<any>(undefined);
   const [flyoutIsLeft, setFlyoutIsLeft] = useState(false);
 
   const recentFiles = useSettingsStore((s) => s.recentFiles);
@@ -89,9 +90,14 @@ export function TabStrip() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        setMenuOpen(false);
-        const btn = menuRef.current?.querySelector('.tabstrip__new') as HTMLButtonElement;
-        btn?.focus();
+        // If flyout is open, close only the flyout (don't close the menu)
+        if (flyoutOpen) {
+          setFlyoutOpen(false);
+        } else {
+          setMenuOpen(false);
+          const btn = menuRef.current?.querySelector('.tabstrip__new') as HTMLButtonElement;
+          btn?.focus();
+        }
       }
     };
     window.addEventListener('mousedown', onDown);
@@ -100,9 +106,9 @@ export function TabStrip() {
       window.removeEventListener('mousedown', onDown);
       window.removeEventListener('keydown', onKey);
     };
-  }, [menuOpen]);
+  }, [menuOpen, flyoutOpen]);
 
-  // Close flyout when clicking outside or on specific flyout actions
+  // Close flyout when clicking outside or on specific flyout actions, and cleanup timeouts
   useEffect(() => {
     if (!flyoutOpen) return;
 
@@ -113,21 +119,37 @@ export function TabStrip() {
     };
 
     window.addEventListener('mousedown', onDown);
-    return () => window.removeEventListener('mousedown', onDown);
+    return () => {
+      window.removeEventListener('mousedown', onDown);
+      // Clear any pending leave timeout
+      if (leaveTimeoutRef.current) {
+        clearTimeout(leaveTimeoutRef.current);
+      }
+    };
   }, [flyoutOpen]);
 
-  // Adjust flyout position (left vs right)
+  // Measure and adjust flyout position after it renders
+  useLayoutEffect(() => {
+    if (!flyoutOpen || !flyoutRef.current) return;
+
+    const menuRect = submenuRef.current!.getBoundingClientRect();
+    const flyoutWidth = flyoutRef.current.offsetWidth;
+    const isLeft = flyoutSide(menuRect.right, flyoutWidth, window.innerWidth) === 'left';
+    setFlyoutIsLeft(isLeft);
+  }, [flyoutOpen]);
+
+  // Adjust flyout position on window resize
   useEffect(() => {
     if (!flyoutOpen || !submenuRef.current) return;
 
     const updatePosition = () => {
+      if (!flyoutRef.current) return;
       const rect = submenuRef.current!.getBoundingClientRect();
-      const flyoutWidth = 240;
+      const flyoutWidth = flyoutRef.current.offsetWidth;
       const isLeft = flyoutSide(rect.right, flyoutWidth, window.innerWidth) === 'left';
       setFlyoutIsLeft(isLeft);
     };
 
-    updatePosition();
     window.addEventListener('resize', updatePosition);
     return () => window.removeEventListener('resize', updatePosition);
   }, [flyoutOpen]);
@@ -248,10 +270,10 @@ export function TabStrip() {
     setFlyoutOpen((v) => !v);
   };
 
-  const handleRecentFileClick = async (path: string) => {
+  const handleRecentFileClick = (path: string) => {
     setMenuOpen(false);
     setFlyoutOpen(false);
-    await void openPath(path);
+    void openPath(path);
   };
 
   return (
@@ -369,7 +391,7 @@ export function TabStrip() {
                         onClick={() => void handleRecentFileClick(p)}
                       >
                         <span className="tabstrip__recent-name">{basename(p)}</span>
-                        <span className="tabstrip__recent-dir">{dirname(p)}</span>
+                        <span className="tabstrip__recent-dir">{shortDir(dirname(p))}</span>
                       </button>
                     ))
                   )}

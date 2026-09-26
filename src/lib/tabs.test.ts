@@ -7,6 +7,7 @@ import {
   moveItem,
   nextActiveAfterClose,
   samePath,
+  shortDir,
   tabLabels,
 } from './tabs';
 
@@ -312,5 +313,45 @@ describe('flyoutSide', () => {
     // menuRight=100, gap=4, flyoutWidth=240 -> 100+4+240=344
     expect(flyoutSide(100, 240, 344)).toBe('right');
     expect(flyoutSide(100, 240, 343)).toBe('left');
+  });
+});
+
+describe('shortDir', () => {
+  it('returns full path when segments are within limit', () => {
+    expect(shortDir('C:\\docs', 2)).toBe('C:\\docs');
+    expect(shortDir('C:\\a\\b', 2)).toBe('C:\\a\\b');
+  });
+
+  it('truncates to last N segments with ellipsis prefix', () => {
+    expect(shortDir('C:\\a\\b\\c\\d', 2)).toBe('…\\c\\d');
+    expect(shortDir('C:\\a\\b\\c\\d\\e', 2)).toBe('…\\d\\e');
+  });
+
+  it('handles forward slashes', () => {
+    expect(shortDir('/a/b/c/d', 2)).toBe('…/c/d');
+    expect(shortDir('/a/b', 2)).toBe('/a/b');
+  });
+
+  it('preserves the original separator style', () => {
+    expect(shortDir('C:\\a\\b\\c', 2)).toContain('\\');
+    expect(shortDir('/a/b/c', 2)).toContain('/');
+  });
+
+  it('handles single segment paths', () => {
+    expect(shortDir('C:\\file', 2)).toBe('C:\\file');
+    expect(shortDir('/file', 2)).toBe('/file');
+  });
+
+  it('handles empty string', () => {
+    expect(shortDir('', 2)).toBe('');
+  });
+
+  it('handles custom maxSegments', () => {
+    expect(shortDir('C:\\a\\b\\c\\d\\e', 1)).toBe('…\\e');
+    expect(shortDir('C:\\a\\b\\c\\d\\e', 3)).toBe('…\\c\\d\\e');
+  });
+
+  it('handles drive letters on Windows paths', () => {
+    expect(shortDir('C:\\Users\\bilal\\docs', 2)).toBe('…\\bilal\\docs');
   });
 });

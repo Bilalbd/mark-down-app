@@ -167,3 +167,39 @@ export function flyoutSide(
   const rightEdge = menuRight + 4 + flyoutWidth;
   return rightEdge > viewportWidth ? 'left' : 'right';
 }
+
+/** Returns the last `maxSegments` folder names from a directory path, with `…\` prefix if truncated. */
+export function shortDir(dir: string, maxSegments = 2): string {
+  if (!dir) return '';
+
+  // Normalize separators to forward slash for splitting
+  const normalized = dir.replace(/\\/g, '/');
+  const allSegments = normalized.split('/').filter((s) => s.length > 0);
+
+  // Determine the separator to use in output (prefer the one in the original)
+  const sep = dir.includes('\\') ? '\\' : '/';
+
+  // Separate drive letter (Windows) or root (Unix) from folder segments
+  let prefix = '';
+  let segments: string[] = allSegments;
+
+  // Handle Windows drive letters (e.g., "C:")
+  if (allSegments[0] && allSegments[0].length === 2 && allSegments[0][1] === ':') {
+    prefix = allSegments[0];
+    segments = allSegments.slice(1);
+  } else if (allSegments[0] === '') {
+    // Root path on Unix
+    prefix = '';
+    segments = allSegments.slice(1);
+  }
+
+  if (segments.length <= maxSegments) {
+    return dir;
+  }
+
+  const kept = segments.slice(-maxSegments);
+  if (prefix) {
+    return `…${sep}${kept.join(sep)}`;
+  }
+  return `…${sep}${kept.join(sep)}`;
+}
