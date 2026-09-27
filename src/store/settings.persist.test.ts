@@ -69,13 +69,15 @@ describe('settings persistence across windows', () => {
   it('refreshAll picks up disk changes without re-rendering if nothing changed', async () => {
     testState.sharedDisk.set('appTheme', 'dark');
     await useSettingsStore.getState().load();
-    const spy = vi.spyOn(useSettingsStore, 'setState');
+    // `load` reads the cached store's memory, so sync state with the fake disk first. The store's
+    // internal updates bypass `useSettingsStore.setState`, so compare state identity instead of
+    // spying on it.
+    await useSettingsStore.getState().refreshAll();
+    const before = useSettingsStore.getState();
 
     // Refresh with no disk changes
     await useSettingsStore.getState().refreshAll();
-    expect(spy).not.toHaveBeenCalled();
-
-    spy.mockRestore();
+    expect(useSettingsStore.getState()).toBe(before);
   });
 
   it('refreshAll picks up a disk change from another window', async () => {
@@ -104,11 +106,35 @@ describe('settings persistence across windows', () => {
     testState.sharedDisk.set('recentFiles', ['a.md', 'b.md']);
     await useSettingsStore.getState().load();
 
-    const spy = vi.spyOn(useSettingsStore, 'setState');
-    // Call refreshAll with identical data on disk - should not re-render
+    await useSettingsStore.getState().refreshAll();
+    const before = useSettingsStore.getState();
+    // Identical data on disk (a new array with the same entries) - should not re-render
+    testState.sharedDisk.set('recentFiles', ['a.md', 'b.md']);
     await useSettingsStore.getState().refreshAll();
 
-    expect(spy).not.toHaveBeenCalled();
-    spy.mockRestore();
+    expect(useSettingsStore.getState()).toBe(before);
+  });
+
+  it('a change made while a refresh is queued is neither reverted nor blocked', async () => {
+    // `load` reads the cached store's memory, so sync state with the fake disk via a refresh.
+    testState.sharedDisk.set('outlineWidth', 240);
+    testState.sharedDisk.set('editorFontSize', 14);
+    await useSettingsStore.getState().refreshAll();
+    expect(useSettingsStore.getState().outlineWidth).toBe(240);
+
+    const refreshed = useSettingsStore.getState().refreshAll();
+    useSettingsStore.getState().set('outlineWidth', 300);
+    useSettingsStore.getState().set('editorFontSize', 15);
+
+    const timeout = (p: Promise<unknown>) =>
+      Promise.race([
+        p.then(() => 'settled'),
+        new Promise<string>((resolve) => setTimeout(() => resolve('timed out'), 1000)),
+      ]);
+    expect(await timeout(refreshed)).toBe('settled');
+    expect(await timeout(whenSettingsWritten())).toBe('settled');
+    expect(useSettingsStore.getState().outlineWidth).toBe(300);
+    expect(testState.sharedDisk.get('outlineWidth')).toBe(300);
+    expect(testState.sharedDisk.get('editorFontSize')).toBe(15);
   });
 });

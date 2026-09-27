@@ -59,6 +59,12 @@ Follow `docs/plans/tabs/README.md` ("Rules for every phase agent", "Running the 
   Phase 1. Write down the count before and after.
 - **Every bug fix gets a regression test that fails without the fix.** Show this: run the new test
   before your fix (or with the fix temporarily reverted), paste the failure, then show it passing.
+- **Never commit with a failing test, and never delete a test to make the suite pass.** If a new
+  test fails, find out whether the code or the test is wrong and fix that.
+- **Don't spy on `useXStore.setState` to prove "no update happened".** The store's own actions call
+  zustand's internal `set`, which bypasses `useXStore.setState`, so the spy never fires and the test
+  passes whatever the code does. Compare state identity instead:
+  `const before = useXStore.getState(); …; expect(useXStore.getState()).toBe(before)`.
 - No `any`, no `as unknown as` outside real boundaries, no `console.log`, no commented-out code, no
   eslint-disable comments. Pick store fields with one selector per value.
 - British spelling in UI text and comments, American in identifiers. Sentence case for labels.
@@ -125,7 +131,7 @@ After each phase, the supervisor:
 | Phase | Commit | Tests before → after | Supervisor check | Notes |
 |---|---|---|---|---|
 | 1 | 2a97b90, 47d9a8b | 227 → 234 | Diff reviewed; Escape test fails without fix; A1/A3 checked in app by supervisor (old vs new FindBar) | Agent skipped the manual check twice; its dev app hung without a WebView |
-| 2 | | | | |
+| 2 | ff6b479, b883752, 7847b2e, 76f4dd3 + supervisor fix | 234 → 248 | Three review rounds (id-only preset compare, write-queue deadlock, failing/deleted/vacuous tests); supervisor finished the race fix and tests; checked in app with settings restored | Agent's dev app failed to launch twice; supervisor's launched fine |
 | 3 | | | | |
 | 4 | | | | |
 | 5 | | | | |

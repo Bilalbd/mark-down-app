@@ -105,10 +105,20 @@ function writeKey<K extends keyof Settings>(key: K, value: Settings[K]): void {
   }).catch(() => undefined); // Failed writes mustn't block later writes; in-memory value is still right for this session
 }
 
-/** Re-reads all settings from disk without queueing (for use inside enqueue only). */
+/** Counts local changes per key, so a refresh queued before a change doesn't undo it with the
+ * older value still on disk. */
+const localEdits = new Map<keyof Settings, number>();
+
+function noteLocalEdit(key: keyof Settings): void {
+  localEdits.set(key, (localEdits.get(key) ?? 0) + 1);
+}
+
+/** Re-reads all settings from disk without queueing (for use inside enqueue only). Keys changed
+ * locally since `editsAtRequest` was taken are left alone. */
 async function readAllFromDisk(
   set: (patch: Partial<Settings>) => void,
   get: () => Settings & SettingsState,
+  editsAtRequest: ReadonlyMap<keyof Settings, number>,
 ): Promise<void> {
   const s = await getStore();
   if (!s) return;
@@ -119,6 +129,7 @@ async function readAllFromDisk(
   for (const [k, v] of entries) {
     if (k in DEFAULTS && !EPHEMERAL_KEYS.has(k as keyof Settings)) {
       const key = k as keyof Settings;
+      if ((localEdits.get(key) ?? 0) !== (editsAtRequest.get(key) ?? 0)) continue;
       const current = get()[key];
       // Use JSON.stringify for arrays and other non-primitives to detect actual changes
       const currentSerialized = Array.isArray(current) ? JSON.stringify(current) : current;
@@ -155,12 +166,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   set: (key, value, opts) => {
     if (get()[key] === value) return;
     set({ [key]: value } as Partial<Settings>);
-    if (EPHEMERAL_KEYS.has(key) || opts?.persist === false) return;
+    if (EPHEMERAL_KEYS.has(key)) return;
+    noteLocalEdit(key);
+    if (opts?.persist === false) return;
     writeKey(key, value);
   },
 
   persist: (key) => {
     if (EPHEMERAL_KEYS.has(key)) return;
+    noteLocalEdit(key);
     writeKey(key, get()[key]);
   },
 
@@ -173,8 +187,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   refreshAll: async () => {
-    // Queue through writeChain to avoid races with pending writes
-    return enqueue(() => readAllFromDisk(set, get));
+    // Queued behind pending writes, so it never reads the file before our own writes land.
+    const editsAtRequest = new Map(localEdits);
+    return enqueue(() => readAllFromDisk(set, get, editsAtRequest));
   },
 
   addRecentFile: (path) => {

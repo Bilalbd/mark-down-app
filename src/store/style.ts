@@ -135,7 +135,12 @@ function parseUserPresets(raw: StylePreset[]): StylePreset[] {
     .filter((p): p is StylePreset => p !== null);
 }
 
+/** Counts local preset changes, so a refresh queued before a change doesn't undo it with the
+ * older presets still on disk. */
+let localEdits = 0;
+
 function persist(state: Pick<StyleState, 'presets' | 'activePresetId'>) {
+  localEdits += 1;
   const data: Persisted = {
     activePresetId: state.activePresetId,
     userPresets: state.presets.filter((p) => !p.builtin),
@@ -150,11 +155,14 @@ function persist(state: Pick<StyleState, 'presets' | 'activePresetId'>) {
   }).catch(() => undefined); // Failed writes mustn't block later writes; in-memory value is still right for this session
 }
 
-/** Re-reads presets from disk without queueing (for use inside enqueue only). */
+/** Re-reads presets from disk without queueing (for use inside enqueue only). Does nothing if
+ * presets changed locally since `editsAtRequest` was taken. */
 async function readPresetsFromDisk(
   set: (state: { presets: StylePreset[]; activePresetId: string }) => void,
   get: () => Pick<StyleState, 'presets' | 'activePresetId'>,
+  editsAtRequest: number,
 ): Promise<void> {
+  if (localEdits !== editsAtRequest) return;
   const s = await getStore();
   if (!s) return;
   await s.reload();
@@ -166,16 +174,18 @@ async function readPresetsFromDisk(
     ? activePresetId
     : BUILTIN_PRESETS[0].id;
 
-  // Skip update if nothing changed: compare serialized user presets and active id
+  // Skip the update if nothing changed. Both sides are normalised, so fields normalisation drops
+  // (like `builtin: false` on in-memory copies) don't count as a change.
   const current = get();
-  const currentUserPresets = current.presets.filter((p) => !p.builtin);
-  const newUserPresets = presets.filter((p) => !p.builtin);
+  const currentUserPresets = parseUserPresets(current.presets.filter((p) => !p.builtin));
   if (
-    JSON.stringify(currentUserPresets) === JSON.stringify(newUserPresets) &&
+    JSON.stringify(currentUserPresets) === JSON.stringify(userPresets) &&
     current.activePresetId === finalActiveId
   ) {
     return;
   }
+  // A local change may have landed while the file was being read.
+  if (localEdits !== editsAtRequest) return;
   set({ presets, activePresetId: finalActiveId });
 }
 
@@ -307,7 +317,8 @@ export const useStyleStore = create<StyleState>((set, get) => ({
 
   refresh: async () => {
     // Queue through writeChain to avoid races with pending writes
-    return enqueue(() => readPresetsFromDisk(set, get));
+    const editsAtRequest = localEdits;
+    return enqueue(() => readPresetsFromDisk(set, get, editsAtRequest));
   },
 }));
 

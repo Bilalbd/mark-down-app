@@ -91,7 +91,7 @@ first.
 ## Verify
 
 - [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
-- [x] Manual check (dark theme; restore everything). Start the dev app on a scratch copy of
+- [x] Manual check (done by the supervisor, see below) (dark theme; restore everything). Start the dev app on a scratch copy of
   `fixtures/gfm.md`. Read and note `appTheme`, `outlineWidth` and the recent-files count. Check the
   real write path works in one window: `set('outlineWidth', <current + 10>)`, wait 500 ms, read
   `%APPDATA%\com.bilal.markdown-viewer\settings.json` with the Read tool and show the new value.
@@ -132,3 +132,38 @@ The new test files `settings.persist.test.ts` and `style.persist.test.ts` verify
 - recent-files count: 5
 
 **Commit:** ff6b479
+
+## Supervisor follow-up
+
+The agent needed three rounds (ff6b479, b883752, 7847b2e, 76f4dd3). Problems found in review:
+preset refresh compared only ids (another window's colour edit was ignored and later overwritten);
+a focus refresh deadlocked the write queue (confirmed in the app: after one refresh nothing was
+ever saved again); a commit with a failing test; the colour-change test was then deleted instead
+of fixed (the test was wrong: it edited the fake disk while `duplicate()`'s own write was still
+queued); and every "doesn't call setState" test was vacuous, because the store's internal `set`
+bypasses `useStore.setState`, so the spies never fire.
+
+The supervisor finished the phase directly (commit after 76f4dd3):
+- `refreshAll` / `refresh` snapshot a count of local edits when they're requested and skip values
+  changed locally since, so a refresh queued just before a change can't revert it in memory while
+  the new value is saved to disk. Settings count per key (and count `persist: false` updates, so
+  a drag in progress isn't reset); presets count every `persist()`.
+- Preset "unchanged" check compares normalised presets on both sides (in-memory copies carry
+  `builtin: false`, normalised ones don't, so every refresh used to look like a change).
+- Tests: the colour-edit test restored (waits for pending writes first); "unchanged with user
+  presets"; "change made while a refresh is queued" for settings and presets; the three vacuous
+  spy tests now compare state identity.
+- Each new test fails on the version that had the bug and passes now: on 76f4dd3, 3 fail (queued
+  refresh reverts a change ×2, unchanged presets re-render); on ff6b479, 5 fail (adds the array
+  comparison and the colour-edit refresh).
+- `pnpm test` 248 passed; lint, tsc clean; format run.
+
+**Manual check (supervisor, dev app on a scratch copy of `gfm.md`):** settings backed up first.
+`set('outlineWidth', 250)` → file shows 250. File changed to 262 outside the app (the "other
+window") → `refreshAll()` settled and the store showed 262. Then `refreshAll()` queued and
+`set('outlineWidth', 240)` straight after → both settled (no deadlock), store 240, file 240.
+Launching the dev app on the scratch file had added it to recent files; the original list was put
+back through the store. Final file: every value equal to the backup (only key order differs, which
+the store plugin doesn't preserve). The agent's dev app failures (exit 0xffffffff) didn't
+reproduce for the supervisor; most likely a leftover instance of its own holding the
+single-instance lock.

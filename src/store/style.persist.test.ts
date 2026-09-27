@@ -31,12 +31,21 @@ vi.mock('@tauri-apps/plugin-store', () => ({
   }),
 }));
 
-import { useStyleStore } from './style';
+import { BUILTIN_PRESETS, useStyleStore, whenPresetsWritten, type StylePreset } from './style';
+
+/** Resolves to 'settled' or, if `p` hangs (e.g. a deadlocked queue), to 'timed out'. */
+function settlesWithin(p: Promise<unknown>, ms = 1000): Promise<string> {
+  return Promise.race([
+    p.then(() => 'settled'),
+    new Promise<string>((resolve) => setTimeout(() => resolve('timed out'), ms)),
+  ]);
+}
 
 describe('style persistence across windows', () => {
   beforeEach(() => {
     testState.sharedDisk.clear();
     testState.storeMemory.clear();
+    useStyleStore.setState({ presets: BUILTIN_PRESETS, activePresetId: BUILTIN_PRESETS[0].id });
   });
 
   it("reads another window's preset change without losing the current window's change", async () => {
@@ -134,13 +143,14 @@ describe('style persistence across windows', () => {
 
   it('refresh skips the update if nothing changed', async () => {
     await useStyleStore.getState().load();
-    const spy = vi.spyOn(useStyleStore, 'setState');
+    // The store's internal updates bypass `useStyleStore.setState`, so compare state identity
+    // instead of spying on it.
+    const before = useStyleStore.getState();
 
     // Refresh with no disk changes
     await useStyleStore.getState().refresh();
 
-    expect(spy).not.toHaveBeenCalled();
-    spy.mockRestore();
+    expect(useStyleStore.getState()).toBe(before);
   });
 
   it('refreshAll and set both settle without deadlock', async () => {
@@ -151,5 +161,48 @@ describe('style persistence across windows', () => {
       new Promise((resolve) => setTimeout(() => resolve('timed out'), 1000)),
     ]);
     expect(raceResult).toBe('settled');
+  });
+
+  it("refresh picks up another window's edit to an existing user preset", async () => {
+    await useStyleStore.getState().load();
+    const id = useStyleStore.getState().duplicate('builtin-github', 'Mine');
+    await whenPresetsWritten();
+
+    // Another window changes that preset's dark background.
+    const onDisk = testState.sharedDisk.get('userPresets') as StylePreset[];
+    testState.sharedDisk.set(
+      'userPresets',
+      onDisk.map((p) =>
+        p.id === id
+          ? { ...p, colors: { ...p.colors, dark: { ...p.colors.dark, bg: '#ff0000' } } }
+          : p,
+      ),
+    );
+
+    await useStyleStore.getState().refresh();
+    const mine = useStyleStore.getState().presets.find((p) => p.id === id);
+    expect(mine?.colors.dark.bg).toBe('#ff0000');
+  });
+
+  it('refresh leaves state alone when the file matches, even with user presets', async () => {
+    await useStyleStore.getState().load();
+    useStyleStore.getState().duplicate('builtin-github', 'Mine');
+    await whenPresetsWritten();
+    const before = useStyleStore.getState();
+
+    await useStyleStore.getState().refresh();
+
+    expect(useStyleStore.getState()).toBe(before);
+  });
+
+  it('a change made right after a refresh still reaches the disk', async () => {
+    await useStyleStore.getState().load();
+    const refreshed = useStyleStore.getState().refresh();
+    useStyleStore.getState().setActive('builtin-nord');
+
+    expect(await settlesWithin(refreshed)).toBe('settled');
+    expect(await settlesWithin(whenPresetsWritten())).toBe('settled');
+    expect(testState.sharedDisk.get('activePresetId')).toBe('builtin-nord');
+    expect(useStyleStore.getState().activePresetId).toBe('builtin-nord');
   });
 });
