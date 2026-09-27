@@ -137,12 +137,12 @@ function persist(state: Pick<StyleState, 'presets' | 'activePresetId'>) {
     .then(async () => {
       const s = await getStore();
       if (!s) return;
-      await s.reload().catch(() => undefined);
-      await s.set('activePresetId', data.activePresetId).catch(() => undefined);
-      await s.set('userPresets', data.userPresets).catch(() => undefined);
-      await s.save().catch(() => undefined);
+      await s.reload();
+      await s.set('activePresetId', data.activePresetId);
+      await s.set('userPresets', data.userPresets);
+      await s.save();
     })
-    .catch(() => undefined);
+    .catch(() => undefined); // Failed writes mustn't block later writes; in-memory value is still right for this session
 }
 
 const newId = () => `user-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
@@ -272,26 +272,47 @@ export const useStyleStore = create<StyleState>((set, get) => ({
   },
 
   refresh: async () => {
-    const s = await getStore();
-    if (!s) return;
-    await s.reload();
-    const activePresetId = (await s.get<string>('activePresetId')) ?? BUILTIN_PRESETS[0].id;
-    const raw = (await s.get<StylePreset[]>('userPresets')) ?? [];
-    const userPresets = parseUserPresets(raw);
-    const presets = [...BUILTIN_PRESETS, ...userPresets];
-    const finalActiveId = presets.some((p) => p.id === activePresetId)
-      ? activePresetId
-      : BUILTIN_PRESETS[0].id;
+    // Queue through writeChain to avoid races with pending writes
+    return new Promise<void>((resolve) => {
+      writeChain = writeChain
+        .then(async () => {
+          const s = await getStore();
+          if (!s) return;
+          await s.reload();
+          const activePresetId = (await s.get<string>('activePresetId')) ?? BUILTIN_PRESETS[0].id;
+          const raw = (await s.get<StylePreset[]>('userPresets')) ?? [];
+          const userPresets = parseUserPresets(raw);
+          const presets = [...BUILTIN_PRESETS, ...userPresets];
+          const finalActiveId = presets.some((p) => p.id === activePresetId)
+            ? activePresetId
+            : BUILTIN_PRESETS[0].id;
 
-    // Skip update if nothing changed
-    const current = get();
-    if (
-      current.presets.length === presets.length &&
-      current.presets.every((p) => presets.some((q) => q.id === p.id)) &&
-      current.activePresetId === finalActiveId
-    ) {
-      return;
-    }
-    set({ presets, activePresetId: finalActiveId });
+          // Skip update if nothing changed: compare serialized user presets and active id
+          const current = get();
+          const currentUserPresets = current.presets.filter((p) => !p.builtin);
+          const newUserPresets = presets.filter((p) => !p.builtin);
+          if (
+            JSON.stringify(currentUserPresets) === JSON.stringify(newUserPresets) &&
+            current.activePresetId === finalActiveId
+          ) {
+            return;
+          }
+          set({ presets, activePresetId: finalActiveId });
+        })
+        .catch(() => undefined);
+      writeChain.then(() => resolve()).catch(() => resolve());
+    });
   },
 }));
+
+/** Queues a refresh through the write chain to avoid races with pending writes. */
+export async function queueStyleRefresh(): Promise<void> {
+  return new Promise<void>((resolve) => {
+    writeChain = writeChain
+      .then(async () => {
+        await useStyleStore.getState().refresh();
+      })
+      .catch(() => undefined);
+    writeChain.then(() => resolve()).catch(() => resolve());
+  });
+}

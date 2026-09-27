@@ -93,11 +93,11 @@ function writeKey<K extends keyof Settings>(key: K, value: Settings[K]): void {
     .then(async () => {
       const s = await getStore();
       if (!s) return;
-      await s.reload().catch(() => undefined);
-      await s.set(key, value).catch(() => undefined);
-      await s.save().catch(() => undefined);
+      await s.reload();
+      await s.set(key, value);
+      await s.save();
     })
-    .catch(() => undefined);
+    .catch(() => undefined); // Failed writes mustn't block later writes; in-memory value is still right for this session
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -141,22 +141,34 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   refreshAll: async () => {
-    const s = await getStore();
-    if (!s) return;
-    await s.reload();
-    const entries = await s.entries<Settings[keyof Settings]>();
-    const patch: Partial<Settings> = {};
-    let hasChanges = false;
-    for (const [k, v] of entries) {
-      if (k in DEFAULTS && !EPHEMERAL_KEYS.has(k as keyof Settings)) {
-        const key = k as keyof Settings;
-        if (get()[key] !== v) {
-          (patch as Record<string, unknown>)[k] = v;
-          hasChanges = true;
-        }
-      }
-    }
-    if (hasChanges) set(patch);
+    // Queue through writeChain to avoid races with pending writes
+    return new Promise<void>((resolve) => {
+      writeChain = writeChain
+        .then(async () => {
+          const s = await getStore();
+          if (!s) return;
+          await s.reload();
+          const entries = await s.entries<Settings[keyof Settings]>();
+          const patch: Partial<Settings> = {};
+          let hasChanges = false;
+          for (const [k, v] of entries) {
+            if (k in DEFAULTS && !EPHEMERAL_KEYS.has(k as keyof Settings)) {
+              const key = k as keyof Settings;
+              const current = get()[key];
+              // Use JSON.stringify for arrays and other non-primitives to detect actual changes
+              const currentSerialized = Array.isArray(current) ? JSON.stringify(current) : current;
+              const valueSerialized = Array.isArray(v) ? JSON.stringify(v) : v;
+              if (currentSerialized !== valueSerialized) {
+                (patch as Record<string, unknown>)[k] = v;
+                hasChanges = true;
+              }
+            }
+          }
+          if (hasChanges) set(patch);
+        })
+        .catch(() => undefined);
+      writeChain.then(() => resolve()).catch(() => resolve());
+    });
   },
 
   addRecentFile: (path) => {
@@ -179,4 +191,16 @@ export function isPreviewFullWidth(s: Pick<Settings, 'previewFullWidth' | 'viewM
 /** For tests: returns a promise that resolves when all queued writes complete. */
 export function whenSettingsWritten(): Promise<void> {
   return writeChain;
+}
+
+/** Queues a refreshAll through the write chain to avoid races with pending writes. */
+export async function queueRefreshAll(): Promise<void> {
+  return new Promise<void>((resolve) => {
+    writeChain = writeChain
+      .then(async () => {
+        await useSettingsStore.getState().refreshAll();
+      })
+      .catch(() => undefined);
+    writeChain.then(() => resolve()).catch(() => resolve());
+  });
 }

@@ -93,7 +93,22 @@ describe('settings persistence across windows', () => {
     testState.sharedDisk.set('viewMode', 'source');
     await useSettingsStore.getState().load();
 
-    // viewMode should stay formatted because it's ephemeral
+    // Refresh with viewMode on disk
+    await useSettingsStore.getState().refreshAll();
+
+    // viewMode should still be formatted because it's ephemeral
     expect(useSettingsStore.getState().viewMode).toBe('formatted');
+  });
+
+  it('refreshAll compares arrays by value using JSON.stringify', async () => {
+    testState.sharedDisk.set('recentFiles', ['a.md', 'b.md']);
+    await useSettingsStore.getState().load();
+
+    const spy = vi.spyOn(useSettingsStore, 'setState');
+    // Call refreshAll with identical data on disk - should not re-render
+    await useSettingsStore.getState().refreshAll();
+
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 });
