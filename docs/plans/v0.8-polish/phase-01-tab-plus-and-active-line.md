@@ -65,4 +65,13 @@ All changes are visual only. The "+" button menu functionality is unchanged. Sel
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Diff matches the phase document (three source files, no test changes). `pnpm test` 377 passed,
+lint and tsc clean. The agent left an untracked `screenshots/` folder in the repo; its three PNGs
+were byte-identical, so its light/dark check showed nothing. Removed it and redid the check.
+
+**Manual check (supervisor, dev app in its own window and WebView2 folder, copies of `gfm.md` and
+`links.md`):** measured `.tabstrip__new` and the active tab's close button at 18 × 18 CSS px, same
+row position. Enlarged crops in light and dark: the "+" square (menu open) and the close button
+match in box and icon size. Source view, cursor on line 12 with a word selected: the active line and
+its number read as one band, clearly visible but subtle in both themes; the selection shows on top.
+Recent files restored afterwards; the other settings were not touched.

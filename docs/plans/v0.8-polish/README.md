@@ -95,7 +95,7 @@ After Phase 7, the supervisor builds the installer (`pnpm tauri build`) and chec
 
 | Phase | Commit | Tests before → after | Manual check | Notes |
 |---|---|---|---|---|
-| 1 | | | | |
+| 1 | `1095967` | 377 → 377 | Passed (light and dark, supervisor's own screenshots) | Agent's screenshots were identical; redone |
 | 2 | | | | |
 | 3 | | | | |
 | 4 | | | | |
