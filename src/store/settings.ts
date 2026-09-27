@@ -84,20 +84,52 @@ async function getStore(): Promise<Store | null> {
   }
 }
 
+/** Queues a task without allowing nested enqueueing. */
+function enqueue(task: () => Promise<void>): Promise<void> {
+  const run = writeChain.then(task);
+  writeChain = run.catch(() => undefined);
+  return run;
+}
+
 /**
  * Queues a write that re-reads settings.json first, so a value another window saved since we
  * loaded isn't overwritten with our stale copy.
  */
 function writeKey<K extends keyof Settings>(key: K, value: Settings[K]): void {
-  writeChain = writeChain
-    .then(async () => {
-      const s = await getStore();
-      if (!s) return;
-      await s.reload();
-      await s.set(key, value);
-      await s.save();
-    })
-    .catch(() => undefined); // Failed writes mustn't block later writes; in-memory value is still right for this session
+  void enqueue(async () => {
+    const s = await getStore();
+    if (!s) return;
+    await s.reload();
+    await s.set(key, value);
+    await s.save();
+  }).catch(() => undefined); // Failed writes mustn't block later writes; in-memory value is still right for this session
+}
+
+/** Re-reads all settings from disk without queueing (for use inside enqueue only). */
+async function readAllFromDisk(
+  set: (patch: Partial<Settings>) => void,
+  get: () => Settings & SettingsState,
+): Promise<void> {
+  const s = await getStore();
+  if (!s) return;
+  await s.reload();
+  const entries = await s.entries<Settings[keyof Settings]>();
+  const patch: Partial<Settings> = {};
+  let hasChanges = false;
+  for (const [k, v] of entries) {
+    if (k in DEFAULTS && !EPHEMERAL_KEYS.has(k as keyof Settings)) {
+      const key = k as keyof Settings;
+      const current = get()[key];
+      // Use JSON.stringify for arrays and other non-primitives to detect actual changes
+      const currentSerialized = Array.isArray(current) ? JSON.stringify(current) : current;
+      const valueSerialized = Array.isArray(v) ? JSON.stringify(v) : v;
+      if (currentSerialized !== valueSerialized) {
+        (patch as Record<string, unknown>)[k] = v;
+        hasChanges = true;
+      }
+    }
+  }
+  if (hasChanges) set(patch);
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -142,33 +174,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   refreshAll: async () => {
     // Queue through writeChain to avoid races with pending writes
-    return new Promise<void>((resolve) => {
-      writeChain = writeChain
-        .then(async () => {
-          const s = await getStore();
-          if (!s) return;
-          await s.reload();
-          const entries = await s.entries<Settings[keyof Settings]>();
-          const patch: Partial<Settings> = {};
-          let hasChanges = false;
-          for (const [k, v] of entries) {
-            if (k in DEFAULTS && !EPHEMERAL_KEYS.has(k as keyof Settings)) {
-              const key = k as keyof Settings;
-              const current = get()[key];
-              // Use JSON.stringify for arrays and other non-primitives to detect actual changes
-              const currentSerialized = Array.isArray(current) ? JSON.stringify(current) : current;
-              const valueSerialized = Array.isArray(v) ? JSON.stringify(v) : v;
-              if (currentSerialized !== valueSerialized) {
-                (patch as Record<string, unknown>)[k] = v;
-                hasChanges = true;
-              }
-            }
-          }
-          if (hasChanges) set(patch);
-        })
-        .catch(() => undefined);
-      writeChain.then(() => resolve()).catch(() => resolve());
-    });
+    return enqueue(() => readAllFromDisk(set, get));
   },
 
   addRecentFile: (path) => {
@@ -191,16 +197,4 @@ export function isPreviewFullWidth(s: Pick<Settings, 'previewFullWidth' | 'viewM
 /** For tests: returns a promise that resolves when all queued writes complete. */
 export function whenSettingsWritten(): Promise<void> {
   return writeChain;
-}
-
-/** Queues a refreshAll through the write chain to avoid races with pending writes. */
-export async function queueRefreshAll(): Promise<void> {
-  return new Promise<void>((resolve) => {
-    writeChain = writeChain
-      .then(async () => {
-        await useSettingsStore.getState().refreshAll();
-      })
-      .catch(() => undefined);
-    writeChain.then(() => resolve()).catch(() => resolve());
-  });
 }

@@ -121,6 +121,13 @@ async function getStore(): Promise<Store | null> {
   }
 }
 
+/** Queues a task without allowing nested enqueueing. */
+function enqueue(task: () => Promise<void>): Promise<void> {
+  const run = writeChain.then(task);
+  writeChain = run.catch(() => undefined);
+  return run;
+}
+
 /** Parses and normalizes user presets from disk. */
 function parseUserPresets(raw: StylePreset[]): StylePreset[] {
   return raw
@@ -133,16 +140,43 @@ function persist(state: Pick<StyleState, 'presets' | 'activePresetId'>) {
     activePresetId: state.activePresetId,
     userPresets: state.presets.filter((p) => !p.builtin),
   };
-  writeChain = writeChain
-    .then(async () => {
-      const s = await getStore();
-      if (!s) return;
-      await s.reload();
-      await s.set('activePresetId', data.activePresetId);
-      await s.set('userPresets', data.userPresets);
-      await s.save();
-    })
-    .catch(() => undefined); // Failed writes mustn't block later writes; in-memory value is still right for this session
+  void enqueue(async () => {
+    const s = await getStore();
+    if (!s) return;
+    await s.reload();
+    await s.set('activePresetId', data.activePresetId);
+    await s.set('userPresets', data.userPresets);
+    await s.save();
+  }).catch(() => undefined); // Failed writes mustn't block later writes; in-memory value is still right for this session
+}
+
+/** Re-reads presets from disk without queueing (for use inside enqueue only). */
+async function readPresetsFromDisk(
+  set: (state: { presets: StylePreset[]; activePresetId: string }) => void,
+  get: () => Pick<StyleState, 'presets' | 'activePresetId'>,
+): Promise<void> {
+  const s = await getStore();
+  if (!s) return;
+  await s.reload();
+  const activePresetId = (await s.get<string>('activePresetId')) ?? BUILTIN_PRESETS[0].id;
+  const raw = (await s.get<StylePreset[]>('userPresets')) ?? [];
+  const userPresets = parseUserPresets(raw);
+  const presets = [...BUILTIN_PRESETS, ...userPresets];
+  const finalActiveId = presets.some((p) => p.id === activePresetId)
+    ? activePresetId
+    : BUILTIN_PRESETS[0].id;
+
+  // Skip update if nothing changed: compare serialized user presets and active id
+  const current = get();
+  const currentUserPresets = current.presets.filter((p) => !p.builtin);
+  const newUserPresets = presets.filter((p) => !p.builtin);
+  if (
+    JSON.stringify(currentUserPresets) === JSON.stringify(newUserPresets) &&
+    current.activePresetId === finalActiveId
+  ) {
+    return;
+  }
+  set({ presets, activePresetId: finalActiveId });
 }
 
 const newId = () => `user-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
@@ -273,46 +307,11 @@ export const useStyleStore = create<StyleState>((set, get) => ({
 
   refresh: async () => {
     // Queue through writeChain to avoid races with pending writes
-    return new Promise<void>((resolve) => {
-      writeChain = writeChain
-        .then(async () => {
-          const s = await getStore();
-          if (!s) return;
-          await s.reload();
-          const activePresetId = (await s.get<string>('activePresetId')) ?? BUILTIN_PRESETS[0].id;
-          const raw = (await s.get<StylePreset[]>('userPresets')) ?? [];
-          const userPresets = parseUserPresets(raw);
-          const presets = [...BUILTIN_PRESETS, ...userPresets];
-          const finalActiveId = presets.some((p) => p.id === activePresetId)
-            ? activePresetId
-            : BUILTIN_PRESETS[0].id;
-
-          // Skip update if nothing changed: compare serialized user presets and active id
-          const current = get();
-          const currentUserPresets = current.presets.filter((p) => !p.builtin);
-          const newUserPresets = presets.filter((p) => !p.builtin);
-          if (
-            JSON.stringify(currentUserPresets) === JSON.stringify(newUserPresets) &&
-            current.activePresetId === finalActiveId
-          ) {
-            return;
-          }
-          set({ presets, activePresetId: finalActiveId });
-        })
-        .catch(() => undefined);
-      writeChain.then(() => resolve()).catch(() => resolve());
-    });
+    return enqueue(() => readPresetsFromDisk(set, get));
   },
 }));
 
-/** Queues a refresh through the write chain to avoid races with pending writes. */
-export async function queueStyleRefresh(): Promise<void> {
-  return new Promise<void>((resolve) => {
-    writeChain = writeChain
-      .then(async () => {
-        await useStyleStore.getState().refresh();
-      })
-      .catch(() => undefined);
-    writeChain.then(() => resolve()).catch(() => resolve());
-  });
+/** For tests: returns a promise that resolves when all queued writes complete. */
+export function whenPresetsWritten(): Promise<void> {
+  return writeChain;
 }

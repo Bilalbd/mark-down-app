@@ -24,7 +24,7 @@ import {
   type FileChangedEvent,
 } from './lib/tauri';
 import { cycleIndex, samePath, shortDir } from './lib/tabs';
-import { useSettingsStore, queueRefreshAll } from './store/settings';
+import { useSettingsStore } from './store/settings';
 import { isDirty, useDocumentStore } from './store/document';
 import {
   hasUnsavedTabs,
@@ -34,7 +34,7 @@ import {
   routeExternalOpen,
   useTabsStore,
 } from './store/tabs';
-import { useStyleStore, queueStyleRefresh } from './store/style';
+import { useStyleStore } from './store/style';
 import { extractHeadings } from './markdown/render';
 import { useViewStore } from './store/view';
 
@@ -160,9 +160,15 @@ export default function App() {
     void getCurrentWindow()
       .onFocusChanged(({ payload: focused }) => {
         if (focused) {
-          // Queue refreshes through the write chains to avoid races with pending writes
-          void queueRefreshAll().catch(() => undefined);
-          void queueStyleRefresh().catch(() => undefined);
+          // Queued through writeChain to avoid races with pending writes
+          void useSettingsStore
+            .getState()
+            .refreshAll()
+            .catch(() => undefined);
+          void useStyleStore
+            .getState()
+            .refresh()
+            .catch(() => undefined);
         }
       })
       .then((u) => (unlisten = u));
