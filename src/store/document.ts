@@ -212,7 +212,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       return;
     }
     const selected = await openDialog({
-      multiple: useSettingsStore.getState().openFilesIn === 'tab',
+      multiple: true,
       directory: false,
       filters: [
         { name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd', 'txt'] },

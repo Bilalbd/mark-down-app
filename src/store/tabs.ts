@@ -12,6 +12,7 @@ import {
 import { useSettingsStore, type ViewMode } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import {
+  basename,
   dirname,
   isTauri,
   openInNewWindow,
@@ -551,7 +552,12 @@ export function hasUnsavedTabs(): boolean {
   return false;
 }
 
-/** Opens `path` the way the "Open files in" setting says: as a tab, or replacing the current document. */
+/**
+ * Opens `path` according to the "Open files in" setting.
+ * Tab mode: opens as a new tab (or focuses if already open).
+ * Window mode: focuses if already open in this window; otherwise opens here if the window is blank,
+ * or opens in a new window.
+ */
 export async function openPath(path: string): Promise<boolean> {
   const openFilesIn = useSettingsStore.getState().openFilesIn;
 
@@ -560,7 +566,7 @@ export async function openPath(path: string): Promise<boolean> {
   }
 
   // window mode
-  // Check if already open in another tab
+  // Check if already open in this window
   const existingId = findTabByPath(
     useTabsStore.getState().tabs.map((t) => ({ id: t.id, path: pathOf(t) })),
     path,
@@ -570,8 +576,20 @@ export async function openPath(path: string): Promise<boolean> {
     return true;
   }
 
-  // Not open: replace the active document
-  return useDocumentStore.getState().open(path);
+  // Not open: check if this window is blank
+  const activeDoc = useDocumentStore.getState();
+  if (isBlankDocument(activeDoc)) {
+    return activeDoc.load(path);
+  }
+
+  // Window has content: open in a new window
+  return openInNewWindow(path).then(
+    () => true,
+    (e) => {
+      useDocumentStore.setState({ error: `Could not open ${basename(path)}: ${String(e)}` });
+      return false;
+    },
+  );
 }
 
 /** Creates a new document the way the "Open files in" setting says: new tab or replace current. */
@@ -588,32 +606,30 @@ export async function newDocumentPerSetting(): Promise<void> {
   }
 }
 
-/** Opens multiple paths according to the setting: all paths as tabs in tab mode, first path only in window mode. */
+/**
+ * Opens multiple paths according to the setting.
+ * Tab mode: opens all paths as tabs.
+ * Window mode: opens all paths, with the first opening in this window (if blank)
+ * and the others in new windows.
+ */
 export async function openPaths(paths: string[]): Promise<void> {
-  const openFilesIn = useSettingsStore.getState().openFilesIn;
-
-  if (openFilesIn === 'tab') {
-    // Tab mode: open all paths sequentially
-    for (const path of paths) {
-      await openPath(path);
-    }
-  } else {
-    // Window mode: open first path only
-    const first = paths[0];
-    if (first) await openPath(first);
+  for (const path of paths) {
+    await openPath(path);
   }
 }
 
-/** Routes a single path to either a tab or a new window based on the current setting. */
+/**
+ * Routes a file from Explorer to either a tab or a new window based on the setting.
+ * Tab mode: opens as a tab (or focuses if already open).
+ * Window mode: uses openPath, so it respects the blank-window and already-open rules.
+ */
 export async function routeExternalOpen(path: string): Promise<void> {
   const openFilesIn = useSettingsStore.getState().openFilesIn;
 
   if (openFilesIn === 'tab') {
     await useTabsStore.getState().openInTab(path);
   } else {
-    await openInNewWindow(path).catch((e) => {
-      useDocumentStore.setState({ error: `Could not open ${path}: ${String(e)}` });
-    });
+    await openPath(path);
   }
 }
 

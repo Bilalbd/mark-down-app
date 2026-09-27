@@ -565,19 +565,18 @@ describe('tabs store', () => {
     expect(useDocumentStore.getState().path).toBe('C:\\docs\\A.md');
   });
 
-  it('openPath in window mode replaces active document', async () => {
+  it('openPath in window mode with file open calls openInNewWindow', async () => {
     useSettingsStore.setState({ openFilesIn: 'window' });
 
-    mockAskSaveChanges.mockResolvedValueOnce('discard');
-
     await useTabsStore.getState().openInTab('C:\\docs\\A.md');
-    const tabCountBefore = useTabsStore.getState().tabs.length;
+    mockOpenInNewWindow.mockClear();
+    mockOpenInNewWindow.mockResolvedValueOnce(undefined);
 
     const ok = await openPath('C:\\docs\\B.md');
 
     expect(ok).toBe(true);
-    expect(useTabsStore.getState().tabs).toHaveLength(tabCountBefore);
-    expect(useDocumentStore.getState().path).toBe('C:\\docs\\B.md');
+    expect(useDocumentStore.getState().path).toBe('C:\\docs\\A.md');
+    expect(mockOpenInNewWindow).toHaveBeenCalledWith('C:\\docs\\B.md');
   });
 
   it('openPath in window mode with file already open in another tab, activates that tab', async () => {
@@ -675,12 +674,134 @@ describe('tabs store', () => {
 
   it('routeExternalOpen in window mode sets error when openInNewWindow rejects', async () => {
     useSettingsStore.setState({ openFilesIn: 'window' });
+
+    await useTabsStore.getState().openInTab('C:\\docs\\A.md');
     mockOpenInNewWindow.mockRejectedValueOnce(new Error('spawn failed'));
 
-    await routeExternalOpen('C:\\docs\\A.md');
+    await routeExternalOpen('C:\\docs\\B.md');
 
     expect(useDocumentStore.getState().error).toContain('Could not open');
     expect(useDocumentStore.getState().error).toContain('spawn failed');
+  });
+
+  it('openPath in window mode from start screen loads file here', async () => {
+    useSettingsStore.setState({ openFilesIn: 'window' });
+
+    expect(useDocumentStore.getState().hasDocument).toBe(false);
+
+    const ok = await openPath('C:\\docs\\A.md');
+
+    expect(ok).toBe(true);
+    expect(useTabsStore.getState().tabs).toHaveLength(1);
+    expect(useDocumentStore.getState().path).toBe('C:\\docs\\A.md');
+    expect(mockOpenInNewWindow).not.toHaveBeenCalled();
+  });
+
+  it('openPath in window mode with empty untitled document loads file here', async () => {
+    useSettingsStore.setState({ openFilesIn: 'window' });
+
+    // Create an empty untitled document (hasDocument but no path)
+    await useTabsStore.getState().newTab();
+    expect(useDocumentStore.getState().hasDocument).toBe(true);
+    expect(useDocumentStore.getState().path).toBeNull();
+
+    const ok = await openPath('C:\\docs\\A.md');
+
+    expect(ok).toBe(true);
+    expect(useDocumentStore.getState().path).toBe('C:\\docs\\A.md');
+    expect(mockOpenInNewWindow).not.toHaveBeenCalled();
+  });
+
+  it('openPath in window mode with content opens in new window', async () => {
+    useSettingsStore.setState({ openFilesIn: 'window' });
+
+    await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+    useDocumentStore.getState().setContent('A content');
+
+    const pathBefore = useDocumentStore.getState().path;
+    const contentBefore = useDocumentStore.getState().content;
+    mockOpenInNewWindow.mockResolvedValueOnce(undefined);
+
+    const ok = await openPath('C:\\docs\\B.md');
+
+    expect(ok).toBe(true);
+    expect(useDocumentStore.getState().path).toBe(pathBefore);
+    expect(useDocumentStore.getState().content).toBe(contentBefore);
+    expect(mockOpenInNewWindow).toHaveBeenCalledWith('C:\\docs\\B.md');
+  });
+
+  it('openPath in window mode with already open file focuses it, no new window', async () => {
+    useSettingsStore.setState({ openFilesIn: 'window' });
+
+    await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+    await useTabsStore.getState().openInTab('C:\\docs\\B.md');
+    const bId = useTabsStore.getState().activeId;
+    const aId = useTabsStore.getState().tabs[0].id;
+
+    // Back to A
+    await useTabsStore.getState().activate(aId);
+    expect(useDocumentStore.getState().path).toBe('C:\\docs\\A.md');
+
+    mockOpenInNewWindow.mockClear();
+
+    // Open B path (should focus existing tab)
+    const ok = await openPath('C:\\docs\\B.md');
+
+    expect(ok).toBe(true);
+    expect(useTabsStore.getState().activeId).toBe(bId);
+    expect(useDocumentStore.getState().path).toBe('C:\\docs\\B.md');
+    expect(mockOpenInNewWindow).not.toHaveBeenCalled();
+  });
+
+  it('openPath in window mode with openInNewWindow rejecting sets error, returns false', async () => {
+    useSettingsStore.setState({ openFilesIn: 'window' });
+
+    await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+    mockOpenInNewWindow.mockRejectedValueOnce(new Error('spawn failed'));
+
+    const ok = await openPath('C:\\docs\\B.md');
+
+    expect(ok).toBe(false);
+    expect(useDocumentStore.getState().error).toContain('Could not open');
+    expect(useDocumentStore.getState().error).toContain('B.md');
+    expect(useDocumentStore.getState().error).toContain('spawn failed');
+  });
+
+  it('openPaths in window mode from start screen: first loads here, rest open in new windows', async () => {
+    useSettingsStore.setState({ openFilesIn: 'window' });
+
+    expect(useDocumentStore.getState().hasDocument).toBe(false);
+
+    mockOpenInNewWindow.mockResolvedValueOnce(undefined).mockResolvedValueOnce(undefined);
+
+    await openPaths(['C:\\docs\\A.md', 'C:\\docs\\B.md', 'C:\\docs\\C.md']);
+
+    expect(useDocumentStore.getState().path).toBe('C:\\docs\\A.md');
+    expect(mockOpenInNewWindow).toHaveBeenCalledTimes(2);
+    expect(mockOpenInNewWindow).toHaveBeenNthCalledWith(1, 'C:\\docs\\B.md');
+    expect(mockOpenInNewWindow).toHaveBeenNthCalledWith(2, 'C:\\docs\\C.md');
+  });
+
+  it('routeExternalOpen in window mode on start screen loads here', async () => {
+    useSettingsStore.setState({ openFilesIn: 'window' });
+
+    expect(useDocumentStore.getState().hasDocument).toBe(false);
+
+    await routeExternalOpen('C:\\docs\\A.md');
+
+    expect(useDocumentStore.getState().path).toBe('C:\\docs\\A.md');
+    expect(mockOpenInNewWindow).not.toHaveBeenCalled();
+  });
+
+  it('routeExternalOpen in window mode with document open opens new window', async () => {
+    useSettingsStore.setState({ openFilesIn: 'window' });
+
+    await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+    mockOpenInNewWindow.mockClear();
+
+    await routeExternalOpen('C:\\docs\\B.md');
+
+    expect(mockOpenInNewWindow).toHaveBeenCalledWith('C:\\docs\\B.md');
   });
 
   describe('areTabsVisible', () => {

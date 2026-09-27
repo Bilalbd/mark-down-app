@@ -20,7 +20,14 @@ export function GeneralTab() {
   return (
     <>
       <Section title="Application">
-        <Row label="Open files in" hint="Also applies to files opened from Explorer">
+        <Row
+          label="Open files in"
+          hint={
+            openFilesIn === 'window'
+              ? 'Every file opens in its own window, unless this one is empty'
+              : 'All files open as tabs in this window'
+          }
+        >
           <Select<OpenFilesIn>
             value={openFilesIn}
             onChange={(v) => set('openFilesIn', v)}
