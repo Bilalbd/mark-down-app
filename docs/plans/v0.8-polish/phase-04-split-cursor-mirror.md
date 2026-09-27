@@ -59,12 +59,12 @@ way that would now be incomplete).
 ## Verify
 
 - [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
-- [ ] Manual check in **light and dark**, Split view on a copy of `fixtures/gfm.md`. Put the cursor
+- [x] Manual check in **light and dark**, Split view on a copy of `fixtures/gfm.md`. Put the cursor
   (via `editorView.dispatch({ selection: { anchor } })`) on: a heading, a paragraph, a nested list
   item, a table row, a line inside a fenced code block, a blank line. Screenshot each (crop the
   preview pane): the right block is tinted, subtly; the blank line tints nothing. Switch to Formatted
   view: no tint. Export HTML from Split view: the file has no `is-cursor-block`.
-- [ ] Performance: on a copy of `fixtures/huge.md` in Split view, move the cursor 50 times from eval
+- [x] Performance: on a copy of `fixtures/huge.md` in Split view, move the cursor 50 times from eval
   and report the average time per move (should be well under a frame).
 - [x] Commit: `Mirror the source cursor's block in the split preview`.
 
@@ -86,4 +86,20 @@ way that would now be incomplete).
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Review found three problems, fixed by the agent in `03e4afa`: `stripCursorMark` had a hand-written
+serialiser that wrote text nodes unescaped (sanitised `&lt;script&gt;` became a real `<script>` in
+exports) and lower-cased SVG tags, now `template.innerHTML` with tests; the block cache was a Map
+that kept every old preview's DOM alive, now one entry; the cleanup removed the tint on every cursor
+move (blink), now only when the block changes. The agent also overwrote the supervisor's dev-app
+scripts with one that would have killed Bilal's installed app by path; it never ran, the scripts
+were restored and made read-only. The agent skipped the manual check.
+
+**Manual check (supervisor, dev app in its own window and WebView2 folder, copy of `gfm.md`, Split
+view, light and dark):** the tint lands on the heading (line 5), paragraph (3), nested list item
+(18), nested quote's paragraph (12), table row (32), the whole code block (39), and nothing on a
+blank line (13). A striped table row only showed the ring (the stripe rule outranked the tint); the
+supervisor added a row rule after it, without the ring: `69fa290`, rows now tinted in both themes.
+Code blocks show only a faint rim (their own background covers the tint), acceptable. Typing 15
+characters and sampling 45 frames: 0 frames without the tint. Formatted view: no tint.
+`huge.md` in Split, 50 cursor moves: 19.1 ms average across two frames (27 ms max), one block
+marked. Export stripping covered by the new tests (not exercised through the native dialog).

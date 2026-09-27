@@ -98,7 +98,7 @@ After Phase 7, the supervisor builds the installer (`pnpm tauri build`) and chec
 | 1 | `1095967` | 377 → 377 | Passed (light and dark, supervisor's own screenshots) | Agent's screenshots were identical; redone |
 | 2 | `670a813` | 377 → 384 | Passed (light and dark, supervisor) | Agent couldn't reach its dev app |
 | 3 | `aa40701`, `fd142a2`, `3738fd8` | 384 → 423 | Passed (light and dark, supervisor) | 4 review fixes; apostrophe fixed by supervisor |
-| 4 | | | | |
+| 4 | `2d13717`, `03e4afa`, `69fa290` | 423 → 436 | Passed (light and dark, supervisor) | Export security bug, leak, flicker fixed; row tint by supervisor |
 | 5 | | | | |
 | 6 | | | | |
 | 7 | | | | |
