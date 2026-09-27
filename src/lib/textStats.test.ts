@@ -23,6 +23,14 @@ describe('textStats', () => {
       expect(countWords("don't can't")).toBe(2);
     });
 
+    it('counts apostrophe phrase as multiple words', () => {
+      expect(countWords("don't stop")).toBe(2);
+    });
+
+    it('counts single apostrophe word', () => {
+      expect(countWords("don't")).toBe(1);
+    });
+
     it('handles non-Latin text', () => {
       expect(countWords('مرحبا hello 你好')).toBe(3);
     });

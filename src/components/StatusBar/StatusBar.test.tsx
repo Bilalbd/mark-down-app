@@ -106,6 +106,22 @@ describe('StatusBar', () => {
     expect(text).not.toContain('Ln');
   });
 
+  it('shows Ln, Col in Split view', () => {
+    act(() => {
+      useDocumentStore.setState({
+        ...EMPTY_DOC,
+        hasDocument: true,
+        content: 'line 1\nline 2\nline 3',
+        loadId: 1,
+      });
+      useSettingsStore.setState({ viewMode: 'split' });
+      useViewStore.setState({ cursor: { line: 2, col: 5 } });
+    });
+    act(() => root.render(<StatusBar />));
+    const text = container.textContent;
+    expect(text).toContain('Ln 2, Col 5');
+  });
+
   it('shows line and word counts', () => {
     useDocumentStore.setState({
       hasDocument: true,

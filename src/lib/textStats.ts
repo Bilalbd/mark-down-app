@@ -1,4 +1,7 @@
-/** Counts runs of letters or digits, treating apostrophes/quotes as word separators. */
+import type { Encoding } from '@/lib/tauri';
+import type { Eol } from '@/lib/eol';
+
+/** Counts runs of letters or digits, where apostrophes join parts into single words. */
 export function countWords(text: string): number {
   const matches = text.match(/[\p{L}\p{N}]+(?:[''][\p{L}\p{N}]+)*/gu);
   return matches ? matches.length : 0;
@@ -10,7 +13,7 @@ export function countLines(text: string): number {
 }
 
 /** Formats an encoding identifier for display (e.g. 'utf8' → 'UTF-8'). */
-export function formatEncoding(encoding: string): string {
+export function formatEncoding(encoding: Encoding): string {
   switch (encoding) {
     case 'utf8':
       return 'UTF-8';
@@ -20,20 +23,16 @@ export function formatEncoding(encoding: string): string {
       return 'UTF-16 LE';
     case 'utf16-be':
       return 'UTF-16 BE';
-    default:
-      return encoding.toUpperCase();
   }
 }
 
 /** Formats a line ending identifier for display (e.g. '\n' → 'LF'). */
-export function formatEol(eol: string): string {
+export function formatEol(eol: Eol): string {
   switch (eol) {
     case '\n':
       return 'LF';
     case '\r\n':
       return 'CRLF';
-    default:
-      return eol;
   }
 }
 

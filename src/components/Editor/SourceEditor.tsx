@@ -36,6 +36,23 @@ function topVisibleLine(view: EditorView): number {
   return view.state.doc.lineAt(block.from).number - 1;
 }
 
+/** Updates the view store with cursor position and selection word count. */
+function updateCursorState(editorView: EditorView): void {
+  const mainSelection = editorView.state.selection.main;
+  const headPos = mainSelection.head;
+  const line = editorView.state.doc.lineAt(headPos);
+  const col = headPos - line.from + 1;
+  useViewStore.getState().setCursor({ line: line.number, col });
+
+  // Count words in selection if not empty
+  const selectedText =
+    mainSelection.from === mainSelection.to
+      ? ''
+      : editorView.state.doc.sliceString(mainSelection.from, mainSelection.to);
+  const words = selectedText ? countWords(selectedText) : null;
+  useViewStore.getState().setSelectionWords(words);
+}
+
 /** Determines whether external content changes need to be synced to the editor.
  * Returns false without calling readDoc when content matches the last emitted string,
  * otherwise reads the current doc and compares. */
@@ -88,21 +105,10 @@ function buildExtensions(): Extension[] {
         if (pendingCursorUpdate !== null) {
           cancelAnimationFrame(pendingCursorUpdate);
         }
+        // Capture the view in a closure to use in rAF
+        const editorView = u.view;
         pendingCursorUpdate = requestAnimationFrame(() => {
-          const mainSelection = u.state.selection.main;
-          const headPos = mainSelection.head;
-          const line = u.state.doc.lineAt(headPos);
-          const col = headPos - line.from + 1;
-          useViewStore.getState().setCursor({ line: line.number, col });
-
-          // Count words in selection if not empty
-          const selectedText =
-            mainSelection.from === mainSelection.to
-              ? ''
-              : u.state.doc.sliceString(mainSelection.from, mainSelection.to);
-          const words = selectedText ? countWords(selectedText) : null;
-          useViewStore.getState().setSelectionWords(words);
-
+          updateCursorState(editorView);
           pendingCursorUpdate = null;
         });
       }
@@ -152,6 +158,9 @@ export function SourceEditor() {
     viewRef.current = view;
     setEditorView(view);
     view.focus();
+
+    // Set cursor from initial selection
+    updateCursorState(view);
 
     // Restore the position the other view was at.
     const initial = useViewStore.getState().topLine;

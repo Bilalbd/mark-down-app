@@ -60,7 +60,7 @@ export function StatusBar() {
   return (
     <div className="statusbar">
       <div className="statusbar__left">
-        {viewMode === 'source' && cursor && (
+        {viewMode !== 'formatted' && cursor && (
           <span className="statusbar__item">
             Ln {cursor.line}, Col {cursor.col}
           </span>
