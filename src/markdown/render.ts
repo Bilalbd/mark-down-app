@@ -106,3 +106,11 @@ export function extractHeadings(source: string): HeadingInfo[] {
   md.parse(source, env);
   return env.headings ?? [];
 }
+
+/** 0-based source line of the heading with `id` in `source`, or null. Uses the cheap
+ * headings-only parse. */
+export function headingLine(source: string, id: string): number | null {
+  const headings = extractHeadings(source);
+  const heading = headings.find((h) => h.id === id);
+  return heading ? heading.line : null;
+}

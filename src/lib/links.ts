@@ -3,7 +3,7 @@ import { dirname, joinPath, safeDecodeURI } from '@/lib/tauri';
 export type LinkClassification =
   | { kind: 'anchor'; id: string }
   | { kind: 'external' }
-  | { kind: 'markdown'; path: string }
+  | { kind: 'markdown'; path: string; anchor?: string }
   | { kind: 'file'; path: string }
   | { kind: 'ignore' };
 
@@ -55,10 +55,29 @@ export function classifyLink(href: string, docPath: string | null): LinkClassifi
   if (href.startsWith('//')) return { kind: 'ignore' }; // protocol-relative
 
   if (!docPath) return { kind: 'ignore' };
+
+  // Extract fragment (the part after #) if present
+  const fragmentMatch = /#(.*)$/.exec(href);
+  let anchor: string | undefined;
+  if (fragmentMatch && fragmentMatch[1]) {
+    const raw = fragmentMatch[1];
+    try {
+      anchor = decodeURIComponent(raw);
+    } catch {
+      anchor = raw;
+    }
+  }
+
   const clean = safeDecodeURI(href.replace(/[?#].*$/, ''));
   if (!clean) return { kind: 'ignore' };
   const abs = joinPath(dirname(docPath), clean);
-  return MARKDOWN_EXTENSIONS.has(extname(abs))
+  const base: LinkClassification = MARKDOWN_EXTENSIONS.has(extname(abs))
     ? { kind: 'markdown', path: abs }
     : { kind: 'file', path: abs };
+
+  // Add anchor to markdown links if present
+  if (base.kind === 'markdown' && anchor) {
+    return { ...base, anchor };
+  }
+  return base;
 }

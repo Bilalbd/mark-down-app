@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
-import { renderMarkdown } from '@/markdown/render';
+import { renderMarkdown, headingLine } from '@/markdown/render';
 import { renderMermaidBlocks } from '@/markdown/mermaid';
 import { useResolvedTheme } from '@/lib/useAppTheme';
 import { classifyLink } from '@/lib/links';
@@ -8,6 +8,7 @@ import { useDocumentStore } from '@/store/document';
 import { useSettingsStore, isPreviewFullWidth } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import { openPath } from '@/store/tabs';
+import { samePath } from '@/lib/tabs';
 import './Preview.css';
 
 const RENDER_DEBOUNCE_MS = 150;
@@ -134,7 +135,22 @@ export function Preview() {
         void openExternal(href).catch(() => undefined);
         return;
       case 'markdown':
-        void openPath(classification.path);
+        void openPath(classification.path)
+          .then((ok) => {
+            if (ok && classification.anchor) {
+              const docPath = useDocumentStore.getState().path;
+              if (docPath && samePath(classification.path, docPath)) {
+                const line = headingLine(
+                  useDocumentStore.getState().content,
+                  classification.anchor,
+                );
+                if (line !== null) {
+                  useViewStore.getState().requestScrollToLine(line);
+                }
+              }
+            }
+          })
+          .catch(() => undefined);
         return;
       case 'file':
         void revealInExplorer(classification.path).catch(() => undefined);

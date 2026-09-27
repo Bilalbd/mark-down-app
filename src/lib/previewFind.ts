@@ -7,6 +7,63 @@
 const ALL = 'md-find';
 const CURRENT = 'md-find-current';
 
+export interface TextSegment {
+  text: string;
+  block: number;
+}
+
+/**
+ * Joins text segments into one searchable string. A "\n" is inserted between segments from
+ * different blocks, so a match never runs from one paragraph into the next. `starts[i]` is where
+ * segment i begins in `text`.
+ */
+export function joinSegments(segments: readonly TextSegment[]): { text: string; starts: number[] } {
+  const starts: number[] = [];
+  let text = '';
+  let lastBlock = -1;
+
+  for (const seg of segments) {
+    if (seg.block !== lastBlock && text.length > 0) {
+      text += '\n';
+    }
+    starts.push(text.length);
+    text += seg.text;
+    lastBlock = seg.block;
+  }
+
+  return { text, starts };
+}
+
+/**
+ * Maps an offset in the joined text back to (segment index, offset in that segment). An offset
+ * that falls on an inserted "\n" maps to the end of the previous segment.
+ */
+export function locateOffset(
+  starts: readonly number[],
+  segments: readonly TextSegment[],
+  offset: number,
+): { index: number; offset: number } {
+  // Find which segment this offset belongs to
+  let index = 0;
+  for (let i = starts.length - 1; i >= 0; i--) {
+    if (starts[i] <= offset) {
+      index = i;
+      break;
+    }
+  }
+
+  const segmentStart = starts[index];
+  const offsetInSegment = offset - segmentStart;
+
+  // If the offset is within the text of this segment, return it
+  if (offsetInSegment <= segments[index].text.length) {
+    return { index, offset: offsetInSegment };
+  }
+
+  // Otherwise, the offset falls on an inserted newline; map to end of segment
+  return { index, offset: segments[index].text.length };
+}
+
 export interface PreviewMatch {
   range: Range;
 }
@@ -36,10 +93,12 @@ export function findInPreview(
   const matches: PreviewMatch[] = [];
   if (!query) return matches;
 
-  // A case-insensitive regex, rather than lowercasing both sides, keeps offsets in
-  // the *original* text correct even when a character's lowercase form has a
-  // different length (e.g. 'İ'.toLowerCase() === 'i̇', two code points).
-  const re = new RegExp(escapeRegExp(query), caseSensitive ? 'gu' : 'giu');
+  // Collect text nodes and their block ancestors
+  const nodes: Node[] = [];
+  const segments: TextSegment[] = [];
+  const blockMap = new Map<HTMLElement, number>();
+  let blockCounter = 0;
+
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: (n) => {
       const parent = n.parentElement;
@@ -53,18 +112,45 @@ export function findInPreview(
   let node: Node | null;
   while ((node = walker.nextNode())) {
     const text = node.textContent ?? '';
-    re.lastIndex = 0;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(text))) {
-      if (m[0].length === 0) {
-        re.lastIndex++;
-        continue;
+    // Find the closest block ancestor
+    let blockEl = node.parentElement;
+    while (blockEl && blockEl !== root) {
+      const blockSelector =
+        'p, li, h1, h2, h3, h4, h5, h6, td, th, pre, blockquote, dt, dd, figcaption, summary';
+      if ((blockEl as Element).matches(blockSelector)) {
+        break;
       }
-      const range = document.createRange();
-      range.setStart(node, m.index);
-      range.setEnd(node, m.index + m[0].length);
-      matches.push({ range });
+      blockEl = blockEl.parentElement;
     }
+    if (!blockEl) blockEl = root;
+
+    const blockNum = blockMap.has(blockEl) ? blockMap.get(blockEl)! : blockCounter++;
+    blockMap.set(blockEl, blockNum);
+
+    nodes.push(node);
+    segments.push({ text, block: blockNum });
+  }
+
+  // Join segments and search
+  const { text: joined, starts } = joinSegments(segments);
+
+  const re = new RegExp(escapeRegExp(query), caseSensitive ? 'gu' : 'giu');
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(joined))) {
+    if (m[0].length === 0) {
+      re.lastIndex++;
+      continue;
+    }
+
+    // Map match offsets back to nodes
+    const startLoc = locateOffset(starts, segments, m.index);
+    const endLoc = locateOffset(starts, segments, m.index + m[0].length);
+
+    const range = document.createRange();
+    range.setStart(nodes[startLoc.index], startLoc.offset);
+    range.setEnd(nodes[endLoc.index], endLoc.offset);
+
+    matches.push({ range });
   }
 
   if (supportsHighlights()) {

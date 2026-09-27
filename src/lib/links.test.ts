@@ -26,10 +26,41 @@ describe('classifyLink', () => {
     expect(classifyLink('//evil.example/x', DOC)).toEqual({ kind: 'ignore' });
   });
 
-  it('resolves a relative markdown link against the document directory, ignoring its fragment', () => {
-    expect(classifyLink('other.md#section', DOC)).toEqual({
+  it('resolves a relative markdown link against the document directory, extracting its fragment', () => {
+    expect(classifyLink('other.md#setup', DOC)).toEqual({
       kind: 'markdown',
       path: 'C:\\docs\\notes\\other.md',
+      anchor: 'setup',
+    });
+  });
+
+  it('decodes a percent-encoded fragment in markdown links', () => {
+    expect(classifyLink('other.md#caf%C3%A9', DOC)).toEqual({
+      kind: 'markdown',
+      path: 'C:\\docs\\notes\\other.md',
+      anchor: 'café',
+    });
+  });
+
+  it('handles an empty fragment in markdown links', () => {
+    expect(classifyLink('other.md#', DOC)).toEqual({
+      kind: 'markdown',
+      path: 'C:\\docs\\notes\\other.md',
+    });
+  });
+
+  it('handles a query string with a fragment in markdown links', () => {
+    expect(classifyLink('other.md?x=1#anchor', DOC)).toEqual({
+      kind: 'markdown',
+      path: 'C:\\docs\\notes\\other.md',
+      anchor: 'anchor',
+    });
+  });
+
+  it('ignores the fragment for non-markdown files', () => {
+    expect(classifyLink('../x.png#section', DOC)).toEqual({
+      kind: 'file',
+      path: 'C:\\docs\\x.png',
     });
   });
 

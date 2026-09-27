@@ -1,5 +1,12 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { findInPreview, matchIndexAfterSearch, setCurrentPreviewMatch } from '@/lib/previewFind';
+import {
+  findInPreview,
+  matchIndexAfterSearch,
+  setCurrentPreviewMatch,
+  joinSegments,
+  locateOffset,
+  type TextSegment,
+} from '@/lib/previewFind';
 
 function rootWith(text: string): HTMLElement {
   const el = document.createElement('div');
@@ -7,6 +14,69 @@ function rootWith(text: string): HTMLElement {
   document.body.appendChild(el);
   return el;
 }
+
+describe('joinSegments', () => {
+  it('joins segments from the same block without newlines', () => {
+    const segments: TextSegment[] = [
+      { text: 'foo ', block: 0 },
+      { text: 'bar', block: 0 },
+    ];
+    const { text, starts } = joinSegments(segments);
+    expect(text).toBe('foo bar');
+    expect(starts).toEqual([0, 4]);
+  });
+
+  it('inserts newlines between segments from different blocks', () => {
+    const segments: TextSegment[] = [
+      { text: 'foo', block: 0 },
+      { text: 'bar', block: 1 },
+    ];
+    const { text, starts } = joinSegments(segments);
+    expect(text).toBe('foo\nbar');
+    expect(starts).toEqual([0, 4]);
+  });
+
+  it('never matches across block boundaries', () => {
+    const segments: TextSegment[] = [
+      { text: 'foo', block: 0 },
+      { text: 'bar', block: 1 },
+    ];
+    const { text } = joinSegments(segments);
+    expect(text).not.toContain('foobar');
+  });
+});
+
+describe('locateOffset', () => {
+  it('maps offsets within a segment correctly', () => {
+    const segments: TextSegment[] = [
+      { text: 'hello', block: 0 },
+      { text: 'world', block: 0 },
+    ];
+    const { starts } = joinSegments(segments);
+    const loc = locateOffset(starts, segments, 1);
+    expect(loc).toEqual({ index: 0, offset: 1 });
+  });
+
+  it('maps offsets to the start of the second segment correctly', () => {
+    const segments: TextSegment[] = [
+      { text: 'hello', block: 0 },
+      { text: 'world', block: 0 },
+    ];
+    const { starts } = joinSegments(segments);
+    const loc = locateOffset(starts, segments, 5);
+    expect(loc).toEqual({ index: 1, offset: 0 });
+  });
+
+  it('maps offsets at the end of a segment correctly', () => {
+    const segments: TextSegment[] = [
+      { text: 'hello', block: 0 },
+      { text: 'world', block: 0 },
+    ];
+    const { starts } = joinSegments(segments);
+    const loc = locateOffset(starts, segments, 10);
+    expect(loc).toEqual({ index: 1, offset: 5 });
+  });
+});
 
 describe('findInPreview', () => {
   it('finds case-insensitive matches with the right ranges', () => {
@@ -42,6 +112,41 @@ describe('findInPreview', () => {
   it('returns no matches for an empty query', () => {
     const root = rootWith('anything');
     expect(findInPreview(root, '', false)).toEqual([]);
+  });
+
+  it('finds text spanning across formatting nodes', () => {
+    const root = document.createElement('div');
+    root.innerHTML = '<span>foo </span><strong>bar</strong>';
+    document.body.appendChild(root);
+
+    const matches = findInPreview(root, 'foo bar', false);
+    expect(matches).toHaveLength(1);
+    expect(matches[0].range.startContainer.textContent).toBe('foo ');
+    expect(matches[0].range.endContainer.textContent).toBe('bar');
+
+    document.body.removeChild(root);
+  });
+
+  it('does not match across paragraph boundaries', () => {
+    const root = document.createElement('div');
+    root.innerHTML = '<p>foo</p><p>bar</p>';
+    document.body.appendChild(root);
+
+    const matches = findInPreview(root, 'foobar', false);
+    expect(matches).toHaveLength(0);
+
+    document.body.removeChild(root);
+  });
+
+  it('does not match across separate paragraph blocks', () => {
+    const root = document.createElement('div');
+    root.innerHTML = '<p>foo</p><p>bar</p>';
+    document.body.appendChild(root);
+
+    const matches = findInPreview(root, 'foobar', false);
+    expect(matches).toHaveLength(0);
+
+    document.body.removeChild(root);
   });
 });
 

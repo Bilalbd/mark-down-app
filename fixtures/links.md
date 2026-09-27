@@ -9,6 +9,7 @@ Jump to [Section two](#section-two).
 ## Links
 
 - A relative Markdown link: [GFM fixture](gfm.md)
+- A relative Markdown link with anchor: [Tables in gfm](gfm.md#table)
 - A relative image link: [an image with a space in its name](images/my%20image.png)
 - An external link: [example.com](https://example.com)
 

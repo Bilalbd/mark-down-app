@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractHeadings, renderMarkdown } from './render';
+import { extractHeadings, renderMarkdown, headingLine } from './render';
 import { slugify } from './plugins';
 
 describe('renderMarkdown', () => {
@@ -122,6 +122,18 @@ describe('headings / outline', () => {
   it('never reuses an id, even one produced by a dedup suffix', () => {
     const h = extractHeadings('# foo\n\n# foo\n\n# foo-1');
     expect(h.map((x) => x.id)).toEqual(['foo', 'foo-1', 'foo-1-1']);
+  });
+
+  it('finds the line number of a heading by id', () => {
+    const source = '# A\n\n## B\n\n## B';
+    expect(headingLine(source, 'a')).toBe(0);
+    expect(headingLine(source, 'b')).toBe(2);
+    expect(headingLine(source, 'b-1')).toBe(4);
+  });
+
+  it('returns null for a missing heading id', () => {
+    const source = '# A\n\n## B';
+    expect(headingLine(source, 'missing')).toBeNull();
   });
 });
 
