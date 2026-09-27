@@ -64,7 +64,8 @@ button:focus-visible {
 
 .empty-state__recent {
   margin-top: 28px;
-  text-align: center;
+  align-self: center;
+  width: min(520px, 100%);
 }
 
 .empty-state__recent-title {
@@ -83,6 +84,35 @@ button:focus-visible {
   padding: 0;
   list-style: none;
   font-size: 12px;
+}
+
+.empty-state__recent-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  max-width: 100%;
+  text-align: left;
+}
+
+.empty-state__recent-name {
+  flex: none;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty-state__recent-name:hover {
+  text-decoration: underline;
+}
+
+.empty-state__recent-dir {
+  color: var(--chrome-fg-muted);
+  font-size: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app.is-drag-over .app__content {

@@ -16,13 +16,14 @@ import { useAppTheme } from './lib/useAppTheme';
 import { useShortcuts } from './lib/shortcuts';
 import {
   basename,
+  dirname,
   emitAppReady,
   getLaunchArgs,
   isTauri,
   takePendingOpens,
   type FileChangedEvent,
 } from './lib/tauri';
-import { cycleIndex, samePath } from './lib/tabs';
+import { cycleIndex, samePath, shortDir } from './lib/tabs';
 import { useSettingsStore } from './store/settings';
 import { isDirty, useDocumentStore } from './store/document';
 import {
@@ -395,11 +396,14 @@ export default function App() {
                     {recentFiles.map((path) => (
                       <li key={path}>
                         <button
-                          className="link-button"
+                          className="link-button empty-state__recent-item"
                           title={path}
                           onClick={() => void openPath(path)}
                         >
-                          {basename(path)}
+                          <span className="empty-state__recent-name">{basename(path)}</span>
+                          <span className="empty-state__recent-dir">
+                            {shortDir(dirname(path), 3)}
+                          </span>
                         </button>
                       </li>
                     ))}
