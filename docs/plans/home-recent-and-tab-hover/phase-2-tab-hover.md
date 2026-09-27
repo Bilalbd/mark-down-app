@@ -24,27 +24,27 @@ the active tab's curves, `.tabstrip__close`, `.tabstrip__new`) and `.toolbar__bt
 
 ## Tasks
 
-- [ ] **1. Hover shape = active tab shape.** Change the inactive-tab `::before` to
+- [x] **1. Hover shape = active tab shape.** Change the inactive-tab `::before` to
   `inset: 0 1px 0; border-radius: 8px 8px 0 0;` (full height, rounded top only, a hair narrower than
   the tab so neighbouring hovers don't touch). Keep `z-index: -1` and the `isolation: isolate` on
   the tab. The hover background stays `var(--chrome-hover)`. No outward curves on hover.
-- [ ] **2. Check the text is centred.** The tab's content must be vertically centred in the
+- [x] **2. Check the text is centred.** The tab's content must be vertically centred in the
   tab's box. Read `getBoundingClientRect()` for an inactive tab, its `.tabstrip__label`, and the
   toolbar. Compute `(label centre) − (tab centre)`; it must be within ±1px. Also check
   `tab.bottom === toolbar.top` (within 0.5px), which confirms no gap between the tab row and the
   toolbar. If the label isn't centred, fix it in `.tabstrip__tab` (`align-items: center`, padding)
   and explain the cause.
-- [ ] **3. Rounded-square buttons:**
+- [x] **3. Rounded-square buttons:**
   - `.tabstrip__close`: keep 18×18px; `border-radius: 4px` instead of `50%`.
   - `.tabstrip__new`: keep 28×28px; `border-radius: 5px` (matches `.toolbar__btn`) instead of `50%`.
   - Hover colours stay as they are.
-- [ ] **4.** Separators, the dirty dot / close swap, the active tab and its curves, and the `+` menu
+- [x] **4.** Separators, the dirty dot / close swap, the active tab and its curves, and the `+` menu
   and flyout don't change. Check that they still look right.
 
 ## Verify
 
-- [ ] `pnpm test` (227+), `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
-- [ ] Manual check. Open three tabs from **scratch copies** of fixtures. CDP can't hover, so to
+- [x] `pnpm test` (227+), `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
+- [x] Manual check. Open three tabs from **scratch copies** of fixtures. CDP can't hover, so to
   **see** the hover state, temporarily add a test-only rule in the page (not in the repo):
   ```js
   const s = document.createElement('style');
@@ -59,9 +59,25 @@ the active tab's curves, `.tabstrip__close`, `.tabstrip__new`) and `.toolbar__bt
   enlarge 3×, Read them, and describe: the hovered tab's shape touching the toolbar, the name
   centred, the rounded-square × and +. Remove the style and classes afterwards.
   Paste the task-2 measurements.
-- [ ] Restore the theme, stop the app.
-- [ ] Commit: `Give tab hover and tab buttons rounded-square shapes`.
+- [x] Restore the theme, stop the app.
+- [x] Commit: `Give tab hover and tab buttons rounded-square shapes`.
 
 ## Report
 
-_(Fill in: task-2 numbers, crop paths, anything that differed.)_
+**Task-2 measurements (dark theme):**
+- Label centre offset: −4.77e-7 px (essentially 0, within ±1px) ✓ PASS
+- Tab-to-toolbar gap: 2.38e-6 px (essentially 0, within 0.5px) ✓ PASS
+
+**Screenshots (cropped, enlarged 3×, device pixels 0–70):**
+- Dark theme: `<scratchpad>\dark-tabs-cropped.png`
+- Light theme: `<scratchpad>\light-tabs-cropped.png`
+
+**Visual verification:**
+- Hover shape: rounded top corners only (8px 8px 0 0), full height, touching toolbar with no gap
+- Tab label: perfectly centred vertically within the tab box
+- Close button (×): rounded-square with 4px radius
+- New/open button (+): rounded-square with 5px radius
+- Separators, active tab curves, dirty dot, and menu unchanged
+- Both dark and light themes render correctly
+
+All tasks completed. CSS changes verified with tests (227 passing), lint, typecheck, and format. Manual verification in both themes confirms correct shapes, centering, and no gaps.

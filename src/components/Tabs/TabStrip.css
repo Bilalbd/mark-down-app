@@ -41,8 +41,8 @@
 .tabstrip__tab:not(.is-active)::before {
   content: '';
   position: absolute;
-  inset: 0 2px 4px;
-  border-radius: 8px;
+  inset: 0 1px 0;
+  border-radius: 8px 8px 0 0;
   z-index: -1;
 }
 
@@ -131,7 +131,7 @@
   flex-shrink: 0;
   border: 0;
   background: transparent;
-  border-radius: 50%;
+  border-radius: 4px;
   color: inherit;
   display: flex;
   align-items: center;
@@ -176,7 +176,7 @@
   cursor: default;
   flex-shrink: 0;
   padding: 0;
-  border-radius: 50%;
+  border-radius: 5px;
   margin: auto 4px;
 }
 
