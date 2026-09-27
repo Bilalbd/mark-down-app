@@ -137,4 +137,36 @@ describe('ConfirmDialog', () => {
 
     focusButton.remove();
   });
+
+  it('wraps Tab correctly in a dialog with fewer buttons than the one before', () => {
+    act(() => {
+      useDialogStore.getState().show('First', 'Three buttons', [
+        { id: 'a', label: 'A', primary: true },
+        { id: 'b', label: 'B' },
+        { id: 'c', label: 'C' },
+      ]);
+    });
+    act(() => {
+      useDialogStore.getState().close(null);
+    });
+    act(() => {
+      useDialogStore.getState().show('Second', 'Two buttons', [
+        { id: 'save', label: 'Save anyway', primary: true },
+        { id: 'cancel', label: 'Cancel' },
+      ]);
+    });
+
+    const buttons = Array.from(container.querySelectorAll<HTMLButtonElement>('button.dialog__btn'));
+    expect(buttons.length).toBe(2);
+    act(() => {
+      buttons[1].focus();
+    });
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }),
+      );
+    });
+
+    expect(document.activeElement).toBe(buttons[0]);
+  });
 });

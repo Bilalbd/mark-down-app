@@ -211,7 +211,9 @@ export function Outline() {
   };
 
   const onResizerKeyDown = (e: React.KeyboardEvent) => {
-    const newWidth = resizeByKey(e.key, e.shiftKey, width, {
+    // Read the live value: key repeat can fire again before React re-renders.
+    const current = useSettingsStore.getState().outlineWidth;
+    const newWidth = resizeByKey(e.key, e.shiftKey, current, {
       min: MIN_WIDTH,
       max: MAX_WIDTH,
       step: 16,
@@ -219,7 +221,6 @@ export function Outline() {
     if (newWidth !== null) {
       e.preventDefault();
       set('outlineWidth', newWidth);
-      persist('outlineWidth');
     }
   };
 

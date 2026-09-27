@@ -135,7 +135,7 @@ After each phase, the supervisor:
 | 3 | ea1e4d6 | 248 → 252 | Diff reviewed; render counts, outline in all views and huge.md timing checked in app by supervisor | Clean first round; App renders per 10 keystrokes 20 → 0; huge.md p90 48 → 25 ms |
 | 4 | 6a86d2a + supervisor fix | 252 → 252 (Rust 35 → 36) | Diff reviewed; fixed duplicate events, failed-watch cleanup, unused param; checked tabs, live reload and images in app | Clean first round apart from those three |
 | 5 | 69a0041 + supervisor fix | 252 → 271 | Diff reviewed; fixed missing README row, reused cycleIndex, renamed variable; shortcuts, window mode and links checked in app | Pool change reverted (11.55% faster, below the 20% bar) |
-| 6 | | | | |
+| 6 | fbbfe0b + supervisor fix | 271 → 287 | Diff reviewed; fixed stale dialog buttons (new test), held-key resizing, double save; resizers, focus ring (both themes) and dialog checked in app | |
 | 7 | | | | |
 | 8 | | | | |
 | 9 | | | | |

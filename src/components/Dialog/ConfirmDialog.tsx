@@ -59,7 +59,7 @@ export function ConfirmDialog() {
   const current = useDialogStore((s) => s.current);
   const close = useDialogStore((s) => s.close);
   const primaryRef = useRef<HTMLButtonElement>(null);
-  const buttonsRef = useRef<HTMLButtonElement[]>([]);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const focusedBeforeRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -72,7 +72,10 @@ export function ConfirmDialog() {
         e.stopImmediatePropagation();
         close(null);
       } else if (e.key === 'Tab') {
-        const buttons = buttonsRef.current;
+        // Read the buttons now: the list differs between dialogs.
+        const buttons = Array.from(
+          dialogRef.current?.querySelectorAll<HTMLButtonElement>('.dialog__btn') ?? [],
+        );
         if (buttons.length === 0) return;
         const currentIndex = buttons.indexOf(document.activeElement as HTMLButtonElement);
         if (e.shiftKey) {
@@ -105,6 +108,7 @@ export function ConfirmDialog() {
   return (
     <div className="dialog-backdrop" onMouseDown={() => close(null)}>
       <div
+        ref={dialogRef}
         className="dialog"
         role="alertdialog"
         aria-modal="true"
@@ -116,15 +120,10 @@ export function ConfirmDialog() {
         </h2>
         <p className="dialog__message">{current.message}</p>
         <div className="dialog__buttons">
-          {current.buttons.map((b, idx) => (
+          {current.buttons.map((b) => (
             <button
               key={b.id}
-              ref={(el) => {
-                if (el) {
-                  buttonsRef.current[idx] = el;
-                }
-                if (b.primary) primaryRef.current = el;
-              }}
+              ref={b.primary ? primaryRef : undefined}
               className={`dialog__btn ${b.primary ? 'is-primary' : ''} ${b.danger ? 'is-danger' : ''}`}
               onClick={() => close(b.id)}
             >

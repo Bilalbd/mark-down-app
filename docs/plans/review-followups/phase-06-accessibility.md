@@ -72,7 +72,7 @@ keyboard-operable separators (the WAI-ARIA "window splitter" pattern).
 ## Verify
 
 - [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
-- [ ] Manual check on a scratch copy of `fixtures/gfm.md`, **both themes**. Read `splitRatio` and
+- [x] Manual check on a scratch copy of `fixtures/gfm.md`, **both themes**. Read `splitRatio` and (done by the supervisor, see below)
   `outlineWidth` first and restore them at the end.
   - Split view: focus the divider (`document.querySelector('.split__divider').focus()`), dispatch
     ArrowRight 3 times on it, show `splitRatio` grew by 0.06, Home → 0.25, End → 0.75. Screenshot
@@ -94,3 +94,24 @@ keyboard-operable separators (the WAI-ARIA "window splitter" pattern).
 - Toolbar.tsx: Added aria-label to outline toggle and settings button (icon-only with only aria-pressed before)
 - TitleBar.tsx: All buttons already have aria-label (minimize, maximize, close)
 - TabStrip.tsx: All buttons already have aria-label (new/open menu, tab close buttons)
+
+## Supervisor check
+
+Diff reviewed. Fixed directly (follow-up commit):
+- **Focus trap bug:** `buttonsRef` kept the buttons of every dialog shown so far and was never
+  cleared, so after a 3-button dialog a 2-button dialog still had a stale third entry and Tab from
+  its last button escaped. The trap now reads the dialog's buttons at keydown time. New regression
+  test (fails on fbbfe0b, passes now).
+- **Held arrow keys:** the resize handlers used the size from the last render, so repeated key
+  events before a re-render moved only one step (three quick ArrowRight: 0.50 → 0.52). They now read
+  the live store value (0.50 → 0.56).
+- Removed the extra `persist()` after `set()` (which already saves), so each key press writes once.
+
+`pnpm test` 287 passed; lint, tsc clean.
+
+**Manual check (supervisor, dev app, scratch gfm.md):** Split view, divider focused: ArrowRight ×3 →
+0.56 (`aria-valuenow` 56), Home → 0.25, End → 0.75. Outline edge: ArrowRight +16 px, ArrowLeft ×2 →
+−16 px. Keyboard focus shows a 2 px accent ring on the divider in dark and light (crops checked).
+Unsaved-changes dialog: Shift+Tab on the first button (Save) wrapped to the last (Cancel); Escape
+cancelled; edit discarded. Settings (theme, split ratio, outline width, recent files) equal to the
+backup at the end.

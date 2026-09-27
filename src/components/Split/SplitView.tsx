@@ -42,7 +42,9 @@ export function SplitView() {
   };
 
   const onDividerKeyDown = (e: React.KeyboardEvent) => {
-    const newRatio = resizeByKey(e.key, e.shiftKey, ratio, {
+    // Read the live value: key repeat can fire again before React re-renders.
+    const current = useSettingsStore.getState().splitRatio;
+    const newRatio = resizeByKey(e.key, e.shiftKey, current, {
       min: MIN_RATIO,
       max: MAX_RATIO,
       step: 0.02,
@@ -50,7 +52,6 @@ export function SplitView() {
     if (newRatio !== null) {
       e.preventDefault();
       set('splitRatio', newRatio);
-      persist('splitRatio');
     }
   };
 
