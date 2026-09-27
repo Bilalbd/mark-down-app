@@ -1,11 +1,15 @@
 import {
   ArrowLeftRight,
+  Code,
+  Columns2,
+  Eye,
   Monitor,
   Moon,
   PanelLeft,
   Settings,
   Sun,
   UnfoldHorizontal,
+  type LucideIcon,
 } from 'lucide-react';
 import {
   useSettingsStore,
@@ -20,10 +24,10 @@ import './Toolbar.css';
 
 export const ICON = { size: 16, strokeWidth: 1.75, absoluteStrokeWidth: true } as const;
 
-const VIEW_MODES: { id: ViewMode; label: string; title: string }[] = [
-  { id: 'formatted', label: 'Formatted', title: 'Formatted view (Ctrl+E)' },
-  { id: 'source', label: 'Source', title: 'Source view (Ctrl+E)' },
-  { id: 'split', label: 'Split', title: 'Split view (Ctrl+Shift+E)' },
+const VIEW_MODES: { id: ViewMode; label: string; icon: LucideIcon; title: string }[] = [
+  { id: 'formatted', label: 'Formatted view', icon: Eye, title: 'Formatted view (Ctrl+E)' },
+  { id: 'source', label: 'Source view', icon: Code, title: 'Source view (Ctrl+E)' },
+  { id: 'split', label: 'Split view', icon: Columns2, title: 'Split view (Ctrl+Shift+E)' },
 ];
 
 const THEME_CYCLE: AppTheme[] = ['system', 'light', 'dark'];
@@ -57,17 +61,21 @@ export function Toolbar() {
       </button>
 
       <div className="toolbar__segment" role="group" aria-label="View mode">
-        {VIEW_MODES.map((m) => (
-          <button
-            key={m.id}
-            className={`toolbar__seg ${viewMode === m.id ? 'is-active' : ''}`}
-            title={m.title}
-            onClick={() => set('viewMode', m.id)}
-            aria-pressed={viewMode === m.id}
-          >
-            {m.label}
-          </button>
-        ))}
+        {VIEW_MODES.map((m) => {
+          const Icon = m.icon;
+          return (
+            <button
+              key={m.id}
+              className={`toolbar__seg ${viewMode === m.id ? 'is-active' : ''}`}
+              title={m.title}
+              aria-label={m.label}
+              onClick={() => set('viewMode', m.id)}
+              aria-pressed={viewMode === m.id}
+            >
+              <Icon {...ICON} />
+            </button>
+          );
+        })}
       </div>
 
       {viewMode === 'split' && (
