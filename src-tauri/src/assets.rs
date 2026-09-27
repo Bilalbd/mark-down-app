@@ -2,7 +2,7 @@ use percent_encoding::percent_decode_str;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::http::{header::CONTENT_TYPE, Request, Response, StatusCode};
-use tauri::{AppHandle, Manager, Runtime, UriSchemeContext};
+use tauri::Manager;
 
 /// The open document's folder (canonicalised), or `None` for an untitled document.
 /// Replaces every previous `set_asset_root` call - only the current document's own
@@ -12,7 +12,7 @@ use tauri::{AppHandle, Manager, Runtime, UriSchemeContext};
 pub struct AssetRoot(pub Mutex<Option<PathBuf>>);
 
 #[tauri::command]
-pub fn set_asset_root(app: AppHandle, dir: Option<String>) -> Result<(), String> {
+pub fn set_asset_root(app: tauri::AppHandle, dir: Option<String>) -> Result<(), String> {
     let resolved = match dir {
         Some(d) => Some(std::fs::canonicalize(d).map_err(|e| e.to_string())?),
         None => None,
@@ -54,20 +54,18 @@ fn empty_response(status: StatusCode) -> Response<Vec<u8>> {
     Response::builder()
         .status(status)
         .body(Vec::new())
-        .unwrap()
+        .unwrap_or_else(|_| Response::new(Vec::new()))
 }
 
 /// Handler for the `mdasset://` protocol, registered in `lib.rs`. Serves only files
 /// under the current document's folder (`AssetRoot`), so relative images can load
 /// without the unboundedly-growing access the old `asset:` scope allowed.
-pub fn handler<R: Runtime>(
-    ctx: UriSchemeContext<'_, R>,
+/// Runs off the main thread on a blocking thread pool.
+pub fn handler(
+    _app: tauri::AppHandle,
+    root: Option<PathBuf>,
     request: Request<Vec<u8>>,
 ) -> Response<Vec<u8>> {
-    let root = match ctx.app_handle().state::<AssetRoot>().0.lock() {
-        Ok(guard) => guard.clone(),
-        Err(_) => None,
-    };
     let Some(root) = root else {
         return empty_response(StatusCode::FORBIDDEN);
     };
@@ -84,7 +82,7 @@ pub fn handler<R: Runtime>(
         Ok(bytes) => Response::builder()
             .header(CONTENT_TYPE, content_type_for(&requested))
             .body(bytes)
-            .unwrap(),
+            .unwrap_or_else(|_| Response::new(Vec::new())),
         Err(_) => empty_response(StatusCode::NOT_FOUND),
     }
 }

@@ -61,7 +61,17 @@ pub fn run() {
         .manage(watch::WatchState::default())
         .manage(assets::AssetRoot::default())
         .manage(commands::PendingOpens::default())
-        .register_uri_scheme_protocol("mdasset", |ctx, request| assets::handler(ctx, request))
+        .register_asynchronous_uri_scheme_protocol("mdasset", |ctx, request, responder| {
+            let app = ctx.app_handle().clone();
+            let root = match app.state::<assets::AssetRoot>().0.lock() {
+                Ok(guard) => guard.clone(),
+                Err(_) => None,
+            };
+            tauri::async_runtime::spawn_blocking(move || {
+                let response = assets::handler(app, root, request);
+                responder.respond(response);
+            });
+        })
         .invoke_handler(tauri::generate_handler![
             commands::get_launch_args,
             commands::read_file,
