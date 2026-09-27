@@ -230,6 +230,7 @@ button:focus-visible {
   .outline,
   .settings,
   .findbar,
+  .statusbar,
   .source-editor,
   .split__divider,
   .dialog-backdrop {

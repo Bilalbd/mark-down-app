@@ -21,12 +21,14 @@ import { useDocumentStore } from '@/store/document';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import { cacheEditorState, cachedEditorState } from '@/lib/editorCache';
+import { countWords } from '@/lib/textStats';
 import { editorHighlighting, editorTheme } from './editorTheme';
 import './SourceEditor.css';
 
 const gutterCompartment = new Compartment();
 
 let lastEmitted: string | null = null;
+let pendingCursorUpdate: number | null = null;
 
 /** Returns the 0-based document line at the top of the editor viewport. */
 function topVisibleLine(view: EditorView): number {
@@ -80,6 +82,30 @@ function buildExtensions(): Extension[] {
         lastEmitted = str;
         useDocumentStore.getState().setContent(str);
       }
+
+      // Schedule cursor/selection update on the next animation frame, cancelling any pending one
+      if (u.selectionSet || u.docChanged) {
+        if (pendingCursorUpdate !== null) {
+          cancelAnimationFrame(pendingCursorUpdate);
+        }
+        pendingCursorUpdate = requestAnimationFrame(() => {
+          const mainSelection = u.state.selection.main;
+          const headPos = mainSelection.head;
+          const line = u.state.doc.lineAt(headPos);
+          const col = headPos - line.from + 1;
+          useViewStore.getState().setCursor({ line: line.number, col });
+
+          // Count words in selection if not empty
+          const selectedText =
+            mainSelection.from === mainSelection.to
+              ? ''
+              : u.state.doc.sliceString(mainSelection.from, mainSelection.to);
+          const words = selectedText ? countWords(selectedText) : null;
+          useViewStore.getState().setSelectionWords(words);
+
+          pendingCursorUpdate = null;
+        });
+      }
     }),
     EditorView.domEventHandlers({
       scroll: (_e, v) => {
@@ -132,7 +158,12 @@ export function SourceEditor() {
     if (initial > 0) scrollToLine(view, initial);
 
     return () => {
+      if (pendingCursorUpdate !== null) {
+        cancelAnimationFrame(pendingCursorUpdate);
+        pendingCursorUpdate = null;
+      }
       cacheEditorState(prevLoadIdRef.current, view.state);
+      useViewStore.getState().setCursor(null);
       setEditorView(null);
       view.destroy();
       viewRef.current = null;

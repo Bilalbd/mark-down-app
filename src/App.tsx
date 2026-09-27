@@ -12,6 +12,7 @@ import { SplitView } from './components/Split/SplitView';
 import { ConfirmDialog, useDialogStore } from './components/Dialog/ConfirmDialog';
 import { SettingsPanel } from './components/Settings/SettingsPanel';
 import { FindBar } from './components/Find/FindBar';
+import { StatusBar } from './components/StatusBar/StatusBar';
 import { StyleInjector } from './components/Preview/StyleInjector';
 import { useAppTheme } from './lib/useAppTheme';
 import { useShortcuts } from './lib/shortcuts';
@@ -330,6 +331,7 @@ export default function App() {
         </div>
         <SettingsPanel />
       </main>
+      <StatusBar />
       <StyleInjector />
       <HeadingsSync />
       <ConfirmDialog />

@@ -20,6 +20,10 @@ interface ViewState {
   findOpen: boolean;
   /** Incremented every time the preview DOM is replaced, so dependents can re-scan it. */
   previewVersion: number;
+  /** Current cursor position in the editor (1-based line and column). null in Formatted view. */
+  cursor: { line: number; col: number } | null;
+  /** Number of words in the current selection. null if selection is empty. */
+  selectionWords: number | null;
 
   setHeadings: (h: HeadingInfo[]) => void;
   setActiveHeadingId: (id: string | null) => void;
@@ -31,6 +35,8 @@ interface ViewState {
   setSettingsOpen: (open: boolean) => void;
   setFindOpen: (open: boolean) => void;
   bumpPreviewVersion: () => void;
+  setCursor: (c: { line: number; col: number } | null) => void;
+  setSelectionWords: (w: number | null) => void;
 }
 
 export const useViewStore = create<ViewState>((set) => ({
@@ -43,6 +49,8 @@ export const useViewStore = create<ViewState>((set) => ({
   settingsOpen: false,
   findOpen: false,
   previewVersion: 0,
+  cursor: null,
+  selectionWords: null,
 
   setHeadings: (headings) => set({ headings }),
   setActiveHeadingId: (activeHeadingId) => set({ activeHeadingId }),
@@ -54,4 +62,6 @@ export const useViewStore = create<ViewState>((set) => ({
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   setFindOpen: (findOpen) => set({ findOpen }),
   bumpPreviewVersion: () => set((s) => ({ previewVersion: s.previewVersion + 1 })),
+  setCursor: (cursor) => set({ cursor }),
+  setSelectionWords: (selectionWords) => set({ selectionWords }),
 }));

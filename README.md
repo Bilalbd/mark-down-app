@@ -27,6 +27,9 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
   endings, round-tripping each on save; a file with invalid-UTF-8 bytes asks before saving
   over them.
 - **Outline** sidebar (`Ctrl+\`) — collapsible, resizable, click to jump, follows your scroll.
+- **Status bar** — shows line and word counts, cursor position in Source mode, preview zoom level,
+  file encoding, line ending style and language. Toggleable in Settings → General (**Show status
+  bar**, on by default).
 - **Styling presets** — Boulayla (the default), GitHub, Obsidian, Claude, Manuscript (serif:
   Sitka Text headings over Charter or Georgia), Nord, Rosé Pine, Catppuccin and Solarized built in. Every font, size, spacing
   and colour (separately for light and dark) is editable in Settings (`Ctrl+,`); presets can be

@@ -11,6 +11,7 @@ export function GeneralTab() {
   const appTheme = useSettingsStore((s) => s.appTheme);
   const splitEditorSide = useSettingsStore((s) => s.splitEditorSide);
   const outlineVisible = useSettingsStore((s) => s.outlineVisible);
+  const statusBarVisible = useSettingsStore((s) => s.statusBarVisible);
   const previewZoom = useSettingsStore((s) => s.previewZoom);
   const blockRemoteImages = useSettingsStore((s) => s.blockRemoteImages);
   const editorLineNumbers = useSettingsStore((s) => s.editorLineNumbers);
@@ -61,6 +62,9 @@ export function GeneralTab() {
         </Row>
         <Row label="Show outline">
           <Toggle value={outlineVisible} onChange={(v) => set('outlineVisible', v)} />
+        </Row>
+        <Row label="Show status bar">
+          <Toggle value={statusBarVisible} onChange={(v) => set('statusBarVisible', v)} />
         </Row>
         <Row label="Preview zoom" hint="Ctrl + / Ctrl −">
           <NumberInput

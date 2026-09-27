@@ -27,6 +27,8 @@ export interface Settings {
   previewFullWidth: boolean;
   /** Embeds images and maths fonts in HTML exports for offline use. */
   selfContainedExport: boolean;
+  /** Whether the status bar is visible. */
+  statusBarVisible: boolean;
 }
 
 const MAX_RECENT_FILES = 5;
@@ -53,6 +55,7 @@ const DEFAULTS: Settings = {
   openFilesIn: 'tab',
   previewFullWidth: false,
   selfContainedExport: true,
+  statusBarVisible: true,
 };
 
 interface SettingsState extends Settings {
