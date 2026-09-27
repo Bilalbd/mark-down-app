@@ -39,7 +39,7 @@ dropdown styles the `+` menu uses (`.tabstrip__dropdown`).
 
 ### Store and helpers
 
-- [ ] **1.** In `src/lib/tabs.ts`, add and test:
+- [x] **1.** In `src/lib/tabs.ts`, add and test:
   ```ts
   /** Index the dragged tab should move to, from the other tabs' horizontal midpoints: the number
    * of other tabs whose midpoint is left of `pointerX`. */
@@ -56,7 +56,7 @@ dropdown styles the `+` menu uses (`.tabstrip__dropdown`).
   ```
   Flip left of the point when it would overflow the right edge, above it when it would overflow
   the bottom, and never go below 0. Tests for each case.
-- [ ] **2.** In the tabs store add `closeOthers(id): Promise<boolean>` and
+- [x] **2.** In the tabs store add `closeOthers(id): Promise<boolean>` and
   `closeToRight(id): Promise<boolean>` (JSDoc on both in `TabsState`). Each takes the list of ids
   to close **at the start**, calls `close(tid)` for them one at a time (left to right), and stops
   and returns `false` the first time `close` returns `false`. At the end (if `id` still exists and
@@ -66,7 +66,7 @@ dropdown styles the `+` menu uses (`.tabstrip__dropdown`).
 
 ### Dragging
 
-- [ ] **3.** In `TabStrip.tsx`:
+- [x] **3.** In `TabStrip.tsx`:
   - `onPointerDown` on a tab (left button only, not on the close button): remember the start x,
     the tab's index and the midpoints of all tabs (from `getBoundingClientRect`). Call
     `setPointerCapture`.
@@ -81,24 +81,24 @@ dropdown styles the `+` menu uses (`.tabstrip__dropdown`).
     off any transition on it. Colours from tokens only.
   - The title bar's window-drag region must still work around the tabs (tabs aren't drag regions;
     check you didn't add `data-tauri-drag-region` anywhere new).
-- [ ] **4. Keyboard.** On a focused tab, Ctrl+Shift+ArrowLeft/ArrowRight moves it one place
+- [x] **4. Keyboard.** On a focused tab, Ctrl+Shift+ArrowLeft/ArrowRight moves it one place
   (`move(i, i ± 1)`, no wrap) and keeps focus on it. Add the row to the Settings shortcuts table
   and the README table ("Move tab left / right"). Check it doesn't clash with anything in
   `App.tsx`'s shortcut map.
 
 ### Context menu
 
-- [ ] **5.** `TabContextMenu.tsx`: `role="menu"`, `position: fixed` at the position from
+- [x] **5.** `TabContextMenu.tsx`: `role="menu"`, `position: fixed` at the position from
   `menuPosition` (measure the menu after it renders, like the flyout does with `useLayoutEffect`).
   Items are `<button role="menuitem">` with `disabled` where the rules above say, a
   `<div role="separator">` before Copy path, and the same look as `.tabstrip__dropdown` items.
   Keyboard: first enabled item focused on open, ArrowUp/Down skip disabled items, Enter/Space run,
   Escape closes and returns focus to the tab. Click outside, window blur and scrolling the tab strip
   close it.
-- [ ] **6.** Open it from `onContextMenu` on a tab (`preventDefault`) at the pointer, and from
+- [x] **6.** Open it from `onContextMenu` on a tab (`preventDefault`) at the pointer, and from
   Shift+F10 or the ContextMenu key on a focused tab at the tab's bottom-left corner.
   Right-clicking a tab doesn't activate it.
-- [ ] **7.** Actions: Close → `close(id)`; Close others → `closeOthers(id)`; Close to the right →
+- [x] **7.** Actions: Close → `close(id)`; Close others → `closeOthers(id)`; Close to the right →
   `closeToRight(id)`; Copy path → `navigator.clipboard.writeText(path)` with
   `.catch(() => undefined)` and a comment; Reveal → `revealInExplorer(path)` with
   `.catch(() => undefined)`. The menu closes before an action runs. Get each tab's path the same way
@@ -106,7 +106,7 @@ dropdown styles the `+` menu uses (`.tabstrip__dropdown`).
 
 ## Verify
 
-- [ ] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
+- [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
 - [x] Manual check with four scratch tabs (`fixtures/tabs/one.md`, `two.md`, `fixtures/gfm.md`, (done by the supervisor, see below)
   `fixtures/math.md` copies), **both themes**:
   - Drag: dispatch `pointerdown` / several `pointermove` / `pointerup` events (`PointerEvent` with
@@ -122,7 +122,7 @@ dropdown styles the `+` menu uses (`.tabstrip__dropdown`).
     show the command stopped. Don't run Reveal (it opens Explorer); check Copy path with
     `await navigator.clipboard.readText()` if permitted, otherwise say it couldn't be read.
   - Discard all edits; don't save.
-- [ ] Commit: `Reorder tabs by dragging and add a tab context menu`.
+- [x] Commit: `Reorder tabs by dragging and add a tab context menu`.
 
 ## Report
 
