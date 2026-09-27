@@ -400,4 +400,11 @@ mod launch_path_tests {
         let result = launch_path(&args, Path::new("C:\\home"));
         assert_eq!(result, Some("C:\\Users\\test\\file.md".to_string()));
     }
+
+    #[test]
+    fn skips_relaunched_flag() {
+        let args = vec!["exe".to_string(), "--relaunched".to_string(), "C:\\file.md".to_string()];
+        let result = launch_path(&args, Path::new("C:\\home"));
+        assert_eq!(result, Some("C:\\file.md".to_string()));
+    }
 }
