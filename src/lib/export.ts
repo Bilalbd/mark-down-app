@@ -1,5 +1,6 @@
 import katex from 'katex';
 import previewCss from '@/components/Preview/Preview.css?raw';
+import { readAssetDataUrl } from '@/lib/tauri';
 import type { ResolvedTheme } from '@/lib/useAppTheme';
 import type { StylePreset } from '@/store/style';
 import { presetToCssVars } from '@/styles/presetCss';
@@ -98,15 +99,46 @@ export function rewriteAssetUrls(html: string): string {
   );
 }
 
+/** Replaces every local image in `html` with an embedded data: URL; any image that can't be
+ * read keeps a file:// URL, so one bad image doesn't fail the export. */
+export async function embedLocalImages(html: string): Promise<string> {
+  const urls = new Map<string, string>();
+  await Promise.all(
+    assetPaths(html).map((p) =>
+      readAssetDataUrl(p).then(
+        (url) => void urls.set(p, url),
+        // Unreadable (moved, too large, outside the folder): fall back to a file:// URL.
+        () => undefined,
+      ),
+    ),
+  );
+  return replaceAssetUrls(html, urls);
+}
+
+/** The KaTeX stylesheet with its woff2 fonts inlined as data: URLs. The fonts are separate lazy
+ * chunks, so none of this is loaded until an export needs it. */
+export async function loadInlineKatexCss(): Promise<string> {
+  const css = (await import('katex/dist/katex.min.css?raw')).default;
+  const loaders = import.meta.glob<string>('/node_modules/katex/dist/fonts/*.woff2', {
+    query: '?inline',
+    import: 'default',
+  });
+  const fonts = new Map<string, string>();
+  await Promise.all(
+    Object.entries(loaders).map(async ([path, load]) => {
+      fonts.set(path.slice(path.lastIndexOf('/') + 1), await load());
+    }),
+  );
+  return inlineKatexFonts(css, fonts);
+}
+
 /** Rewrites KaTeX `@font-face` rules to use data: URLs instead of file system paths. */
 export function inlineKatexFonts(css: string, fonts: ReadonlyMap<string, string>): string {
-  return css.replace(
-    /src:\s*url\(fonts\/([^)]+\.woff2)\)[^;]*/g,
-    (_m, filename) => {
-      const dataUrl = fonts.get(filename);
-      return dataUrl ? `src: url(${dataUrl})` : _m;
-    },
-  );
+  // `src` is the last declaration in each minified rule, so stop at `;` or the rule's `}`.
+  return css.replace(/src:\s*url\(fonts\/([^)]+\.woff2)\)[^;}]*/g, (m, filename: string) => {
+    const dataUrl = fonts.get(filename);
+    return dataUrl ? `src:url(${dataUrl}) format("woff2")` : m;
+  });
 }
 
 /**

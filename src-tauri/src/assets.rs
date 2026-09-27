@@ -45,11 +45,14 @@ pub fn read_asset_data_url(app: AppHandle, path: String) -> Result<String, Strin
         return Err("not allowed".to_string());
     }
 
-    let bytes = std::fs::read(&requested).map_err(|e| e.to_string())?;
-
-    if bytes.len() > 20 * 1024 * 1024 {
+    // Check the size before reading, so a stray huge file is never loaded into memory.
+    let size = std::fs::metadata(&requested)
+        .map_err(|e| e.to_string())?
+        .len();
+    if size > 20 * 1024 * 1024 {
         return Err("file too large".to_string());
     }
+    let bytes = std::fs::read(&requested).map_err(|e| e.to_string())?;
 
     Ok(to_data_url(&bytes, &requested))
 }

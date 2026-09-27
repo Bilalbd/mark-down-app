@@ -45,13 +45,15 @@ describe('rewriteAssetUrls', () => {
 
 describe('assetPaths', () => {
   it('extracts local asset paths', () => {
-    const html = '<img src="http://mdasset.localhost/C%3A%5Cdocs%5Ca.png"><img src="http://asset.localhost/b.jpg">';
+    const html =
+      '<img src="http://mdasset.localhost/C%3A%5Cdocs%5Ca.png"><img src="http://asset.localhost/b.jpg">';
     const paths = assetPaths(html);
     expect(paths).toContain('C:\\docs\\a.png');
     expect(paths).toContain('b.jpg');
   });
   it('deduplicates paths', () => {
-    const html = '<img src="http://mdasset.localhost/x.png"><img src="http://asset.localhost/x.png">';
+    const html =
+      '<img src="http://mdasset.localhost/x.png"><img src="http://asset.localhost/x.png">';
     expect(assetPaths(html)).toHaveLength(1);
   });
   it('ignores non-asset URLs', () => {
@@ -80,7 +82,7 @@ describe('inlineKatexFonts', () => {
     const css = `@font-face{font-family:KaTeX_Main;src:url(fonts/KaTeX_Main-Regular.woff2) format("woff2"),url(fonts/KaTeX_Main-Regular.woff) format("woff")}`;
     const fonts = new Map([['KaTeX_Main-Regular.woff2', 'data:font/woff2;base64,xyz']]);
     const result = inlineKatexFonts(css, fonts);
-    expect(result).toContain('src: url(data:font/woff2;base64,xyz)');
+    expect(result).toContain('src:url(data:font/woff2;base64,xyz) format("woff2")');
     expect(result).not.toContain('woff2) format');
   });
   it('leaves font-faces unchanged if woff2 is not in the map', () => {
@@ -88,6 +90,24 @@ describe('inlineKatexFonts', () => {
     const fonts = new Map();
     const result = inlineKatexFonts(css, fonts);
     expect(result).toBe(css);
+  });
+  it('keeps consecutive minified rules intact (src is the last declaration before `}`)', () => {
+    const rule = (name: string) =>
+      `@font-face{font-display:block;font-family:${name};font-style:normal;font-weight:400;` +
+      `src:url(fonts/${name}.woff2) format("woff2"),url(fonts/${name}.woff) format("woff"),` +
+      `url(fonts/${name}.ttf) format("truetype")}`;
+    const css = rule('KaTeX_AMS') + rule('KaTeX_Main');
+    const fonts = new Map([
+      ['KaTeX_AMS.woff2', 'data:font/woff2;base64,AAA'],
+      ['KaTeX_Main.woff2', 'data:font/woff2;base64,BBB'],
+    ]);
+    const result = inlineKatexFonts(css, fonts);
+    expect(result).toBe(
+      '@font-face{font-display:block;font-family:KaTeX_AMS;font-style:normal;font-weight:400;' +
+        'src:url(data:font/woff2;base64,AAA) format("woff2")}' +
+        '@font-face{font-display:block;font-family:KaTeX_Main;font-style:normal;font-weight:400;' +
+        'src:url(data:font/woff2;base64,BBB) format("woff2")}',
+    );
   });
 });
 

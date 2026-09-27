@@ -95,7 +95,7 @@ from the CDN. Off: exactly today's export (`file://` images, CDN stylesheet).
 
 - [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`, `cargo check`, `cargo test`,
   `pnpm build` (report the relevant chunk sizes).
-- [ ] Manual check (done by the supervisor). Scratch folder with copies of `fixtures/gfm.md`,
+- [x] Manual check (done by the supervisor). Scratch folder with copies of `fixtures/gfm.md`, (done by the supervisor, see below)
   `fixtures/math.md` and the `fixtures/images/` folder.
   - The native Save dialog can't be driven, so check the pieces directly with `eval-file`: open
     the copy of `gfm.md`, then in the page run the same steps `exportHtml` runs (import
@@ -132,3 +132,32 @@ from the CDN. Off: exactly today's export (`file://` images, CDN stylesheet).
 - KaTeX CSS imported as `?raw`, fonts via `import.meta.glob` with `?inline` query and lazy evaluation
 - assetPaths uses Set for deduplication; replaceAssetUrls falls back to toFileUrl for missing entries
 - inlineKatexFonts rewrites @font-face src to drop woff/ttf fallbacks, keeping only inlined woff2
+
+## Supervisor check
+
+Diff reviewed. Two bugs that would have broken maths in every self-contained export, fixed directly
+(follow-up commit):
+- **Fonts never inlined:** with `import: 'default'` each glob loader resolves to the data: URL
+  string itself, but ExportMenu read `.default` from it, so every font was `undefined` while the CDN
+  `<link>` was dropped — maths would have lost its fonts entirely.
+- **Rules merged:** `inlineKatexFonts` matched `src:…[^;]*`, but in the real minified CSS `src` is
+  the last declaration before `}`, so the match ran through the `}` into the next `@font-face`. Now
+  stops at `;` or `}` and keeps `format("woff2")`. The agent's test used a single rule, so it passed;
+  new test with two consecutive real-shaped rules (fails on 49fb95a, passes now).
+Also: the Rust command now checks the file size (metadata) before reading, and the self-contained
+steps moved out of ExportMenu into `embedLocalImages()` / `loadInlineKatexCss()` in `lib/export.ts`
+(logic out of the component, per CLAUDE.md), which also made them callable for the check below.
+`pnpm test` 348 passed (26 files); lint, tsc clean; `cargo test` 38 passed; `pnpm build`: the 22
+fonts are separate lazy chunks (`KaTeX_*-<hash>.js`), only referenced by path from the main bundle.
+
+**Manual check (supervisor, dev app, scratch gfm.md / math.md / images):** ran the same steps the
+Export button runs (minus the native Save dialog) and wrote the output with `writeFile`:
+- gfm.md self-contained: 1 image embedded as `data:image/…`, no `mdasset.localhost` left, 16 KB.
+- math.md self-contained: 20 `@font-face` fonts inlined, no CDN link, no relative font URLs,
+  383 KB, 64 ms to build.
+- Setting off (as today): `file:///` images and the CDN `<link>`.
+- Rendered both math exports in headless Edge with the network blocked (dead proxy): the
+  self-contained file shows every formula correctly; the linked one shows formulas twice and broken
+  radicals (no stylesheet offline). Screenshots checked.
+Settings equal to the backup at the end, apart from the new `selfContainedExport` key now stored at
+its default (`true`).
