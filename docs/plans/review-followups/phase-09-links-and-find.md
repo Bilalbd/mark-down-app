@@ -70,21 +70,21 @@ opens at the top.
   `<p>foo</p><p>bar</p>` does **not** find "foobar"; case-insensitive still works; the
   existing tests pass unchanged. jsdom lacks `CSS.highlights`; the function must still return the
   matches.
-- [ ] **8.** Performance: run `findInPreview` on the rendered `fixtures/huge.md` in the dev app
+- [x] **8.** Performance: run `findInPreview` on the rendered `fixtures/huge.md` in the dev app
   (see Verify) and report the time for a common word before and after (use `performance.now()`
   around the call). It must stay under ~100 ms; if it's much slower than before, say why. (Done by the supervisor.)
 
 ## Verify
 
 - [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
-- [ ] Manual check, **both themes** for the find screenshot:
+- [x] Manual check, **both themes** for the find screenshot:
   - Scratch copies of `fixtures/links.md` and `fixtures/gfm.md` in one folder (plus the other files
     `links.md` links to). Open `links.md`, click the new anchor link; show `gfm.md` is active and
     `__mdv.view.getState().topLine` is within 2 lines of the heading's line. Screenshot.
   - In `gfm.md` (Formatted), find a phrase that spans bold or a link (pick one from the fixture and
     say which); show the counter says at least `1 of 1` and screenshot the highlight.
   - Find timing on a scratch copy of `huge.md` (task 8, done by the supervisor).
-- [ ] Commit: `Follow heading anchors in links and find across formatting`.
+- [x] Commit: `Follow heading anchors in links and find across formatting`.
 
 ## Report
 
@@ -99,3 +99,28 @@ opens at the top.
 **Helper location:** Put `headingLine` in `render.ts` next to `extractHeadings` (not in links.ts) since it needs to parse markdown.
 
 **Fixture heading used:** Table (slugifies to "table").
+
+## Supervisor check
+
+Diff reviewed: matches the phase document. One change made directly (follow-up commit):
+`locateOffset` scanned the whole segment list from the end for every match (O(matches × segments));
+it's now a binary search. `pnpm test` 331 passed (26 files); lint, tsc clean.
+
+**Task 8, timing on huge.md (19,602 text nodes, `findInPreview` in the dev app):**
+
+| Query | Matches | Before (per-node) | After (joined, binary search) |
+|---|---|---|---|
+| `a` | 26,201 | 145 ms | 156 ms |
+| `lorem` | 2,000 | 23 ms | 25 ms |
+| `the` | 0 | 12 ms | 13 ms |
+
+The single-letter case is over the ~100 ms target both before and after; the time goes into building
+26,201 ranges and highlights, not into the join, and the search is debounced. A normal word stays
+around 25 ms.
+
+**Manual check (supervisor, scratch links.md / gfm.md / huge.md):** clicking the new
+`gfm.md#table` link in links.md opened gfm.md with the Table heading at the top (topLine 26 =
+`headingLine(content, 'table')`, heading 8 px below the top edge); `location.href` unchanged. Find
+"the GitHub Flavored" in gfm.md (plain text into bold): `1 of 1`, the current range spans two text
+nodes, and the highlight covers the whole phrase in dark and light (crops checked). Settings equal to
+the backup at the end.

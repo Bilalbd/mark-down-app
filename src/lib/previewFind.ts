@@ -43,14 +43,16 @@ export function locateOffset(
   segments: readonly TextSegment[],
   offset: number,
 ): { index: number; offset: number } {
-  // Find which segment this offset belongs to
-  let index = 0;
-  for (let i = starts.length - 1; i >= 0; i--) {
-    if (starts[i] <= offset) {
-      index = i;
-      break;
-    }
+  // Last segment starting at or before `offset` (binary search: `starts` is ascending, and a
+  // common word in a large document has thousands of matches over thousands of segments).
+  let lo = 0;
+  let hi = starts.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (starts[mid] <= offset) lo = mid;
+    else hi = mid - 1;
   }
+  const index = lo;
 
   const segmentStart = starts[index];
   const offsetInSegment = offset - segmentStart;

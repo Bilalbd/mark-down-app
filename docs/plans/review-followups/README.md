@@ -138,7 +138,7 @@ After each phase, the supervisor:
 | 6 | fbbfe0b + supervisor fix | 271 → 287 | Diff reviewed; fixed stale dialog buttons (new test), held-key resizing, double save; resizers, focus ring (both themes) and dialog checked in app | |
 | 7 | b4b4fa6 + supervisor fix | 287 → 291 | Menu spanned the whole toolbar (found in app); fixed positioning, kept it right-aligned inside the window; both themes checked | |
 | 8 | a78c46c + supervisor fix | 291 → 316 | Menu used the active tab's path for every tab (fixed + test); Escape focus, inline styles, disabled look fixed; drag, keys, menu checked in app | Bilal moved tabs by hand in one run; clean rerun recorded |
-| 9 | | | | |
+| 9 | d772157 + supervisor fix | 316 → 331 | Clean round; offset lookup made a binary search; anchor link, cross-format find (both themes) and huge.md timing checked in app | Single-letter find on huge.md ~150 ms before and after (highlight cost) |
 | 10 | | | | |
 | 11 | | | | |
 | 12 | | | | |
