@@ -164,9 +164,11 @@ function useCursorMirror() {
   const previewVersion = useViewStore((s) => s.previewVersion);
   const previewEl = useViewStore((s) => s.previewScrollEl);
 
-  const cacheRef = useRef<
-    Map<number, { ranges: { start: number; end: number }[]; elements: HTMLElement[] }>
-  >(new Map());
+  const cacheRef = useRef<{
+    version: number;
+    ranges: { start: number; end: number }[];
+    elements: HTMLElement[];
+  } | null>(null);
   const prevElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -183,42 +185,51 @@ function useCursorMirror() {
       if (!root) return;
 
       // Get or cache the block ranges and elements for this preview version.
-      let cached = cacheRef.current.get(previewVersion);
-      if (!cached) {
+      if (!cacheRef.current || cacheRef.current.version !== previewVersion) {
         const elements = Array.from(root.querySelectorAll<HTMLElement>('[data-line]'));
         const ranges = elements.map((el) => ({
           start: Number(el.dataset.line),
           end: el.dataset.lineEnd ? Number(el.dataset.lineEnd) : Number(el.dataset.line) + 1,
         }));
-        cached = { ranges, elements };
-        cacheRef.current.set(previewVersion, cached);
+        cacheRef.current = { version: previewVersion, ranges, elements };
       }
+
+      const cached = cacheRef.current;
 
       // Convert 1-based cursor line to 0-based for comparison with data-line.
       const lineIndex = cursor.line - 1;
       const blockIdx = innermostBlockIndex(cached.ranges, lineIndex);
 
-      // Clear the previous block.
-      if (prevElementRef.current) {
+      // Apply to the new block.
+      let newElement: HTMLElement | null = null;
+      if (blockIdx >= 0 && blockIdx < cached.elements.length) {
+        newElement = cached.elements[blockIdx];
+      }
+
+      // Only remove the class from the previous element if it differs from the new one.
+      if (prevElementRef.current && prevElementRef.current !== newElement) {
         prevElementRef.current.classList.remove('is-cursor-block');
       }
 
       // Apply to the new block.
-      if (blockIdx >= 0 && blockIdx < cached.elements.length) {
-        const el = cached.elements[blockIdx];
-        prevElementRef.current = el;
-        el.classList.add('is-cursor-block');
-      } else {
-        prevElementRef.current = null;
+      if (newElement) {
+        newElement.classList.add('is-cursor-block');
       }
+
+      prevElementRef.current = newElement;
     });
 
     return () => {
       cancelAnimationFrame(raf);
-      // On unmount (leaving Split view), remove the class.
+    };
+  }, [cursor, previewVersion, previewEl]);
+
+  // Separate effect to clean up on unmount only.
+  useEffect(() => {
+    return () => {
       if (prevElementRef.current) {
         prevElementRef.current.classList.remove('is-cursor-block');
       }
     };
-  }, [cursor, previewVersion, previewEl]);
+  }, []);
 }

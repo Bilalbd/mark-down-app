@@ -177,4 +177,24 @@ describe('stripCursorMark', () => {
     expect(result).not.toContain('is-cursor-block');
     expect(result).toContain('class="foo"');
   });
+  it('preserves HTML entities in text nodes', () => {
+    const html = '<p class="is-cursor-block">&lt;script&gt;alert(1)&lt;/script&gt;</p>';
+    const result = stripCursorMark(html);
+    expect(result).toContain('&lt;script&gt;');
+    expect(result).not.toContain('<script>');
+  });
+  it('preserves SVG tag names and attributes', () => {
+    const html =
+      '<div class="is-cursor-block"><svg viewBox="0 0 10 10"><foreignObject></foreignObject></svg></div>';
+    const result = stripCursorMark(html);
+    expect(result).toContain('viewBox');
+    expect(result).toContain('foreignObject');
+    expect(result).not.toContain('is-cursor-block');
+  });
+  it('preserves ampersands and quotes in attributes', () => {
+    const html = '<p class="is-cursor-block" data-text="a &amp; b">text with &amp;</p>';
+    const result = stripCursorMark(html);
+    expect(result).toContain('&amp;');
+    expect(result).toContain('data-text="a &amp; b"');
+  });
 });
