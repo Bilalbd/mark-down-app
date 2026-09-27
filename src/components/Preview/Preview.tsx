@@ -1,10 +1,9 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
-import { openUrl, revealItemInDir } from '@tauri-apps/plugin-opener';
 import { renderMarkdown } from '@/markdown/render';
 import { renderMermaidBlocks } from '@/markdown/mermaid';
 import { useResolvedTheme } from '@/lib/useAppTheme';
 import { classifyLink } from '@/lib/links';
-import { dirname, isTauri, toAssetUrl } from '@/lib/tauri';
+import { dirname, isTauri, toAssetUrl, openExternal, revealInExplorer } from '@/lib/tauri';
 import { useDocumentStore } from '@/store/document';
 import { useSettingsStore, isPreviewFullWidth } from '@/store/settings';
 import { useViewStore } from '@/store/view';
@@ -132,14 +131,13 @@ export function Preview() {
           ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
         return;
       case 'external':
-        if (isTauri()) void openUrl(href);
-        else window.open(href, '_blank', 'noopener');
+        void openExternal(href).catch(() => undefined);
         return;
       case 'markdown':
         void openPath(classification.path);
         return;
       case 'file':
-        if (isTauri()) void revealItemInDir(classification.path);
+        void revealInExplorer(classification.path).catch(() => undefined);
         return;
       case 'ignore':
         return;

@@ -308,7 +308,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         externalChange: null,
       });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: `Could not reload ${basename(path)}: ${String(e)}` });
     }
   },
 

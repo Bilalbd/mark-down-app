@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Copy, Minus, Square, X } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { isTauri } from '@/lib/tauri';
+import { tabsVisible } from '@/lib/tabs';
 import { useTabsStore } from '@/store/tabs';
 import { useSettingsStore } from '@/store/settings';
 import { TabStrip } from '@/components/Tabs/TabStrip';
@@ -16,7 +17,7 @@ interface Props {
 export function TitleBar({ fileName, dirty = false }: Props) {
   const [maximized, setMaximized] = useState(false);
 
-  const tabs = useTabsStore((s) => s.tabs);
+  const tabCount = useTabsStore((s) => s.tabs.length);
   const openFilesIn = useSettingsStore((s) => s.openFilesIn);
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export function TitleBar({ fileName, dirty = false }: Props) {
 
   const win = () => getCurrentWindow();
 
-  const showTabs = openFilesIn === 'tab' || tabs.length > 1;
+  const showTabs = tabsVisible(openFilesIn, tabCount);
 
   return (
     <header className="titlebar" data-tauri-drag-region>

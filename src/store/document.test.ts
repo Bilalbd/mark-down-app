@@ -233,4 +233,24 @@ describe('document store', () => {
     expect(mockWriteFile).not.toHaveBeenCalled();
     expect(useDocumentStore.getState().path).toBe(originalPath);
   });
+
+  it('reload sets error message with filename when read fails', async () => {
+    mockReadFile.mockResolvedValueOnce({
+      content: 'initial',
+      mtime: 1,
+      encoding: 'utf8',
+      lossy: false,
+    });
+
+    await useDocumentStore.getState().open('C:\\docs\\test.md');
+    expect(useDocumentStore.getState().error).toBeNull();
+
+    mockReadFile.mockRejectedValueOnce(new Error('file not found'));
+
+    await useDocumentStore.getState().reload();
+
+    expect(useDocumentStore.getState().error).toContain('Could not reload');
+    expect(useDocumentStore.getState().error).toContain('test.md');
+    expect(useDocumentStore.getState().error).toContain('file not found');
+  });
 });

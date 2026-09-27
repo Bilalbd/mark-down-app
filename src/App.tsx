@@ -24,10 +24,13 @@ import {
   takePendingOpens,
   type FileChangedEvent,
 } from './lib/tauri';
-import { cycleIndex, samePath, shortDir } from './lib/tabs';
+import { samePath, shortDir } from './lib/tabs';
 import { useSettingsStore } from './store/settings';
 import { isDirty, useDocumentStore } from './store/document';
 import {
+  activateTabAt,
+  areTabsVisible,
+  cycleTab,
   hasUnsavedTabs,
   newDocumentPerSetting,
   openPath,
@@ -184,8 +187,12 @@ export default function App() {
 
   const dialogOpen = useDialogStore((s) => s.current !== null);
 
-  const shortcuts = useMemo(
-    () => ({
+  const shortcuts = useMemo(() => {
+    const numpadShortcuts = Object.fromEntries(
+      Array.from({ length: 8 }, (_, i) => [`ctrl+${i + 1}`, () => void activateTabAt(i)]),
+    );
+
+    return {
       'ctrl+o': () => void openWithDialog(),
       'ctrl+n': () => void createNew(),
       'ctrl+s': () => void save(),
@@ -207,142 +214,29 @@ export default function App() {
         void useTabsStore.getState().newTab();
       },
       'ctrl+w': () => {
-        const tabs = useTabsStore.getState().tabs;
-        const openFilesIn = useSettingsStore.getState().openFilesIn;
-        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
-        if (!showTabs) return;
+        if (!areTabsVisible()) return;
         void useTabsStore.getState().close(useTabsStore.getState().activeId);
       },
-      'ctrl+tab': () => {
-        const tabs = useTabsStore.getState().tabs;
-        const activeId = useTabsStore.getState().activeId;
-        const openFilesIn = useSettingsStore.getState().openFilesIn;
-        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
-        if (!showTabs) return;
-        const nextIdx = cycleIndex(
-          tabs.length,
-          tabs.findIndex((t) => t.id === activeId),
-          1,
-        );
-        void useTabsStore.getState().activate(tabs[nextIdx].id);
-      },
-      'ctrl+pagedown': () => {
-        const tabs = useTabsStore.getState().tabs;
-        const activeId = useTabsStore.getState().activeId;
-        const openFilesIn = useSettingsStore.getState().openFilesIn;
-        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
-        if (!showTabs) return;
-        const nextIdx = cycleIndex(
-          tabs.length,
-          tabs.findIndex((t) => t.id === activeId),
-          1,
-        );
-        void useTabsStore.getState().activate(tabs[nextIdx].id);
-      },
-      'ctrl+shift+tab': () => {
-        const tabs = useTabsStore.getState().tabs;
-        const activeId = useTabsStore.getState().activeId;
-        const openFilesIn = useSettingsStore.getState().openFilesIn;
-        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
-        if (!showTabs) return;
-        const nextIdx = cycleIndex(
-          tabs.length,
-          tabs.findIndex((t) => t.id === activeId),
-          -1,
-        );
-        void useTabsStore.getState().activate(tabs[nextIdx].id);
-      },
-      'ctrl+pageup': () => {
-        const tabs = useTabsStore.getState().tabs;
-        const activeId = useTabsStore.getState().activeId;
-        const openFilesIn = useSettingsStore.getState().openFilesIn;
-        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
-        if (!showTabs) return;
-        const nextIdx = cycleIndex(
-          tabs.length,
-          tabs.findIndex((t) => t.id === activeId),
-          -1,
-        );
-        void useTabsStore.getState().activate(tabs[nextIdx].id);
-      },
-      'ctrl+1': () => {
-        const tabs = useTabsStore.getState().tabs;
-        const openFilesIn = useSettingsStore.getState().openFilesIn;
-        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
-        if (!showTabs || tabs.length < 1) return;
-        void useTabsStore.getState().activate(tabs[0].id);
-      },
-      'ctrl+2': () => {
-        const tabs = useTabsStore.getState().tabs;
-        const openFilesIn = useSettingsStore.getState().openFilesIn;
-        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
-        if (!showTabs || tabs.length < 2) return;
-        void useTabsStore.getState().activate(tabs[1].id);
-      },
-      'ctrl+3': () => {
-        const tabs = useTabsStore.getState().tabs;
-        const openFilesIn = useSettingsStore.getState().openFilesIn;
-        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
-        if (!showTabs || tabs.length < 3) return;
-        void useTabsStore.getState().activate(tabs[2].id);
-      },
-      'ctrl+4': () => {
-        const tabs = useTabsStore.getState().tabs;
-        const openFilesIn = useSettingsStore.getState().openFilesIn;
-        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
-        if (!showTabs || tabs.length < 4) return;
-        void useTabsStore.getState().activate(tabs[3].id);
-      },
-      'ctrl+5': () => {
-        const tabs = useTabsStore.getState().tabs;
-        const openFilesIn = useSettingsStore.getState().openFilesIn;
-        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
-        if (!showTabs || tabs.length < 5) return;
-        void useTabsStore.getState().activate(tabs[4].id);
-      },
-      'ctrl+6': () => {
-        const tabs = useTabsStore.getState().tabs;
-        const openFilesIn = useSettingsStore.getState().openFilesIn;
-        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
-        if (!showTabs || tabs.length < 6) return;
-        void useTabsStore.getState().activate(tabs[5].id);
-      },
-      'ctrl+7': () => {
-        const tabs = useTabsStore.getState().tabs;
-        const openFilesIn = useSettingsStore.getState().openFilesIn;
-        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
-        if (!showTabs || tabs.length < 7) return;
-        void useTabsStore.getState().activate(tabs[6].id);
-      },
-      'ctrl+8': () => {
-        const tabs = useTabsStore.getState().tabs;
-        const openFilesIn = useSettingsStore.getState().openFilesIn;
-        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
-        if (!showTabs || tabs.length < 8) return;
-        void useTabsStore.getState().activate(tabs[7].id);
-      },
-      'ctrl+9': () => {
-        const tabs = useTabsStore.getState().tabs;
-        const openFilesIn = useSettingsStore.getState().openFilesIn;
-        const showTabs = openFilesIn === 'tab' || tabs.length > 1;
-        if (!showTabs) return;
-        void useTabsStore.getState().activate(tabs[tabs.length - 1].id);
-      },
-    }),
-    [
-      openWithDialog,
-      createNew,
-      save,
-      set,
-      viewMode,
-      outlineVisible,
-      zoomIn,
-      zoomOut,
-      zoomReset,
-      settingsOpen,
-      setSettingsOpen,
-    ],
-  );
+      'ctrl+tab': () => void cycleTab(1),
+      'ctrl+pagedown': () => void cycleTab(1),
+      'ctrl+shift+tab': () => void cycleTab(-1),
+      'ctrl+pageup': () => void cycleTab(-1),
+      'ctrl+9': () => void activateTabAt(-1),
+      ...numpadShortcuts,
+    };
+  }, [
+    openWithDialog,
+    createNew,
+    save,
+    set,
+    viewMode,
+    outlineVisible,
+    zoomIn,
+    zoomOut,
+    zoomReset,
+    settingsOpen,
+    setSettingsOpen,
+  ]);
   useShortcuts(shortcuts, !dialogOpen);
 
   return (

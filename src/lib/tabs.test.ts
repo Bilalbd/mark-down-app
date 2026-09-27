@@ -9,7 +9,28 @@ import {
   samePath,
   shortDir,
   tabLabels,
+  tabsVisible,
 } from './tabs';
+
+describe('tabsVisible', () => {
+  it('returns true in tab mode', () => {
+    expect(tabsVisible('tab', 1)).toBe(true);
+    expect(tabsVisible('tab', 0)).toBe(true);
+  });
+
+  it('returns false in window mode with one tab', () => {
+    expect(tabsVisible('window', 1)).toBe(false);
+  });
+
+  it('returns true in window mode with more than one tab', () => {
+    expect(tabsVisible('window', 2)).toBe(true);
+    expect(tabsVisible('window', 5)).toBe(true);
+  });
+
+  it('returns false in window mode with no tabs', () => {
+    expect(tabsVisible('window', 0)).toBe(false);
+  });
+});
 
 describe('cycleIndex', () => {
   it('returns the same index for empty or single-element lists', () => {
@@ -353,5 +374,9 @@ describe('shortDir', () => {
 
   it('handles drive letters on Windows paths', () => {
     expect(shortDir('C:\\Users\\bilal\\docs', 2)).toBe('…\\bilal\\docs');
+  });
+
+  it('handles UNC paths', () => {
+    expect(shortDir('\\\\server\\share\\a\\b\\c', 2)).toBe('…\\b\\c');
   });
 });

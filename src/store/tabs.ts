@@ -26,6 +26,7 @@ import {
   moveItem,
   nextActiveAfterClose,
   samePath,
+  tabsVisible,
 } from '@/lib/tabs';
 
 export interface TabSnapshot {
@@ -558,4 +559,30 @@ export async function routeExternalOpen(path: string): Promise<void> {
       useDocumentStore.setState({ error: `Could not open ${path}: ${String(e)}` });
     });
   }
+}
+
+/** Whether the tab strip is shown, reading from the settings and tabs stores. */
+export function areTabsVisible(): boolean {
+  return tabsVisible(useSettingsStore.getState().openFilesIn, useTabsStore.getState().tabs.length);
+}
+
+/** Activates the tab at `index`. Does nothing when tabs aren't visible or `index` is out of range.
+ * `index === -1` means the last tab (Ctrl+9). */
+export async function activateTabAt(index: number): Promise<void> {
+  const state = useTabsStore.getState();
+  if (!areTabsVisible()) return;
+  const actualIndex = index === -1 ? state.tabs.length - 1 : index;
+  if (actualIndex < 0 || actualIndex >= state.tabs.length) return;
+  await state.activate(state.tabs[actualIndex].id);
+}
+
+/** Activates the next or previous tab, wrapping around. Does nothing when tabs aren't visible. */
+export async function cycleTab(delta: 1 | -1): Promise<void> {
+  if (!areTabsVisible()) return;
+  const state = useTabsStore.getState();
+  const tabs = state.tabs;
+  const activeIdx = tabs.findIndex((t) => t.id === state.activeId);
+  if (activeIdx < 0) return;
+  const nextIdx = (((activeIdx + delta) % tabs.length) + tabs.length) % tabs.length;
+  await state.activate(tabs[nextIdx].id);
 }

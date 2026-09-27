@@ -3,6 +3,9 @@ import { useDocumentStore } from '@/store/document';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import {
+  activateTabAt,
+  areTabsVisible,
+  cycleTab,
   hasUnsavedTabs,
   newDocumentPerSetting,
   openPath,
@@ -615,5 +618,152 @@ describe('tabs store', () => {
 
     expect(useDocumentStore.getState().error).toContain('Could not open');
     expect(useDocumentStore.getState().error).toContain('spawn failed');
+  });
+
+  describe('areTabsVisible', () => {
+    it('returns true in tab mode', () => {
+      useSettingsStore.setState({ openFilesIn: 'tab' });
+      expect(areTabsVisible()).toBe(true);
+    });
+
+    it('returns false in window mode with one tab', () => {
+      useSettingsStore.setState({ openFilesIn: 'window' });
+      expect(areTabsVisible()).toBe(false);
+    });
+
+    it('returns true in window mode with more than one tab', async () => {
+      useSettingsStore.setState({ openFilesIn: 'tab' });
+      await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+      await useTabsStore.getState().openInTab('C:\\docs\\B.md');
+
+      useSettingsStore.setState({ openFilesIn: 'window' });
+      expect(areTabsVisible()).toBe(true);
+    });
+  });
+
+  describe('activateTabAt', () => {
+    it('does nothing when tabs are hidden', async () => {
+      useSettingsStore.setState({ openFilesIn: 'window' });
+      await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+      const beforeId = useTabsStore.getState().activeId;
+
+      await activateTabAt(0);
+
+      expect(useTabsStore.getState().activeId).toBe(beforeId);
+    });
+
+    it('does nothing when index is out of range', async () => {
+      useSettingsStore.setState({ openFilesIn: 'tab' });
+      await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+      const beforeId = useTabsStore.getState().activeId;
+
+      await activateTabAt(100);
+
+      expect(useTabsStore.getState().activeId).toBe(beforeId);
+    });
+
+    it('activates tab at index 0', async () => {
+      useSettingsStore.setState({ openFilesIn: 'tab' });
+      await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+      await useTabsStore.getState().openInTab('C:\\docs\\B.md');
+
+      const aTabId = useTabsStore.getState().tabs[0].id;
+      await activateTabAt(0);
+
+      expect(useTabsStore.getState().activeId).toBe(aTabId);
+    });
+
+    it('activates -1 as the last tab', async () => {
+      useSettingsStore.setState({ openFilesIn: 'tab' });
+      await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+      await useTabsStore.getState().openInTab('C:\\docs\\B.md');
+      await useTabsStore.getState().openInTab('C:\\docs\\C.md');
+
+      const tabs = useTabsStore.getState().tabs;
+      const lastTabId = tabs[tabs.length - 1].id;
+      await activateTabAt(-1);
+
+      expect(useTabsStore.getState().activeId).toBe(lastTabId);
+    });
+
+    it('does nothing with negative index other than -1', async () => {
+      useSettingsStore.setState({ openFilesIn: 'tab' });
+      await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+      const beforeId = useTabsStore.getState().activeId;
+
+      await activateTabAt(-2);
+
+      expect(useTabsStore.getState().activeId).toBe(beforeId);
+    });
+  });
+
+  describe('cycleTab', () => {
+    it('does nothing when tabs are hidden', async () => {
+      useSettingsStore.setState({ openFilesIn: 'window' });
+      await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+      const beforeId = useTabsStore.getState().activeId;
+
+      await cycleTab(1);
+
+      expect(useTabsStore.getState().activeId).toBe(beforeId);
+    });
+
+    it('cycles forward through tabs', async () => {
+      useSettingsStore.setState({ openFilesIn: 'tab' });
+      await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+      await useTabsStore.getState().openInTab('C:\\docs\\B.md');
+      await useTabsStore.getState().openInTab('C:\\docs\\C.md');
+
+      const tabs = useTabsStore.getState().tabs;
+      const firstTabId = tabs[0].id;
+
+      // Currently at C, cycle forward to A
+      await cycleTab(1);
+      expect(useTabsStore.getState().activeId).toBe(firstTabId);
+    });
+
+    it('cycles backward through tabs', async () => {
+      useSettingsStore.setState({ openFilesIn: 'tab' });
+      await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+
+      await useTabsStore.getState().openInTab('C:\\docs\\B.md');
+      await useTabsStore.getState().openInTab('C:\\docs\\C.md');
+
+      const tabs = useTabsStore.getState().tabs;
+      const lastTabId = tabs[tabs.length - 1].id;
+
+      // Currently at C, cycle backward to B
+      await cycleTab(-1);
+      expect(useTabsStore.getState().activeId).toBe(
+        tabs[tabs.findIndex((t) => t.id === lastTabId) - 1].id,
+      );
+    });
+
+    it('wraps around forward', async () => {
+      useSettingsStore.setState({ openFilesIn: 'tab' });
+      await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+
+      await useTabsStore.getState().openInTab('C:\\docs\\B.md');
+      const bTabId = useTabsStore.getState().activeId;
+
+      // Go back to A
+      await useTabsStore.getState().activate(useTabsStore.getState().tabs[0].id);
+
+      // Cycle backward to B (wraps)
+      await cycleTab(-1);
+      expect(useTabsStore.getState().activeId).toBe(bTabId);
+    });
+
+    it('wraps around backward', async () => {
+      useSettingsStore.setState({ openFilesIn: 'tab' });
+      await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+      const aTabId = useTabsStore.getState().tabs[0].id;
+
+      await useTabsStore.getState().openInTab('C:\\docs\\B.md');
+
+      // Currently at B, cycle forward (wraps to A)
+      await cycleTab(1);
+      expect(useTabsStore.getState().activeId).toBe(aTabId);
+    });
   });
 });

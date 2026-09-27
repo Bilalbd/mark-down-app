@@ -191,7 +191,7 @@ async function readPresetsFromDisk(
 
 const newId = () => `user-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
-/** Validates an imported preset loosely and fills gaps from the GitHub preset. */
+/** Validates an imported preset loosely and fills gaps from the default preset. */
 export function normalizePreset(input: unknown, id: string): StylePreset | null {
   if (!input || typeof input !== 'object') return null;
   const src = input as Partial<StylePreset>;

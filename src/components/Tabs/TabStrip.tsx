@@ -164,7 +164,9 @@ export function TabStrip() {
 
     const onKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement as HTMLButtonElement;
-      const isOpenRecentBtn = activeEl === items[2];
+      const openRecentBtn = menuRef.current?.querySelector('[data-menu-item="recent"]') as
+        HTMLButtonElement | undefined;
+      const isOpenRecentBtn = activeEl === openRecentBtn;
       const flyoutItems = flyoutRef.current?.querySelectorAll('[role=menuitem]') as
         NodeListOf<HTMLButtonElement> | undefined;
 
@@ -192,7 +194,6 @@ export function TabStrip() {
           } else if (e.key === 'ArrowLeft' || e.key === 'Escape') {
             e.preventDefault();
             setFlyoutOpen(false);
-            const openRecentBtn = items[2];
             openRecentBtn?.focus();
           }
         }
@@ -366,6 +367,7 @@ export function TabStrip() {
             >
               <button
                 role="menuitem"
+                data-menu-item="recent"
                 aria-haspopup="menu"
                 aria-expanded={flyoutOpen}
                 onClick={handleOpenRecentClick}

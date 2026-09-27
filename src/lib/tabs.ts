@@ -1,4 +1,11 @@
 import { basename } from '@/lib/tauri';
+import type { OpenFilesIn } from '@/store/settings';
+
+/** Whether the tab strip is shown: always in tab mode, and in window mode only while more than
+ * one tab is open (e.g. just after switching the setting). */
+export function tabsVisible(openFilesIn: OpenFilesIn, tabCount: number): boolean {
+  return openFilesIn === 'tab' || tabCount > 1;
+}
 
 /** True when two paths refer to the same file, comparing case-insensitively and treating `/` and `\` as equal. */
 export function samePath(a: string, b: string): boolean {
@@ -179,17 +186,11 @@ export function shortDir(dir: string, maxSegments = 2): string {
   // Determine the separator to use in output (prefer the one in the original)
   const sep = dir.includes('\\') ? '\\' : '/';
 
-  // Separate drive letter (Windows) or root (Unix) from folder segments
-  let prefix = '';
+  // Separate drive letter (Windows) from folder segments; skip it for truncation purposes
   let segments: string[] = allSegments;
 
   // Handle Windows drive letters (e.g., "C:")
   if (allSegments[0] && allSegments[0].length === 2 && allSegments[0][1] === ':') {
-    prefix = allSegments[0];
-    segments = allSegments.slice(1);
-  } else if (allSegments[0] === '') {
-    // Root path on Unix
-    prefix = '';
     segments = allSegments.slice(1);
   }
 
@@ -198,8 +199,5 @@ export function shortDir(dir: string, maxSegments = 2): string {
   }
 
   const kept = segments.slice(-maxSegments);
-  if (prefix) {
-    return `…${sep}${kept.join(sep)}`;
-  }
   return `…${sep}${kept.join(sep)}`;
 }

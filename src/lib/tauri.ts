@@ -104,3 +104,20 @@ export function watchFile(path: string): Promise<void> {
 export function unwatchFile(path: string): Promise<void> {
   return invoke('unwatch_file', { path });
 }
+
+/** Opens an http(s)/mailto link in the default browser or mail app (window.open outside Tauri). */
+export async function openExternal(url: string): Promise<void> {
+  if (!isTauri()) {
+    window.open(url, '_blank', 'noopener');
+    return;
+  }
+  const { openUrl } = await import('@tauri-apps/plugin-opener');
+  await openUrl(url);
+}
+
+/** Shows the file selected in File Explorer (does nothing outside Tauri). */
+export async function revealInExplorer(path: string): Promise<void> {
+  if (!isTauri()) return;
+  const { revealItemInDir } = await import('@tauri-apps/plugin-opener');
+  await revealItemInDir(path);
+}

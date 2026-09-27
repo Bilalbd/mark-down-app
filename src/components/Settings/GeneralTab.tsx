@@ -7,15 +7,23 @@ import {
 import { NumberInput, Row, Section, Select, Toggle } from './controls';
 
 export function GeneralTab() {
-  const s = useSettingsStore();
+  const openFilesIn = useSettingsStore((s) => s.openFilesIn);
+  const appTheme = useSettingsStore((s) => s.appTheme);
+  const splitEditorSide = useSettingsStore((s) => s.splitEditorSide);
+  const outlineVisible = useSettingsStore((s) => s.outlineVisible);
+  const previewZoom = useSettingsStore((s) => s.previewZoom);
+  const blockRemoteImages = useSettingsStore((s) => s.blockRemoteImages);
+  const editorLineNumbers = useSettingsStore((s) => s.editorLineNumbers);
+  const editorFontSize = useSettingsStore((s) => s.editorFontSize);
+  const set = useSettingsStore((s) => s.set);
 
   return (
     <>
       <Section title="Application">
         <Row label="Open files in" hint="Also applies to files opened from Explorer">
           <Select<OpenFilesIn>
-            value={s.openFilesIn}
-            onChange={(v) => s.set('openFilesIn', v)}
+            value={openFilesIn}
+            onChange={(v) => set('openFilesIn', v)}
             options={[
               { value: 'tab', label: 'New tab' },
               { value: 'window', label: 'New window' },
@@ -24,8 +32,8 @@ export function GeneralTab() {
         </Row>
         <Row label="Theme">
           <Select<AppTheme>
-            value={s.appTheme}
-            onChange={(v) => s.set('appTheme', v)}
+            value={appTheme}
+            onChange={(v) => set('appTheme', v)}
             options={[
               { value: 'system', label: 'Follow Windows' },
               { value: 'light', label: 'Light' },
@@ -35,8 +43,8 @@ export function GeneralTab() {
         </Row>
         <Row label="Split layout">
           <Select<SplitSide>
-            value={s.splitEditorSide}
-            onChange={(v) => s.set('splitEditorSide', v)}
+            value={splitEditorSide}
+            onChange={(v) => set('splitEditorSide', v)}
             options={[
               { value: 'left', label: 'Source left, formatted right' },
               { value: 'right', label: 'Formatted left, source right' },
@@ -44,33 +52,33 @@ export function GeneralTab() {
           />
         </Row>
         <Row label="Show outline">
-          <Toggle value={s.outlineVisible} onChange={(v) => s.set('outlineVisible', v)} />
+          <Toggle value={outlineVisible} onChange={(v) => set('outlineVisible', v)} />
         </Row>
         <Row label="Preview zoom" hint="Ctrl + / Ctrl −">
           <NumberInput
-            value={s.previewZoom}
+            value={previewZoom}
             min={0.5}
             max={3}
             step={0.1}
-            onChange={(v) => s.set('previewZoom', v)}
+            onChange={(v) => set('previewZoom', v)}
           />
         </Row>
         <Row label="Block remote images" hint="Images loaded from http(s) URLs won't load">
-          <Toggle value={s.blockRemoteImages} onChange={(v) => s.set('blockRemoteImages', v)} />
+          <Toggle value={blockRemoteImages} onChange={(v) => set('blockRemoteImages', v)} />
         </Row>
       </Section>
 
       <Section title="Source editor">
         <Row label="Line numbers">
-          <Toggle value={s.editorLineNumbers} onChange={(v) => s.set('editorLineNumbers', v)} />
+          <Toggle value={editorLineNumbers} onChange={(v) => set('editorLineNumbers', v)} />
         </Row>
         <Row label="Font size">
           <NumberInput
-            value={s.editorFontSize}
+            value={editorFontSize}
             min={9}
             max={32}
             unit="px"
-            onChange={(v) => s.set('editorFontSize', v)}
+            onChange={(v) => set('editorFontSize', v)}
           />
         </Row>
       </Section>
@@ -86,6 +94,7 @@ export function GeneralTab() {
               ['Ctrl+T', 'New tab'],
               ['Ctrl+W', 'Close tab'],
               ['Ctrl+Tab / Ctrl+Shift+Tab', 'Next / previous tab'],
+              ['Ctrl+PageDown / Ctrl+PageUp', 'Next / previous tab'],
               ['Ctrl+1 … Ctrl+9', 'Go to tab'],
               ['Ctrl+E', 'Toggle formatted / source'],
               ['Ctrl+Shift+E', 'Toggle split view'],
