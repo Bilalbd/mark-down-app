@@ -3,7 +3,7 @@ mod commands;
 mod instance;
 mod watch;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tauri::{Emitter, Listener, Manager};
@@ -101,6 +101,11 @@ fn reveal(window: &tauri::WebviewWindow) {
     let _ = window.set_focus();
 }
 
+/// Fallback WebView2 data folder path.
+fn fallback_webview_dir(local_app_data: &Path) -> PathBuf {
+    local_app_data.join(IDENTIFIER).join("EBWebView-fallback")
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let args: Vec<String> = std::env::args().collect();
@@ -108,9 +113,19 @@ pub fn run() {
     let new_window = args.iter().any(|a| a == "--new-window");
 
     // Probe for a hung existing instance (plugin's SendMessageW has no timeout).
-    let existing_hung =
-        !new_window && !is_relaunched && instance::existing_instance_is_hung(IDENTIFIER);
+    let existing_hung = !is_relaunched && instance::existing_instance_is_hung(IDENTIFIER);
     let new_window = new_window || existing_hung;
+
+    // A hung instance can stall the shared WebView2 browser process.
+    // Use a fallback data folder; the app keeps no data in WebView2 storage.
+    if (existing_hung || is_relaunched)
+        && std::env::var_os("WEBVIEW2_USER_DATA_FOLDER").is_none()
+    {
+        if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
+            let path = fallback_webview_dir(Path::new(&local_app_data));
+            std::env::set_var("WEBVIEW2_USER_DATA_FOLDER", path);
+        }
+    }
 
     // Watchdog: relaunch if setup doesn't complete in time.
     {
@@ -297,5 +312,13 @@ mod tests {
         ];
         let result = relaunch_args(&args);
         assert_eq!(result, None);
+    }
+
+    #[test]
+    fn fallback_webview_dir_joins_identifier_and_folder() {
+        let base = Path::new("C:\\Users\\test\\AppData\\Local");
+        let result = fallback_webview_dir(base);
+        let expected = base.join(IDENTIFIER).join("EBWebView-fallback");
+        assert_eq!(result, expected);
     }
 }
