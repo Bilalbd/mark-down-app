@@ -203,6 +203,11 @@ export function SourceEditor() {
       if (savedLine !== null) scrollToLine(view, savedLine);
     }
 
+    // setState() doesn't fire the update listener (unlike dispatch()), so the view store's
+    // cursor would otherwise keep the outgoing document's position - stale, and potentially
+    // past the end of the incoming document (status bar, and Split view's cursor mirror).
+    updateCursorState(view);
+
     prevPathRef.current = path;
   }, [loadId, path]);
 

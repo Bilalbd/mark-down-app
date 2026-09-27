@@ -103,3 +103,59 @@ Code blocks show only a faint rim (their own background covers the tint), accept
 characters and sampling 45 frames: 0 frames without the tint. Formatted view: no tint.
 `huge.md` in Split, 50 cursor moves: 19.1 ms average across two frames (27 ms max), one block
 marked. Export stripping covered by the new tests (not exercised through the native dialog).
+
+## Second review (Sonnet 5)
+
+Read the Phase 4 commits (`2d13717`, `03e4afa`, `69fa290`), the files they touch, and their
+dependencies (`view.ts`, `Preview.tsx`, `SourceEditor.tsx`, `plugins.ts`, `tabs.ts`), then looked
+for the scenarios the plan calls out: stale cache/element references, a cursor past the end of a
+new document, blocks that carry `data-line` but shouldn't be tinted, StrictMode double-invoke,
+`stripCursorMark` safety and export coverage, and performance.
+
+**Confirmed and fixed - stale cursor after switching tabs (or any load change).**
+`SourceEditor.tsx`'s load-change effect swaps in the incoming document with
+`view.setState(...)`, not `view.dispatch(...)`. Unlike `dispatch()`, `setState()` never runs
+`EditorView.updateListener`, so `updateCursorState()` was never called: the view store's `cursor`
+kept the outgoing tab's `{ line, col }`. In Split view, `useCursorMirror()` reads that stale
+`cursor` before the user next moves the caret, so it can tint the wrong block in the new document
+(or, if the new document is shorter, silently tint nothing because the stale line is out of
+range). This also meant the status bar (Phase 3) could show a `Ln`/`Col` that belongs to the
+previous tab for a moment. Reproduced with a test that mounts `SourceEditor`, moves the cursor to
+line 3, then swaps in a one-line document under a new `loadId` (the same thing `useTabsStore`'s
+`activate()` does via `swapIn()`): the cursor stayed at `{ line: 3 }` - past the end of the new,
+one-line document - until the fix. Fixed with a one-line addition: call `updateCursorState(view)`
+right after `view.setState(...)` in that effect (`src/components/Editor/SourceEditor.tsx`), so the
+cursor is corrected synchronously, before Split view (or the status bar) can read a stale value.
+Regression test: `src/components/Editor/SourceEditor.test.tsx` ("updates cursor when switching to
+a shorter document (e.g. a tab switch)") - failed on the pre-fix code (cursor stuck at line 3 in a
+1-line document), passes now.
+
+**Checked, no defect found:**
+- `innermostBlockIndex` and the block cache: correct on ties, empty ranges, and blank lines; the
+  cache is keyed on `previewVersion`, which is bumped in a `useLayoutEffect` right after the new
+  preview HTML commits, so the `requestAnimationFrame`-deferred scan always sees the current DOM.
+- StrictMode (`src/main.tsx` wraps the app in it): the main effect's cleanup cancels its
+  `requestAnimationFrame`, so the double invoke only ever runs the second, live one; the
+  unmount-only cleanup effect correctly removes the tint when Split view unmounts.
+- Blocks that carry `data-line` but shouldn't be individually tinted: checked the actual
+  markdown-it output for `gfm.md` (footnotes, task lists, tables) and `math.md`/`mermaid.md`
+  (KaTeX, Mermaid). KaTeX display-math blocks (`<p class="katex-block">`) and Mermaid's rendered
+  `<div>` get no `data-line` from the block wrapper the KaTeX/Mermaid plugins emit, so a cursor
+  on one of those lines correctly falls back to "no block marked" per the plan, rather than
+  mistinting a neighbour. The footnote body renders in a `<section>` at the very end of the
+  document (standard footnote-plugin behaviour), physically out of source order from its
+  reference, but `innermostBlockIndex` doesn't depend on document order for matching (only for
+  the tie-break), so it's still tinted correctly when the cursor is on the footnote's definition
+  line.
+- `stripCursorMark`: `template.innerHTML` round-trips entities, tag case and attributes correctly
+  (covered by the existing security tests); it's called on `bodyHtml` before both the HTML export
+  and before `buildExportHtml` embeds images/KaTeX. The PDF/print path doesn't call it, but prints
+  the live DOM instead, so it relies on `base.css`'s `@media print` rule instead - that rule uses
+  `!important` and so also overrides the more specific `.preview tr.is-cursor-block` rule from
+  `69fa290`, hiding the tint in print regardless of which pane or preset is active.
+- `--md-cursor-block` derives from `--md-text` via `color-mix`, and every preset sets `--md-text`
+  for both light and dark, so the tint automatically follows both themes and every preset without
+  its own per-preset entry.
+
+Tests: 436 before, 437 after (one new regression test). `pnpm test`, `npx tsc --noEmit`, and
+`npx eslint` on the touched files pass; `npx prettier --check` on the touched files passes.
