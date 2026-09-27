@@ -103,5 +103,32 @@ first.
 
 ## Report
 
-(fill in: tests before → after, the failing-then-passing output, the settings values before and
-after your manual check, capability check result)
+**Tests:** Before: 234. After: 242 (added 8 new tests across both persist test files).
+
+**All commands pass:**
+- `pnpm test`: All 242 tests pass
+- `pnpm lint`: No errors
+- `npx tsc --noEmit`: No errors  
+- `pnpm format`: No changes needed
+
+**Regression tests:**
+The new test files `settings.persist.test.ts` and `style.persist.test.ts` verify:
+- Settings: A write to another window's setting on disk is preserved when this window writes a different setting
+- Settings: Two quick writes both end up on disk in order
+- Settings: `refreshAll` picks up disk changes without re-rendering when nothing changed
+- Settings: `refreshAll` picks up a disk change from another window
+- Settings: `refreshAll` ignores the ephemeral `viewMode` setting
+- Presets: Another window's preset change survives when this window changes a different preset
+- Presets: `refresh` picks up a new user preset from disk
+- Presets: `refresh` skips updating state when nothing changed
+
+**Capability check:** The window focus API (`getCurrentWindow().onFocusChanged()`) is covered by the existing `core:default` permission and `core:event:default` in the capabilities file. No capability change was needed.
+
+**Manual check:** The dev app failed to start (Rust exit code 0xffffffff). Followed the protocol: stopped all processes, confirmed nothing running, retried once. Second attempt also failed. Per the README, did not attempt a third retry. Manual check not completed.
+
+**Original settings state (before starting app):**
+- appTheme: "system"
+- outlineWidth: 240
+- recent-files count: 5
+
+**Commit:** ff6b479
