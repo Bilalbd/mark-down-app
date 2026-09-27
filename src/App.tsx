@@ -7,6 +7,7 @@ import { Toolbar } from './components/Toolbar/Toolbar';
 import { Preview } from './components/Preview/Preview';
 import { SourceEditor } from './components/Editor/SourceEditor';
 import { Outline } from './components/Outline/Outline';
+import { HeadingsSync } from './components/Outline/HeadingsSync';
 import { SplitView } from './components/Split/SplitView';
 import { ConfirmDialog, useDialogStore } from './components/Dialog/ConfirmDialog';
 import { SettingsPanel } from './components/Settings/SettingsPanel';
@@ -35,7 +36,6 @@ import {
   useTabsStore,
 } from './store/tabs';
 import { useStyleStore } from './store/style';
-import { extractHeadings } from './markdown/render';
 import { useViewStore } from './store/view';
 
 export default function App() {
@@ -52,8 +52,6 @@ export default function App() {
 
   const path = useDocumentStore((s) => s.path);
   const hasDocument = useDocumentStore((s) => s.hasDocument);
-  const content = useDocumentStore((s) => s.content);
-  const setHeadings = useViewStore((s) => s.setHeadings);
   const dirty = useDocumentStore(isDirty);
   const error = useDocumentStore((s) => s.error);
   const openWithDialog = useDocumentStore((s) => s.openWithDialog);
@@ -116,12 +114,6 @@ export default function App() {
     void listen('open-requested', () => void handleOpenRequests()).then((u) => (unlisten = u));
     return () => unlisten?.();
   }, [handleOpenRequests]);
-
-  // Outline headings come from a cheap headings-only parse so the outline works in every view.
-  useEffect(() => {
-    const t = setTimeout(() => setHeadings(extractHeadings(content)), 150);
-    return () => clearTimeout(t);
-  }, [content, setHeadings]);
 
   // Live reload: the Rust watcher reports external edits to open files. Route each event
   // to the active document or an inactive tab, depending on which one owns the path.
@@ -444,6 +436,7 @@ export default function App() {
         <SettingsPanel />
       </main>
       <StyleInjector />
+      <HeadingsSync />
       <ConfirmDialog />
     </div>
   );

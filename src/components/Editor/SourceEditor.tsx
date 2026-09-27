@@ -26,10 +26,24 @@ import './SourceEditor.css';
 
 const gutterCompartment = new Compartment();
 
+let lastEmitted: string | null = null;
+
 /** Returns the 0-based document line at the top of the editor viewport. */
 function topVisibleLine(view: EditorView): number {
   const block = view.lineBlockAtHeight(view.scrollDOM.scrollTop + 12);
   return view.state.doc.lineAt(block.from).number - 1;
+}
+
+/** Determines whether external content changes need to be synced to the editor.
+ * Returns false without calling readDoc when content matches the last emitted string,
+ * otherwise reads the current doc and compares. */
+export function needsExternalSync(
+  content: string,
+  lastEmitted: string | null,
+  readDoc: () => string,
+): boolean {
+  if (content === lastEmitted) return false;
+  return readDoc() !== content;
 }
 
 function buildExtensions(): Extension[] {
@@ -61,7 +75,11 @@ function buildExtensions(): Extension[] {
     editorTheme,
     editorHighlighting,
     EditorView.updateListener.of((u) => {
-      if (u.docChanged) useDocumentStore.getState().setContent(u.state.doc.toString());
+      if (u.docChanged) {
+        const str = u.state.doc.toString();
+        lastEmitted = str;
+        useDocumentStore.getState().setContent(str);
+      }
     }),
     EditorView.domEventHandlers({
       scroll: (_e, v) => {
@@ -99,6 +117,7 @@ export function SourceEditor() {
   // load when it still matches the current content. Each tab gets its own editor state via
   // per-load caching.
   useEffect(() => {
+    lastEmitted = null;
     const host = hostRef.current!;
     const docState = useDocumentStore.getState();
     const state =
@@ -126,6 +145,7 @@ export function SourceEditor() {
     if (loadId === prevLoadIdRef.current) return; // just mounted/remounted, no new load
     const outgoingLoadId = prevLoadIdRef.current;
     prevLoadIdRef.current = loadId;
+    lastEmitted = null;
     const view = viewRef.current;
     if (!view) return;
 
@@ -152,8 +172,8 @@ export function SourceEditor() {
   useEffect(() => {
     const view = viewRef.current;
     if (!view) return;
+    if (!needsExternalSync(content, lastEmitted, () => view.state.doc.toString())) return;
     const current = view.state.doc.toString();
-    if (current === content) return;
     view.dispatch({
       changes: { from: 0, to: current.length, insert: content },
       annotations: Transaction.addToHistory.of(false),

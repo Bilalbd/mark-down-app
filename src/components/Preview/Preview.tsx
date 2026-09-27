@@ -76,6 +76,7 @@ export function Preview() {
         if (seq !== renderSeq.current) return; // a newer render superseded this one
         renderedLoadIdRef.current = loadId;
         setHtml({ html: result.html, loadId });
+        useViewStore.getState().setHeadings(result.headings);
       },
       isNewLoad ? 0 : RENDER_DEBOUNCE_MS,
     );
