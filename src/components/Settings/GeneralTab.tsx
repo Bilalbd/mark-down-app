@@ -92,10 +92,7 @@ export function GeneralTab() {
       </Section>
 
       <Section title="Export">
-        <Row
-          label="Self-contained HTML export"
-          hint="Embeds images and maths fonts; larger files"
-        >
+        <Row label="Self-contained HTML export" hint="Embeds images and maths fonts; larger files">
           <Toggle value={selfContainedExport} onChange={(v) => set('selfContainedExport', v)} />
         </Row>
       </Section>
