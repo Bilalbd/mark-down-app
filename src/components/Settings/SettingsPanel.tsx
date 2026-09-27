@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
+import { useDialogStore } from '@/components/Dialog/ConfirmDialog';
 import { AppearanceTab } from './AppearanceTab';
 import { PresetsTab } from './PresetsTab';
 import { CustomCssTab } from './CustomCssTab';
@@ -27,6 +28,7 @@ export function SettingsPanel() {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (useDialogStore.getState().current !== null) return;
         e.stopPropagation();
         setOpen(false);
       }

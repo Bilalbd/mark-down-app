@@ -66,6 +66,7 @@ export function ConfirmDialog() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
+        e.stopImmediatePropagation();
         close(null);
       }
     };

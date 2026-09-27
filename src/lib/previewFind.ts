@@ -11,6 +11,17 @@ export interface PreviewMatch {
   range: Range;
 }
 
+/** The match index to show after a re-search: kept (clamped) when only the document changed,
+ * reset to 0 when the search itself changed. */
+export function matchIndexAfterSearch(
+  prevIndex: number,
+  searchChanged: boolean,
+  count: number,
+): number {
+  if (searchChanged || count === 0) return 0;
+  return Math.min(prevIndex, count - 1);
+}
+
 /** Escapes a string for literal use inside a RegExp pattern. */
 export function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -62,7 +73,11 @@ export function findInPreview(
   return matches;
 }
 
-export function setCurrentPreviewMatch(matches: PreviewMatch[], index: number): void {
+export function setCurrentPreviewMatch(
+  matches: PreviewMatch[],
+  index: number,
+  opts: { scroll?: boolean } = {},
+): void {
   if (!supportsHighlights()) return;
   const m = matches[index];
   if (!m) {
@@ -70,8 +85,10 @@ export function setCurrentPreviewMatch(matches: PreviewMatch[], index: number): 
     return;
   }
   CSS.highlights.set(CURRENT, new Highlight(m.range));
-  const el = m.range.startContainer.parentElement;
-  el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  if (opts.scroll !== false) {
+    const el = m.range.startContainer.parentElement;
+    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
 }
 
 export function clearPreviewHighlights(): void {

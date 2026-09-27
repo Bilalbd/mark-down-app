@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { findInPreview } from '@/lib/previewFind';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
+import { findInPreview, matchIndexAfterSearch, setCurrentPreviewMatch } from '@/lib/previewFind';
 
 function rootWith(text: string): HTMLElement {
   const el = document.createElement('div');
@@ -42,5 +42,83 @@ describe('findInPreview', () => {
   it('returns no matches for an empty query', () => {
     const root = rootWith('anything');
     expect(findInPreview(root, '', false)).toEqual([]);
+  });
+});
+
+describe('matchIndexAfterSearch', () => {
+  it('keeps the index when only the document changed', () => {
+    const result = matchIndexAfterSearch(2, false, 5);
+    expect(result).toBe(2);
+  });
+
+  it('clamps the index when matches shrink', () => {
+    const result = matchIndexAfterSearch(4, false, 3);
+    expect(result).toBe(2);
+  });
+
+  it('resets to 0 when the search changed', () => {
+    const result = matchIndexAfterSearch(2, true, 5);
+    expect(result).toBe(0);
+  });
+
+  it('returns 0 when there are no matches', () => {
+    const result = matchIndexAfterSearch(2, false, 0);
+    expect(result).toBe(0);
+  });
+});
+
+describe('setCurrentPreviewMatch', () => {
+  beforeEach(() => {
+    Object.assign(globalThis, {
+      CSS: {
+        highlights: new Map(),
+      },
+      Highlight: class Highlight {
+        constructor(public range: Range) {}
+      },
+    });
+  });
+
+  afterEach(() => {
+    delete (globalThis as unknown as Record<string, unknown>).CSS;
+    delete (globalThis as unknown as Record<string, unknown>).Highlight;
+  });
+
+  it('does not scroll when scroll is false', () => {
+    const root = document.createElement('div');
+    root.textContent = 'Hello hello';
+    document.body.appendChild(root);
+
+    const matches = findInPreview(root, 'hello', false);
+    expect(matches.length).toBeGreaterThan(0);
+
+    const el = matches[0].range.startContainer.parentElement;
+    const scrollIntoViewSpy = vi.fn();
+    if (el) {
+      el.scrollIntoView = scrollIntoViewSpy;
+    }
+    setCurrentPreviewMatch(matches, 0, { scroll: false });
+    expect(scrollIntoViewSpy).not.toHaveBeenCalled();
+
+    document.body.removeChild(root);
+  });
+
+  it('scrolls by default', () => {
+    const root = document.createElement('div');
+    root.textContent = 'Hello hello';
+    document.body.appendChild(root);
+
+    const matches = findInPreview(root, 'hello', false);
+    expect(matches.length).toBeGreaterThan(0);
+
+    const el = matches[0].range.startContainer.parentElement;
+    const scrollIntoViewSpy = vi.fn();
+    if (el) {
+      el.scrollIntoView = scrollIntoViewSpy;
+    }
+    setCurrentPreviewMatch(matches, 0);
+    expect(scrollIntoViewSpy).toHaveBeenCalled();
+
+    document.body.removeChild(root);
   });
 });

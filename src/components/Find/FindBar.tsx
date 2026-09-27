@@ -11,6 +11,7 @@ import {
 import {
   clearPreviewHighlights,
   findInPreview,
+  matchIndexAfterSearch,
   setCurrentPreviewMatch,
   type PreviewMatch,
 } from '@/lib/previewFind';
@@ -34,8 +35,15 @@ export function FindBar() {
   const [index, setIndex] = useState(0);
   const [editorCount, setEditorCount] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const indexRef = useRef(0);
+  const lastKeyRef = useRef('');
 
   const usePreview = viewMode !== 'source';
+
+  // Mirror index to indexRef on each render.
+  useEffect(() => {
+    indexRef.current = index;
+  }, [index]);
 
   // Focus and select the input whenever the bar opens.
   useEffect(() => {
@@ -45,6 +53,7 @@ export function FindBar() {
       if (editorView) openSearchPanel(editorView);
     } else {
       clearPreviewHighlights();
+      lastKeyRef.current = '';
       if (editorView) {
         editorView.dispatch({ effects: setSearchQuery.of(new SearchQuery({ search: '' })) });
         closeSearchPanel(editorView);
@@ -70,9 +79,13 @@ export function FindBar() {
       if (usePreview && previewEl) {
         const root = previewEl.querySelector<HTMLElement>('.preview');
         const found = root ? findInPreview(root, query, caseSensitive) : [];
+        const key = `${query}\u0000${caseSensitive}\u0000${usePreview}`;
+        const searchChanged = key !== lastKeyRef.current;
+        lastKeyRef.current = key;
+        const next = matchIndexAfterSearch(indexRef.current, searchChanged, found.length);
         setMatches(found);
-        setIndex(0);
-        setCurrentPreviewMatch(found, 0);
+        setIndex(next);
+        setCurrentPreviewMatch(found, next, { scroll: searchChanged });
       } else {
         clearPreviewHighlights();
         setMatches([]);
@@ -87,7 +100,8 @@ export function FindBar() {
         if (matches.length === 0) return;
         const next = (index + dir + matches.length) % matches.length;
         setIndex(next);
-        setCurrentPreviewMatch(matches, next);
+        indexRef.current = next;
+        setCurrentPreviewMatch(matches, next, { scroll: true });
       } else if (editorView) {
         (dir === 1 ? findNext : findPrevious)(editorView);
       }
