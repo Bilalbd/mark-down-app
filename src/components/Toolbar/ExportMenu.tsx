@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Download } from 'lucide-react';
 import { save as saveDialog } from '@tauri-apps/plugin-dialog';
-import { buildExportHtml, embedLocalImages, loadInlineKatexCss } from '@/lib/export';
+import {
+  buildExportHtml,
+  embedLocalImages,
+  loadInlineKatexCss,
+  stripCursorMark,
+} from '@/lib/export';
 import { basename, isTauri, writeFile } from '@/lib/tauri';
 import { useResolvedTheme, type ResolvedTheme } from '@/lib/useAppTheme';
 import { renderMermaidBlocks, whenMermaidIdle } from '@/markdown/mermaid';
@@ -74,6 +79,7 @@ export function ExportMenu() {
       const title = path ? basename(path).replace(/\.[^.]+$/, '') : 'Untitled';
       const selfContained = useSettingsStore.getState().selfContainedExport;
       let bodyHtml = preview.el.innerHTML;
+      bodyHtml = stripCursorMark(bodyHtml);
       let katexCss: string | undefined;
       if (selfContained) {
         bodyHtml = await embedLocalImages(bodyHtml);

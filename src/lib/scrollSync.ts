@@ -64,6 +64,30 @@ export function clamp(v: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, v));
 }
 
+/**
+ * Finds the innermost rendered block containing a source line.
+ * Returns the index of the block with the smallest range; if tied, picks the later one.
+ * Returns -1 if no block contains the line or the list is empty.
+ */
+export function innermostBlockIndex(
+  ranges: { start: number; end: number }[],
+  line: number,
+): number {
+  let best = -1;
+  let bestSpan = Infinity;
+  for (let i = 0; i < ranges.length; i++) {
+    const r = ranges[i];
+    if (line >= r.start && line < r.end) {
+      const span = r.end - r.start;
+      if (span < bestSpan || (span === bestSpan && i > best)) {
+        best = i;
+        bestSpan = span;
+      }
+    }
+  }
+  return best;
+}
+
 /** Reads the top-level rendered blocks from a preview root element. */
 export function collectPreviewBlocks(previewRoot: HTMLElement): Block[] {
   const blocks: Block[] = [];

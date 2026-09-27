@@ -171,3 +171,84 @@ function escapeHtml(s: string): string {
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!,
   );
 }
+
+/**
+ * Removes the `is-cursor-block` class from HTML, and cleans up any empty `class=""`
+ * attributes left behind. Uses DOM parsing, not regex, for safety.
+ */
+export function stripCursorMark(html: string): string {
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  const fragment = template.content;
+
+  // Find all elements with is-cursor-block class
+  const elements = fragment.querySelectorAll('[class*="is-cursor-block"]');
+  for (const el of elements) {
+    const classes = el.className
+      .split(/\s+/)
+      .filter((c) => c !== 'is-cursor-block')
+      .join(' ');
+    if (classes) {
+      el.className = classes;
+    } else {
+      el.removeAttribute('class');
+    }
+  }
+
+  // Serialize back to HTML
+  let result = '';
+  for (const node of fragment.childNodes) {
+    result += nodeToHtml(node);
+  }
+  return result;
+}
+
+/** Converts a DOM node back to an HTML string. */
+function nodeToHtml(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return (node as Text).data;
+  }
+  if (node.nodeType === Node.ELEMENT_NODE) {
+    const el = node as Element;
+    const tag = el.tagName.toLowerCase();
+    let html = `<${tag}`;
+
+    for (const attr of el.attributes) {
+      const value = attr.value.replace(/"/g, '&quot;');
+      html += ` ${attr.name}="${value}"`;
+    }
+
+    if (
+      el.childNodes.length === 0 &&
+      [
+        'area',
+        'base',
+        'br',
+        'col',
+        'embed',
+        'hr',
+        'img',
+        'input',
+        'link',
+        'meta',
+        'param',
+        'source',
+        'track',
+        'wbr',
+      ].includes(tag)
+    ) {
+      html += '>';
+    } else {
+      html += '>';
+      for (const child of el.childNodes) {
+        html += nodeToHtml(child);
+      }
+      html += `</${tag}>`;
+    }
+    return html;
+  }
+  if (node.nodeType === Node.COMMENT_NODE) {
+    return `<!--${(node as Comment).data}-->`;
+  }
+  return '';
+}

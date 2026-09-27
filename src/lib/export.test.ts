@@ -5,6 +5,7 @@ import {
   inlineKatexFonts,
   replaceAssetUrls,
   rewriteAssetUrls,
+  stripCursorMark,
   toFileUrl,
 } from './export';
 import { renderMarkdown } from '@/markdown/render';
@@ -148,5 +149,32 @@ describe('buildExportHtml', () => {
     });
     expect(out).not.toContain('katex.min.css');
     expect(out).toContain('@font-face{font-family:KaTeX_Main}');
+  });
+});
+
+describe('stripCursorMark', () => {
+  it('removes the is-cursor-block class', () => {
+    const html = '<p class="is-cursor-block">text</p>';
+    expect(stripCursorMark(html)).toBe('<p>text</p>');
+  });
+  it('keeps other classes when removing is-cursor-block', () => {
+    const html = '<p class="foo is-cursor-block bar">text</p>';
+    const result = stripCursorMark(html);
+    expect(result).toContain('class="foo bar"');
+    expect(result).not.toContain('is-cursor-block');
+  });
+  it('removes the empty class attribute after stripping is-cursor-block', () => {
+    const html = '<div class="is-cursor-block"></div>';
+    expect(stripCursorMark(html)).toBe('<div></div>');
+  });
+  it('leaves elements without the class unchanged', () => {
+    const html = '<p>text</p><div>content</div>';
+    expect(stripCursorMark(html)).toBe(html);
+  });
+  it('handles nested elements with the class', () => {
+    const html = '<div class="is-cursor-block"><p class="foo">text</p></div>';
+    const result = stripCursorMark(html);
+    expect(result).not.toContain('is-cursor-block');
+    expect(result).toContain('class="foo"');
   });
 });

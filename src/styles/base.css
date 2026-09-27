@@ -252,4 +252,8 @@ button:focus-visible {
   .preview h3 {
     break-after: avoid;
   }
+  .preview .is-cursor-block {
+    background: none !important;
+    box-shadow: none !important;
+  }
 }

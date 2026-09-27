@@ -27,6 +27,7 @@
   --md-table-border: var(--chrome-border);
   --md-table-stripe: color-mix(in srgb, var(--content-fg) 3%, transparent);
   --md-hr: var(--chrome-border);
+  --md-cursor-block: color-mix(in srgb, var(--md-text) 7%, transparent);
 
   --md-font-body: var(--font-ui);
   --md-font-heading: var(--md-font-body);
@@ -298,4 +299,11 @@
 }
 .preview .katex {
   font-size: 1.1em;
+}
+
+/* Cursor position indicator in split view */
+.preview .is-cursor-block {
+  background: var(--md-cursor-block);
+  border-radius: 4px;
+  box-shadow: 0 0 0 4px var(--md-cursor-block);
 }

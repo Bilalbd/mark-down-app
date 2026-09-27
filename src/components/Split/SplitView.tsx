@@ -2,7 +2,13 @@ import { useEffect, useRef } from 'react';
 import type { EditorView } from '@codemirror/view';
 import { SourceEditor } from '@/components/Editor/SourceEditor';
 import { Preview } from '@/components/Preview/Preview';
-import { clamp, collectPreviewBlocks, lineForOffset, offsetForLine } from '@/lib/scrollSync';
+import {
+  clamp,
+  collectPreviewBlocks,
+  innermostBlockIndex,
+  lineForOffset,
+  offsetForLine,
+} from '@/lib/scrollSync';
 import { resizeByKey } from '@/lib/resize';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
@@ -21,6 +27,7 @@ export function SplitView() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useScrollSync();
+  useCursorMirror();
 
   const onDividerDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -149,4 +156,69 @@ function editorOffsetFor(view: EditorView, line: number): number {
   const f = line - Math.floor(line);
   const block = view.lineBlockAt(view.state.doc.line(whole + 1).from);
   return block.top + block.height * f;
+}
+
+/** Applies `is-cursor-block` class to the block containing the editor cursor in split view. */
+function useCursorMirror() {
+  const cursor = useViewStore((s) => s.cursor);
+  const previewVersion = useViewStore((s) => s.previewVersion);
+  const previewEl = useViewStore((s) => s.previewScrollEl);
+
+  const cacheRef = useRef<
+    Map<number, { ranges: { start: number; end: number }[]; elements: HTMLElement[] }>
+  >(new Map());
+  const prevElementRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!previewEl || !cursor) {
+      if (prevElementRef.current) {
+        prevElementRef.current.classList.remove('is-cursor-block');
+        prevElementRef.current = null;
+      }
+      return;
+    }
+
+    const raf = requestAnimationFrame(() => {
+      const root = previewEl.querySelector<HTMLElement>('.preview');
+      if (!root) return;
+
+      // Get or cache the block ranges and elements for this preview version.
+      let cached = cacheRef.current.get(previewVersion);
+      if (!cached) {
+        const elements = Array.from(root.querySelectorAll<HTMLElement>('[data-line]'));
+        const ranges = elements.map((el) => ({
+          start: Number(el.dataset.line),
+          end: el.dataset.lineEnd ? Number(el.dataset.lineEnd) : Number(el.dataset.line) + 1,
+        }));
+        cached = { ranges, elements };
+        cacheRef.current.set(previewVersion, cached);
+      }
+
+      // Convert 1-based cursor line to 0-based for comparison with data-line.
+      const lineIndex = cursor.line - 1;
+      const blockIdx = innermostBlockIndex(cached.ranges, lineIndex);
+
+      // Clear the previous block.
+      if (prevElementRef.current) {
+        prevElementRef.current.classList.remove('is-cursor-block');
+      }
+
+      // Apply to the new block.
+      if (blockIdx >= 0 && blockIdx < cached.elements.length) {
+        const el = cached.elements[blockIdx];
+        prevElementRef.current = el;
+        el.classList.add('is-cursor-block');
+      } else {
+        prevElementRef.current = null;
+      }
+    });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      // On unmount (leaving Split view), remove the class.
+      if (prevElementRef.current) {
+        prevElementRef.current.classList.remove('is-cursor-block');
+      }
+    };
+  }, [cursor, previewVersion, previewEl]);
 }
