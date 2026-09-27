@@ -201,3 +201,48 @@ export function shortDir(dir: string, maxSegments = 2): string {
   const kept = segments.slice(-maxSegments);
   return `…${sep}${kept.join(sep)}`;
 }
+
+/** Index the dragged tab should move to, from the other tabs' horizontal midpoints: the number
+ * of other tabs whose midpoint is left of `pointerX`. */
+export function dropIndex(
+  midpoints: readonly number[],
+  fromIndex: number,
+  pointerX: number,
+): number {
+  let count = 0;
+  for (let i = 0; i < midpoints.length; i++) {
+    if (i !== fromIndex && midpoints[i] < pointerX) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+/** Top-left position for a menu opened at (x, y) so it stays inside the viewport. */
+export function menuPosition(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  viewportW: number,
+  viewportH: number,
+): { left: number; top: number } {
+  let left = x;
+  let top = y;
+
+  // Flip left if it would overflow the right edge
+  if (left + width > viewportW) {
+    left = Math.max(0, x - width);
+  }
+
+  // Flip above if it would overflow the bottom edge
+  if (top + height > viewportH) {
+    top = Math.max(0, y - height);
+  }
+
+  // Never go below 0
+  left = Math.max(0, left);
+  top = Math.max(0, top);
+
+  return { left, top };
+}

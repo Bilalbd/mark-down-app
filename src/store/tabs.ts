@@ -55,6 +55,10 @@ interface TabsState {
   activate: (id: string) => Promise<void>;
   /** Closes a tab by id, asking about unsaved changes if dirty. Returns false if cancelled. */
   close: (id: string) => Promise<boolean>;
+  /** Closes all other tabs except the one with the given id. Stops and returns false if any prompt is cancelled. */
+  closeOthers: (id: string) => Promise<boolean>;
+  /** Closes all tabs to the right of the one with the given id. Stops and returns false if any prompt is cancelled. */
+  closeToRight: (id: string) => Promise<boolean>;
   /** Iterates through all tabs, asking about each dirty one; returns false if any cancelled. Does not remove tabs. */
   confirmCloseAll: () => Promise<boolean>;
   /** Reorders tabs by moving the one at `from` to position `to`. */
@@ -364,6 +368,57 @@ export const useTabsStore = create<TabsState>((set, get) => ({
     }
 
     pruneEditorCache(liveLoadIds());
+    return true;
+  },
+
+  closeOthers: async (id) => {
+    const state = get();
+    const tabIds = state.tabs.map((t) => t.id).filter((t) => t !== id);
+
+    for (const tabId of tabIds) {
+      const currentState = get();
+      const tab = currentState.tabs.find((t) => t.id === tabId);
+      if (!tab) continue;
+
+      const closed = await get().close(tabId);
+      if (!closed) {
+        return false;
+      }
+    }
+
+    // Ensure the target tab is active if it still exists
+    const finalState = get();
+    if (finalState.tabs.find((t) => t.id === id) && finalState.activeId !== id) {
+      await get().activate(id);
+    }
+
+    return true;
+  },
+
+  closeToRight: async (id) => {
+    const state = get();
+    const tabIdx = state.tabs.findIndex((t) => t.id === id);
+    if (tabIdx < 0) return false;
+
+    const tabIds = state.tabs.slice(tabIdx + 1).map((t) => t.id);
+
+    for (const tabId of tabIds) {
+      const currentState = get();
+      const tab = currentState.tabs.find((t) => t.id === tabId);
+      if (!tab) continue;
+
+      const closed = await get().close(tabId);
+      if (!closed) {
+        return false;
+      }
+    }
+
+    // Ensure the target tab is active if it still exists
+    const finalState = get();
+    if (finalState.tabs.find((t) => t.id === id) && finalState.activeId !== id) {
+      await get().activate(id);
+    }
+
     return true;
   },
 

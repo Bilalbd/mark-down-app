@@ -96,6 +96,7 @@ export function GeneralTab() {
               ['Ctrl+Tab / Ctrl+Shift+Tab', 'Next / previous tab'],
               ['Ctrl+PageDown / Ctrl+PageUp', 'Next / previous tab'],
               ['Ctrl+1 … Ctrl+9', 'Go to tab'],
+              ['Ctrl+Shift+← / Ctrl+Shift+→', 'Move tab left / right'],
               ['Ctrl+E', 'Toggle formatted / source'],
               ['Ctrl+Shift+E', 'Toggle split view'],
               ['Ctrl+\\', 'Toggle outline'],

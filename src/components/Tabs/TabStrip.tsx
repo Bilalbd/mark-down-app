@@ -5,7 +5,8 @@ import { useDocumentStore, isDirty } from '@/store/document';
 import { useSettingsStore } from '@/store/settings';
 import { ICON } from '@/components/Toolbar/Toolbar';
 import { basename, dirname } from '@/lib/tauri';
-import { tabLabels, flyoutSide, shortDir } from '@/lib/tabs';
+import { tabLabels, flyoutSide, shortDir, dropIndex } from '@/lib/tabs';
+import { TabContextMenu } from './TabContextMenu';
 import './TabStrip.css';
 
 const MENU_ICON = { ...ICON, size: 14 } as const;
@@ -31,6 +32,23 @@ export function TabStrip() {
   const [flyoutIsLeft, setFlyoutIsLeft] = useState(false);
 
   const recentFiles = useSettingsStore((s) => s.recentFiles);
+
+  // Dragging state
+  const [dragState, setDragState] = useState<{
+    tabId: string;
+    startX: number;
+    currentX: number;
+    midpoints: number[];
+    isDragging: boolean;
+  } | null>(null);
+  const dragClickSuppressRef = useRef(false);
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    tabId: string;
+    x: number;
+    y: number;
+  } | null>(null);
 
   // Build items array with memoization to avoid re-renders on every state change
   const items = useMemo(() => {
@@ -77,9 +95,9 @@ export function TabStrip() {
     }
   }, [activeId]);
 
-  // Close menu on click outside or Escape key, close flyout when menu closes
+  // Close menu on click outside or Escape key, close flyout when menu closes, cancel drag on Escape
   useEffect(() => {
-    if (!menuOpen) {
+    if (!menuOpen && !dragState) {
       setFlyoutOpen(false);
       return;
     }
@@ -89,10 +107,11 @@ export function TabStrip() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        // If flyout is open, close only the flyout (don't close the menu)
-        if (flyoutOpen) {
+        if (dragState) {
+          setDragState(null);
+        } else if (flyoutOpen) {
           setFlyoutOpen(false);
-        } else {
+        } else if (menuOpen) {
           setMenuOpen(false);
           const btn = menuRef.current?.querySelector('.tabstrip__new') as HTMLButtonElement;
           btn?.focus();
@@ -105,7 +124,7 @@ export function TabStrip() {
       window.removeEventListener('mousedown', onDown);
       window.removeEventListener('keydown', onKey);
     };
-  }, [menuOpen, flyoutOpen]);
+  }, [menuOpen, flyoutOpen, dragState]);
 
   // Close flyout when clicking outside or on specific flyout actions, and cleanup timeouts
   useEffect(() => {
@@ -221,9 +240,23 @@ export function TabStrip() {
     let nextIdx: number | null = null;
 
     if (e.key === 'ArrowLeft') {
+      if (e.ctrlKey && e.shiftKey) {
+        e.preventDefault();
+        if (currentIdx > 0) {
+          useTabsStore.getState().move(currentIdx, currentIdx - 1);
+        }
+        return;
+      }
       e.preventDefault();
       nextIdx = currentIdx === 0 ? items.length - 1 : currentIdx - 1;
     } else if (e.key === 'ArrowRight') {
+      if (e.ctrlKey && e.shiftKey) {
+        e.preventDefault();
+        if (currentIdx < items.length - 1) {
+          useTabsStore.getState().move(currentIdx, currentIdx + 1);
+        }
+        return;
+      }
       e.preventDefault();
       nextIdx = currentIdx === items.length - 1 ? 0 : currentIdx + 1;
     } else if (e.key === 'Home') {
@@ -238,6 +271,17 @@ export function TabStrip() {
     } else if (e.key === 'Delete') {
       e.preventDefault();
       void close(tabId);
+    } else if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+      e.preventDefault();
+      const el = listRef.current?.querySelector(`[data-tab-id="${tabId}"]`) as HTMLElement;
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        setContextMenu({
+          tabId,
+          x: rect.left,
+          y: rect.bottom,
+        });
+      }
     }
 
     if (nextIdx !== null) {
@@ -292,9 +336,85 @@ export function TabStrip() {
             aria-selected={t.active}
             tabIndex={t.active ? 0 : -1}
             data-tab-id={t.id}
-            className={`tabstrip__tab${t.active ? ' is-active' : ''}${t.dirty ? ' is-dirty' : ''}${idx === activeTabIndex - 1 ? ' is-before-active' : ''}`}
+            className={`tabstrip__tab${t.active ? ' is-active' : ''}${t.dirty ? ' is-dirty' : ''}${idx === activeTabIndex - 1 ? ' is-before-active' : ''}${dragState?.tabId === t.id && dragState.isDragging ? ' is-dragging' : ''}`}
             title={t.title}
-            onClick={() => void activate(t.id)}
+            style={
+              dragState?.tabId === t.id && dragState.isDragging
+                ? { transform: `translateX(${dragState.currentX - dragState.startX}px)` }
+                : undefined
+            }
+            onClick={(_e) => {
+              if (dragClickSuppressRef.current) {
+                dragClickSuppressRef.current = false;
+                return;
+              }
+              void activate(t.id);
+            }}
+            onPointerDown={(e) => {
+              if (e.button !== 0) return;
+              const closeBtn = (e.target as HTMLElement).closest('.tabstrip__close');
+              if (closeBtn) return;
+
+              const midpoints = Array.from(
+                listRef.current?.querySelectorAll('[data-tab-id]') || [],
+              ).map((el) => {
+                const r = el.getBoundingClientRect();
+                return r.left + r.width / 2;
+              });
+
+              (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+              setDragState({
+                tabId: t.id,
+                startX: e.clientX,
+                currentX: e.clientX,
+                midpoints,
+                isDragging: false,
+              });
+            }}
+            onPointerMove={(e) => {
+              if (!dragState || dragState.tabId !== t.id) return;
+
+              const dx = e.clientX - dragState.startX;
+              if (!dragState.isDragging && Math.abs(dx) > 4) {
+                dragClickSuppressRef.current = true;
+              }
+
+              setDragState((prev) => {
+                if (!prev || prev.tabId !== t.id) return prev;
+                return {
+                  ...prev,
+                  currentX: e.clientX,
+                  isDragging: Math.abs(dx) > 4,
+                };
+              });
+            }}
+            onPointerUp={(e) => {
+              if (!dragState || dragState.tabId !== t.id) return;
+
+              (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+
+              if (dragState.isDragging) {
+                const targetIdx = dropIndex(dragState.midpoints, idx, e.clientX);
+                if (targetIdx !== idx) {
+                  useTabsStore.getState().move(idx, targetIdx);
+                }
+              }
+
+              setDragState(null);
+            }}
+            onPointerCancel={(e) => {
+              if (!dragState || dragState.tabId !== t.id) return;
+              (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+              setDragState(null);
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setContextMenu({
+                tabId: t.id,
+                x: e.clientX,
+                y: e.clientY,
+              });
+            }}
             onAuxClick={(e) => {
               if (e.button === 1) {
                 e.preventDefault();
@@ -402,6 +522,20 @@ export function TabStrip() {
           </div>
         )}
       </div>
+      {contextMenu && (
+        <TabContextMenu
+          tabId={contextMenu.tabId}
+          tabPath={
+            items.find((t) => t.id === contextMenu.tabId)?.title === 'New tab' ||
+            items.find((t) => t.id === contextMenu.tabId)?.title?.startsWith('Untitled')
+              ? null
+              : path
+          }
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 }

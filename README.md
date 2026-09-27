@@ -8,9 +8,11 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
 ## Features
 
 - **Tabs** — open multiple files as tabs in one window. Drag files from Explorer, use `Ctrl+O` to
-  open several at once, or open from recent files. Each tab keeps its own view mode (Formatted /
-  Source / Split), scroll position and undo history. A file already open in a tab is focussed
-  instead of opened again. When the app is already running and you open a `.md` file from
+  open several at once, or open from recent files. Reorder tabs by dragging them left or right, or
+  use `Ctrl+Shift+←/→` to move them. Right-click a tab for a context menu with Close, Close others,
+  Close to the right, Copy path, and Reveal in File Explorer. Each tab keeps its own view mode
+  (Formatted / Source / Split), scroll position and undo history. A file already open in a tab is
+  focussed instead of opened again. When the app is already running and you open a `.md` file from
   Explorer (double-click or *Open With*), it opens as a tab in the running window which comes to
   the front (**New tab** mode) or in a separate window (**New window** mode). Configure the
   behaviour in **Settings → General** (**Open files in:** New tab / New window, default New tab).
@@ -60,6 +62,7 @@ the file it was opened with.
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous tab |
 | Ctrl+PageDown / Ctrl+PageUp | Next / previous tab |
 | Ctrl+1 … Ctrl+9 | Go to tab |
+| Ctrl+Shift+← / Ctrl+Shift+→ | Move tab left / right |
 | Ctrl+E | Toggle formatted / source |
 | Ctrl+Shift+E | Toggle split view |
 | Ctrl+\ | Toggle outline |

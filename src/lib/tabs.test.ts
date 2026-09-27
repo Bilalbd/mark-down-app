@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   cycleIndex,
+  dropIndex,
   findTabByPath,
   flyoutSide,
   isBlankDocument,
+  menuPosition,
   moveItem,
   nextActiveAfterClose,
   samePath,
@@ -378,5 +380,77 @@ describe('shortDir', () => {
 
   it('handles UNC paths', () => {
     expect(shortDir('\\\\server\\share\\a\\b\\c', 2)).toBe('…\\b\\c');
+  });
+});
+
+describe('dropIndex', () => {
+  it('returns 0 when no other tab midpoint is left of pointerX', () => {
+    const midpoints = [50, 150, 250];
+    expect(dropIndex(midpoints, 0, 30)).toBe(0);
+  });
+
+  it('returns 0 when pointer is before any other tab midpoint', () => {
+    const midpoints = [50, 150, 250];
+    expect(dropIndex(midpoints, 0, 100)).toBe(0);
+  });
+
+  it('returns 1 when pointer has passed one other tab midpoint', () => {
+    const midpoints = [50, 150, 250];
+    expect(dropIndex(midpoints, 0, 160)).toBe(1);
+  });
+
+  it('returns 2 when pointer has passed two other tab midpoints', () => {
+    const midpoints = [50, 150, 250];
+    expect(dropIndex(midpoints, 0, 260)).toBe(2);
+  });
+
+  it('drags left to the start', () => {
+    const midpoints = [50, 150, 250];
+    expect(dropIndex(midpoints, 2, 30)).toBe(0);
+  });
+
+  it('does not move when pointer is not past other midpoints', () => {
+    const midpoints = [50, 150, 250];
+    expect(dropIndex(midpoints, 1, 100)).toBe(1);
+  });
+
+  it('handles dragging from middle position', () => {
+    const midpoints = [50, 150, 250];
+    expect(dropIndex(midpoints, 1, 60)).toBe(1);
+    expect(dropIndex(midpoints, 1, 160)).toBe(1);
+  });
+});
+
+describe('menuPosition', () => {
+  it('returns menu at pointer position by default', () => {
+    const result = menuPosition(100, 100, 200, 200, 1024, 1024);
+    expect(result).toEqual({ left: 100, top: 100 });
+  });
+
+  it('flips left when menu would overflow right edge', () => {
+    const result = menuPosition(900, 100, 200, 200, 1024, 1024);
+    expect(result).toEqual({ left: 700, top: 100 });
+  });
+
+  it('flips above when menu would overflow bottom edge', () => {
+    const result = menuPosition(100, 900, 200, 200, 1024, 1024);
+    expect(result).toEqual({ left: 100, top: 700 });
+  });
+
+  it('flips both directions when needed', () => {
+    const result = menuPosition(900, 900, 200, 200, 1024, 1024);
+    expect(result).toEqual({ left: 700, top: 700 });
+  });
+
+  it('clamps to 0 when menu position goes negative', () => {
+    const result = menuPosition(50, 50, 200, 200, 1024, 1024);
+    expect(result.left).toBe(50);
+    expect(result.top).toBe(50);
+  });
+
+  it('never goes below 0 after flipping', () => {
+    const result = menuPosition(100, 100, 500, 500, 400, 400);
+    expect(result.left).toBeGreaterThanOrEqual(0);
+    expect(result.top).toBeGreaterThanOrEqual(0);
   });
 });

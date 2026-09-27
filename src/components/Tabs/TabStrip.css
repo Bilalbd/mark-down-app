@@ -290,3 +290,9 @@
   font-size: 12.5px;
   padding: 5px 10px;
 }
+
+.tabstrip__tab.is-dragging {
+  z-index: 10;
+  cursor: grabbing;
+  transition: none;
+}

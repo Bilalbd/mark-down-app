@@ -251,6 +251,69 @@ describe('tabs store', () => {
     expect(result).toBe(false);
   });
 
+  it('closeOthers closes all tabs except the target, clean tabs', async () => {
+    await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+    await useTabsStore.getState().openInTab('C:\\docs\\B.md');
+    const bTabId = useTabsStore.getState().tabs[1].id;
+    await useTabsStore.getState().openInTab('C:\\docs\\C.md');
+
+    const result = await useTabsStore.getState().closeOthers(bTabId);
+
+    expect(result).toBe(true);
+    expect(useTabsStore.getState().tabs).toHaveLength(1);
+    expect(useTabsStore.getState().tabs[0].id).toBe(bTabId);
+    expect(useTabsStore.getState().activeId).toBe(bTabId);
+  });
+
+  it('closeOthers returns false if a tab is dirty and cancel is clicked', async () => {
+    await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+    const aTabId = useTabsStore.getState().tabs[0].id;
+    await useTabsStore.getState().openInTab('C:\\docs\\B.md');
+    const bTabId = useTabsStore.getState().tabs[1].id;
+    await useTabsStore.getState().openInTab('C:\\docs\\C.md');
+
+    // Make A dirty
+    const aSnapshot = useTabsStore.getState().tabs[0].snapshot;
+    if (aSnapshot) {
+      useTabsStore.setState({
+        tabs: useTabsStore.getState().tabs.map((t) =>
+          t.id === aTabId && t.snapshot
+            ? {
+                id: t.id,
+                snapshot: {
+                  doc: { ...t.snapshot.doc, content: 'edited', savedContent: '' },
+                  viewMode: t.snapshot.viewMode,
+                  topLine: t.snapshot.topLine,
+                  needsReload: t.snapshot.needsReload,
+                },
+              }
+            : t,
+        ),
+      });
+    }
+
+    mockAskSaveChanges.mockResolvedValueOnce(null);
+    const result = await useTabsStore.getState().closeOthers(bTabId);
+
+    expect(result).toBe(false);
+    expect(useTabsStore.getState().tabs.length).toBeGreaterThan(1);
+  });
+
+  it('closeToRight closes all tabs to the right, clean tabs', async () => {
+    await useTabsStore.getState().openInTab('C:\\docs\\A.md');
+    const aTabId = useTabsStore.getState().tabs[0].id;
+    await useTabsStore.getState().openInTab('C:\\docs\\B.md');
+    const bTabId = useTabsStore.getState().tabs[1].id;
+    await useTabsStore.getState().openInTab('C:\\docs\\C.md');
+
+    const result = await useTabsStore.getState().closeToRight(bTabId);
+
+    expect(result).toBe(true);
+    expect(useTabsStore.getState().tabs).toHaveLength(2);
+    expect(useTabsStore.getState().tabs[0].id).toBe(aTabId);
+    expect(useTabsStore.getState().tabs[1].id).toBe(bTabId);
+  });
+
   it('C9: onInactiveFileChanged sets needsReload for clean tab', async () => {
     await useTabsStore.getState().openInTab('C:\\docs\\A.md');
     const aTabId = useTabsStore.getState().tabs[0].id;
