@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
 import { renderMarkdown, headingLine } from '@/markdown/render';
 import { renderMermaidBlocks } from '@/markdown/mermaid';
+import { retryBrokenLocalImages } from '@/lib/brokenImages';
 import { useResolvedTheme } from '@/lib/useAppTheme';
 import { classifyLink } from '@/lib/links';
 import { dirname, isTauri, toAssetUrl, openExternal, revealInExplorer } from '@/lib/tauri';
@@ -113,6 +114,14 @@ export function Preview() {
     if (!root || !html.html.includes('mermaid-block')) return;
     void renderMermaidBlocks(root, theme);
   }, [html.html, theme]);
+
+  // Retry failed local images after render. React skips DOM updates for identical HTML,
+  // so re-assigning src forces a refetch if the image file was created after it failed.
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root) return;
+    retryBrokenLocalImages(root);
+  }, [html]);
 
   // After the first paint of real content, restore the position the other view was at.
   useLayoutEffect(() => {
