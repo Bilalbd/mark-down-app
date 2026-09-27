@@ -55,7 +55,7 @@ Read `docs/plans/review-followups/README.md` first, then `src/App.tsx`,
   `needsExternalSync(content, lastEmitted, readDoc: () => string): boolean`, which returns false
   without calling `readDoc` when `content === lastEmitted`, and otherwise compares. Test that
   `readDoc` isn't called in the fast case and that a real external change is detected.
-- [ ] **4. Check render counts.** Before your change, measure how often `App` renders per keystroke:
+- [x] **4. Check render counts.** Before your change, measure how often `App` renders per keystroke:
   temporarily add a render counter (e.g. `window.__appRenders = (window.__appRenders ?? 0) + 1` in
   `App`'s body), type 10 characters through the editor in the running app (see Verify), read the
   counter, then **remove the counter** before committing. Do the same after the change. Paste both
@@ -64,9 +64,9 @@ Read `docs/plans/review-followups/README.md` first, then `src/App.tsx`,
 
 ## Verify
 
-- [ ] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`. `git diff` must not contain the
+- [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`. `git diff` must not contain the
   temporary counter.
-- [ ] Manual check on a scratch copy of `fixtures/huge.md` and of `fixtures/gfm.md`:
+- [x] Manual check on a scratch copy of `fixtures/huge.md` and of `fixtures/gfm.md`:
   - Type into the editor from CDP: `__mdv.view.getState().editorView.dispatch({ changes: { from: 0,
     insert: 'a' } })` repeated 10 times (the editor view is on the view store). Don't save.
   - Outline correct in all three views: switch view mode, then compare
@@ -75,7 +75,7 @@ Read `docs/plans/review-followups/README.md` first, then `src/App.tsx`,
   - Edit a heading's text in Split view and check the outline updates within ~300 ms.
   - Screenshot Split view with the outline in dark mode.
   - Discard the edits (reload the file or close without saving via the dialog's Don't save).
-- [ ] Commit: `Cut per-keystroke work: no App re-render, no double copy or parse`.
+- [x] Commit: `Cut per-keystroke work: no App re-render, no double copy or parse`.
 
 ## Report
 
@@ -91,3 +91,20 @@ Read `docs/plans/review-followups/README.md` first, then `src/App.tsx`,
 **Task 4:** Skipped (done by supervisor).
 
 **Commands all pass:** pnpm test (252 tests), pnpm lint, npx tsc --noEmit, pnpm format
+
+## Supervisor check
+
+Diff reviewed against the phase document: matches it, no stray files. `pnpm test` 252 passed,
+lint and tsc clean (agent's run, re-checked). Dev app on scratch copies of `gfm.md` and `huge.md`,
+settings backed up first and every value equal to the backup at the end (recent files restored
+through the store after the scratch files were added).
+
+- **Task 4, App renders per 10 keystrokes** (Split view, typed through the editor after the first
+  dirty-flag keystroke, temporary counter not committed): before (8f3ac12) **20** (10 × StrictMode
+  double render); after **0**.
+- **Outline:** 11 headings, first "GFM Fixture", last "Heading level 6", identical to a full
+  render in Formatted, Source, Split and back to Formatted. Renaming the first heading updated the
+  outline within 350 ms in Split ("Renamed heading") and in Source ("Source rename"); after reload
+  it was back to "GFM Fixture" with no unsaved changes. Screenshot: Split view with the outline.
+- **`huge.md` (391,245 chars), Split view, 20 keystrokes, time to the second animation frame:**
+  before median 25 ms / p90 48.1 ms; after median 16.8 ms / p90 24.7 ms (a median of one frame).

@@ -132,7 +132,7 @@ After each phase, the supervisor:
 |---|---|---|---|---|
 | 1 | 2a97b90, 47d9a8b | 227 → 234 | Diff reviewed; Escape test fails without fix; A1/A3 checked in app by supervisor (old vs new FindBar) | Agent skipped the manual check twice; its dev app hung without a WebView |
 | 2 | ff6b479, b883752, 7847b2e, 76f4dd3 + supervisor fix | 234 → 248 | Three review rounds (id-only preset compare, write-queue deadlock, failing/deleted/vacuous tests); supervisor finished the race fix and tests; checked in app with settings restored | Agent's dev app failed to launch twice; supervisor's launched fine |
-| 3 | | | | |
+| 3 | ea1e4d6 | 248 → 252 | Diff reviewed; render counts, outline in all views and huge.md timing checked in app by supervisor | Clean first round; App renders per 10 keystrokes 20 → 0; huge.md p90 48 → 25 ms |
 | 4 | | | | |
 | 5 | | | | |
 | 6 | | | | |
