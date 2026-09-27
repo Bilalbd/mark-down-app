@@ -464,7 +464,7 @@ export function TabStrip() {
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((v) => !v)}
         >
-          <Plus {...ICON} />
+          <Plus size={14} strokeWidth={1.75} absoluteStrokeWidth />
         </button>
         {menuOpen && (
           <div className="tabstrip__dropdown" role="menu">

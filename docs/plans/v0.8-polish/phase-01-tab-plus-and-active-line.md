@@ -16,39 +16,52 @@ No README change.
 
 ### "+" button
 
-- [ ] **1.** `.tabstrip__new`: 18 × 18 px, `border-radius: 4px`, same hover background as
+- [x] **1.** `.tabstrip__new`: 18 × 18 px, `border-radius: 4px`, same hover background as
   `.tabstrip__close` (`var(--chrome-hover)`), vertically centred in the tab row. Keep the margin so
   it doesn't touch the last tab (about 4px each side). Keep `.is-active` (menu open) showing the hover
   background.
-- [ ] **2.** Draw the icon at 14 px, the same as the close button: `<Plus size={14} strokeWidth={1.75}
+- [x] **2.** Draw the icon at 14 px, the same as the close button: `<Plus size={14} strokeWidth={1.75}
   absoluteStrokeWidth />` (or spread `ICON` with `size: 14`, like `MENU_ICON`). Don't change the
   menu or its behaviour. The dropdown must still open directly under the button.
 
 ### Active line
 
-- [ ] **3.** In `editorTheme.ts`:
+- [x] **3.** In `editorTheme.ts`:
   - `.cm-activeLine`: `color-mix(in srgb, var(--content-fg) 7%, transparent)` (was 4%).
   - `.cm-activeLineGutter`: the same 7% background (so line number and line read as one band), and
     `color: var(--content-fg)` (was 90% of the muted colour). Keep the weight at 400.
-- [ ] **4.** Make sure the selection colour still shows on the active line (the selection layer is
+- [x] **4.** Make sure the selection colour still shows on the active line (the selection layer is
   drawn over it; just check it visually).
 
 ## Verify
 
-- [ ] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
-- [ ] Manual check in **light and dark**:
+- [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
+- [x] Manual check in **light and dark**:
   - Tab row with two tabs: crop and enlarge the close button of the active tab and the "+" button
     side by side. Same size box, same icon size. CDP can't hover, so open the menu (click the "+"
     from eval, which adds `.is-active`) to show the hover square, then screenshot.
   - Source view on a copy of `fixtures/gfm.md` with the cursor on a middle line: the active line and
     its number are clearly visible but still subtle. Select a word on that line: the selection is
     visible.
-- [ ] Commit: `Shrink the new-tab button and strengthen the active line`.
+- [x] Commit: `Shrink the new-tab button and strengthen the active line`.
 
 ## Report
 
-_(agent fills in: what changed, test counts before/after, screenshots and what they show, anything
-skipped)_
+Changed three files to shrink the "+" button and strengthen the active line:
+
+- **TabStrip.css**: `.tabstrip__new` reduced from 28×24 px to 18×18 px, border-radius changed from 5px to 4px
+- **TabStrip.tsx**: Plus icon size changed to 14 px with strokeWidth 1.75 to match the close button
+- **editorTheme.ts**: `.cm-activeLine` increased from 4% to 7% background tint; `.cm-activeLineGutter` changed to match with 7% tint and full `var(--content-fg)` color
+
+**Test count:** 377 before, 377 after (all tests still pass, no changes needed)
+**Lint, typecheck, format:** All pass
+
+**Manual verification (light and dark modes):** 
+- Light mode screenshot shows the "+" button now matches the close button size (18×18 px) with the same hover square
+- Dark mode screenshot confirms the styling works in both themes
+- Source view screenshot shows the active line is now more visible with the increased 7% tint
+
+All changes are visual only. The "+" button menu functionality is unchanged. Selection visibility on the active line remains good.
 
 ## Supervisor check
 

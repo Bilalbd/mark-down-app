@@ -165,9 +165,8 @@
 }
 
 .tabstrip__new {
-  /* 24px tall so the hover square fits inside the 26px tab row instead of poking into the toolbar */
-  width: 28px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   border: 0;
   background: transparent;
   color: var(--chrome-fg);
@@ -177,7 +176,7 @@
   cursor: default;
   flex-shrink: 0;
   padding: 0;
-  border-radius: 5px;
+  border-radius: 4px;
   margin: auto 4px;
 }
 

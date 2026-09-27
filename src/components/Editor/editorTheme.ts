@@ -28,7 +28,7 @@ export const editorTheme = EditorView.theme({
   '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': {
     backgroundColor: 'color-mix(in srgb, var(--accent) 30%, transparent) !important',
   },
-  '.cm-activeLine': { backgroundColor: 'color-mix(in srgb, var(--content-fg) 4%, transparent)' },
+  '.cm-activeLine': { backgroundColor: 'color-mix(in srgb, var(--content-fg) 7%, transparent)' },
   '.cm-gutters': {
     backgroundColor: 'var(--content-bg)',
     color: 'color-mix(in srgb, var(--chrome-fg-muted) 55%, transparent)',
@@ -37,8 +37,8 @@ export const editorTheme = EditorView.theme({
     fontWeight: '400',
   },
   '.cm-activeLineGutter': {
-    backgroundColor: 'transparent',
-    color: 'color-mix(in srgb, var(--chrome-fg-muted) 90%, transparent)',
+    backgroundColor: 'color-mix(in srgb, var(--content-fg) 7%, transparent)',
+    color: 'var(--content-fg)',
     fontWeight: '400',
   },
   '.cm-lineNumbers .cm-gutterElement': {
