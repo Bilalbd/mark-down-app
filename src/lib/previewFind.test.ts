@@ -68,11 +68,14 @@ describe('matchIndexAfterSearch', () => {
 });
 
 describe('setCurrentPreviewMatch', () => {
+  let originalCSS: typeof CSS | undefined;
+  let originalHighlight: typeof Highlight | undefined;
+
   beforeEach(() => {
+    originalCSS = globalThis.CSS;
+    originalHighlight = globalThis.Highlight;
     Object.assign(globalThis, {
-      CSS: {
-        highlights: new Map(),
-      },
+      CSS: { ...originalCSS, highlights: new Map() },
       Highlight: class Highlight {
         constructor(public range: Range) {}
       },
@@ -80,8 +83,16 @@ describe('setCurrentPreviewMatch', () => {
   });
 
   afterEach(() => {
-    delete (globalThis as unknown as Record<string, unknown>).CSS;
-    delete (globalThis as unknown as Record<string, unknown>).Highlight;
+    if (originalCSS === undefined) {
+      delete (globalThis as unknown as Record<string, unknown>).CSS;
+    } else {
+      (globalThis as unknown as Record<string, unknown>).CSS = originalCSS;
+    }
+    if (originalHighlight === undefined) {
+      delete (globalThis as unknown as Record<string, unknown>).Highlight;
+    } else {
+      (globalThis as unknown as Record<string, unknown>).Highlight = originalHighlight;
+    }
   });
 
   it('does not scroll when scroll is false', () => {

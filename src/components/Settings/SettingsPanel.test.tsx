@@ -27,25 +27,12 @@ import { SettingsPanel } from './SettingsPanel';
 
 describe('SettingsPanel', () => {
   let container: HTMLElement;
+  let root: ReturnType<typeof createRoot>;
 
   beforeEach(() => {
     container = document.createElement('div');
     document.body.appendChild(container);
-    useSettingsStore.setState({ loaded: true });
-    useViewStore.setState({ settingsOpen: false });
-    useDialogStore.setState({ current: null });
-  });
-
-  afterEach(() => {
-    document.body.removeChild(container);
-    useSettingsStore.setState({ loaded: false });
-    useViewStore.setState({ settingsOpen: false });
-    useDialogStore.setState({ current: null });
-  });
-
-  it('closes Settings and Dialog separately with two Escapes', async () => {
-    const root = createRoot(container);
-
+    root = createRoot(container);
     act(() => {
       root.render(
         <>
@@ -54,7 +41,22 @@ describe('SettingsPanel', () => {
         </>,
       );
     });
+    useSettingsStore.setState({ loaded: true });
+    useViewStore.setState({ settingsOpen: false });
+    useDialogStore.setState({ current: null });
+  });
 
+  afterEach(() => {
+    act(() => {
+      root.unmount();
+    });
+    document.body.removeChild(container);
+    useSettingsStore.setState({ loaded: false });
+    useViewStore.setState({ settingsOpen: false });
+    useDialogStore.setState({ current: null });
+  });
+
+  it('closes Settings and Dialog separately with two Escapes', async () => {
     // Open Settings
     act(() => {
       useViewStore.setState({ settingsOpen: true });
@@ -73,17 +75,14 @@ describe('SettingsPanel', () => {
     expect(useDialogStore.getState().current).not.toBeNull();
     const initialSettingsOpen = useViewStore.getState().settingsOpen;
 
-    // Simulate Escape key in capture phase - ConfirmDialog handler should run first
-    // Create an event that will trigger the capture phase handlers
+    // Press Escape: SettingsPanel listener runs first (registered first), but returns early
+    // because dialog is open; ConfirmDialog listener then runs and closes the dialog.
     const escapeEvent = new KeyboardEvent('keydown', {
       key: 'Escape',
       bubbles: true,
       cancelable: true,
     });
 
-    // Get the current listeners - ConfirmDialog listener was registered most recently
-    // When the event bubbles in capture phase, it triggers all listeners registered with capture: true
-    // The order depends on when they were registered
     act(() => {
       window.dispatchEvent(escapeEvent);
     });
@@ -91,8 +90,6 @@ describe('SettingsPanel', () => {
     // Wait for async updates
     await new Promise((resolve) => setTimeout(resolve, 10));
 
-    // With the fix: ConfirmDialog closes (because it's on top and calls stopImmediatePropagation)
-    // Settings remains open (because SettingsPanel checks if dialog exists first)
     expect(useDialogStore.getState().current).toBeNull();
     expect(useViewStore.getState().settingsOpen).toBe(initialSettingsOpen);
 
@@ -103,7 +100,7 @@ describe('SettingsPanel', () => {
     ]);
     expect(dialogResult).toBeNull();
 
-    // Second Escape should close Settings
+    // Second Escape closes Settings
     const escapeEvent2 = new KeyboardEvent('keydown', {
       key: 'Escape',
       bubbles: true,
@@ -118,7 +115,5 @@ describe('SettingsPanel', () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
 
     expect(useViewStore.getState().settingsOpen).toBe(false);
-
-    root.unmount();
   });
 });
