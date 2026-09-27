@@ -1,7 +1,14 @@
 import MarkdownIt, { type Env, type Token } from 'markdown-it';
 import footnote from 'markdown-it-footnote';
 import { katex } from '@mdit/plugin-katex';
-import { headingIds, sourceLines, taskLists, type HeadingInfo } from './plugins';
+import {
+  headingIds,
+  hexSwatches,
+  isHexColor,
+  sourceLines,
+  taskLists,
+  type HeadingInfo,
+} from './plugins';
 import { ensureLanguages, getHighlighter, highlightSync } from './shiki';
 import { sanitizeHtml } from './sanitize';
 import { joinPath, safeDecodeURI } from '@/lib/tauri';
@@ -31,7 +38,30 @@ const md = new MarkdownIt({
   .use(katex, { throwOnError: false, delimiters: 'dollars', allowInlineWithSpace: false })
   .use(sourceLines)
   .use(taskLists)
-  .use(headingIds);
+  .use(headingIds)
+  .use(hexSwatches);
+
+// Colour swatch after a HEX code (see hexSwatches in plugins.ts). Both rules re-validate the hex
+// value before writing it into the style attribute: nothing but `#` and hex digits may reach it.
+function swatchSpan(hex: string): string {
+  return isHexColor(hex)
+    ? `<span class="color-swatch" style="--swatch: ${hex}" aria-hidden="true"></span>`
+    : '';
+}
+
+// Plain-text HEX codes: a standalone token rendered right after the code.
+md.renderer.rules.color_swatch = (tokens, idx) => {
+  return swatchSpan(String((tokens[idx].meta as { hex?: string } | null)?.hex ?? ''));
+};
+
+// Inline-code HEX codes: the swatch sits inside the same `<code>` pill, after the code text
+// (Bilal's choice, so pill and swatch read as one chip). Mirrors markdown-it's own code_inline
+// rule, appending the swatch (if any) before the closing tag.
+md.renderer.rules.code_inline = (tokens, idx, _options, _env, self) => {
+  const token = tokens[idx];
+  const swatch = swatchSpan(String((token.meta as { hexSwatch?: string } | null)?.hexSwatch ?? ''));
+  return `<code${self.renderAttrs(token)}>${md.utils.escapeHtml(token.content)}${swatch}</code>`;
+};
 
 // Resolve relative image sources against the document directory.
 const defaultImage = md.renderer.rules.image!;

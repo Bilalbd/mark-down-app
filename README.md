@@ -39,6 +39,8 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
 - **Light / dark / follow-Windows** app theme.
 - GFM tables, task lists, footnotes, autolinks; fenced code with Shiki highlighting;
   **KaTeX** math (`$…$`, `$$…$$`); **Mermaid** diagrams.
+- **Colour swatches** next to HEX colour codes (`#AA00BB`, in text or inline code) in the
+  formatted view.
 - **Live reload** when the file changes on disk (asks first if you have unsaved edits).
 - **Block remote images** (off by default, in Settings) stops `http(s)` image sources from
   loading in the preview, for documents from sources you don't fully trust.

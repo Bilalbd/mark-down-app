@@ -26,7 +26,8 @@ The others are independent, but keep the order so each agent starts from a known
 - **Split view mirror:** the block holding the source cursor gets a **faint background tint** in the
   formatted pane, the same strength as the editor's active line. No bar, no scrolling.
 - **HEX swatches:** in the **formatted view only**, next to HEX codes written as inline code
-  (`` `#AA00BB` ``) **and** in plain text. Not in the source editor.
+  (`` `#AA00BB` ``) **and** in plain text. Not in the source editor. For inline code the swatch sits
+  **inside the code pill**, after the code text.
 - **Status bar contents:** Ln/Col, total lines, zoom %, **word count**, **encoding and line
   endings**, and a static **"Markdown"** language label. A **"Show status bar"** toggle in Settings →
   General, on by default.

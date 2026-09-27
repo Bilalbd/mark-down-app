@@ -50,6 +50,24 @@ describe('sanitizeHtml', () => {
     expect(out).not.toContain('<form');
   });
 
+  it('keeps a colour swatch span, with its class, style and aria-hidden', () => {
+    const out = sanitizeHtml(
+      '<span class="color-swatch" style="--swatch: #aabbcc" aria-hidden="true"></span>',
+    );
+    expect(out).toContain('class="color-swatch"');
+    expect(out).toContain('style="--swatch: #aabbcc"');
+    expect(out).toContain('aria-hidden="true"');
+  });
+
+  it('keeps a colour swatch span nested inside a code pill', () => {
+    const out = sanitizeHtml(
+      '<code>#AA00BB<span class="color-swatch" style="--swatch: #AA00BB" aria-hidden="true"></span></code>',
+    );
+    expect(out).toContain(
+      '<code>#AA00BB<span class="color-swatch" style="--swatch: #AA00BB" aria-hidden="true"></span></code>',
+    );
+  });
+
   describe('blockRemoteImages', () => {
     it('strips http(s) and protocol-relative image sources when on', () => {
       const out = sanitizeHtml(

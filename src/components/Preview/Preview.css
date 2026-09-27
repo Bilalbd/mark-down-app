@@ -312,3 +312,24 @@
   background: var(--md-cursor-block);
   box-shadow: none;
 }
+
+/* Colour swatch after a HEX code (text and inline code, formatted view only). The outline
+   (rather than a border) keeps white swatches visible on light themes and black ones on dark
+   themes without shifting layout. */
+.preview .color-swatch {
+  display: inline-block;
+  width: 0.8em;
+  height: 0.8em;
+  margin-left: 0.3em;
+  vertical-align: -0.05em;
+  border-radius: 2px;
+  background: var(--swatch);
+  box-shadow: 0 0 0 1px var(--md-border);
+}
+/* Inside an inline-code pill the swatch sits right after the code text, before the pill's own
+   padding, so the pill and the swatch read as one chip (Bilal's choice). A smaller gap than the
+   plain-text case above, since the pill's own padding already separates it from the pill edge. */
+.preview code .color-swatch {
+  margin-left: 0.25em;
+  vertical-align: -0.06em;
+}
