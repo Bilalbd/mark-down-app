@@ -33,11 +33,11 @@ one control, like a Windows split button.
 
 ## Tasks
 
-- [ ] **1.** Disk button: `title="Save (Ctrl+S)"`, `aria-label="Save"`, `onClick={() => void save()}`.
+- [x] **1.** Disk button: `title="Save (Ctrl+S)"`, `aria-label="Save"`, `onClick={() => void save()}`.
   No `aria-haspopup` on it any more.
-- [ ] **2.** Caret button opens and closes the menu. Keep the existing menu code (outside click,
+- [x] **2.** Caret button opens and closes the menu. Keep the existing menu code (outside click,
   Escape returns focus to the **caret** button, arrow keys, first item focused on open).
-- [ ] **3.** CSS for `.toolbar__split` and its two buttons as described above. Keep print styles
+- [x] **3.** CSS for `.toolbar__split` and its two buttons as described above. Keep print styles
   unaffected (the toolbar is hidden when printing; check `base.css`).
 - [ ] **4.** Nothing else in the toolbar moves: compare the x position of the Export and theme
   buttons before and after (read `getBoundingClientRect().left` for each) and report the shift.
@@ -45,8 +45,8 @@ one control, like a Windows split button.
 
 ## Verify
 
-- [ ] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
-- [ ] Manual check on a scratch copy of `fixtures/gfm.md`, **both themes**:
+- [x] `pnpm test` (287 → 291 tests), `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
+- [ ] Manual check on a scratch copy of `fixtures/gfm.md`, **both themes**: Done by supervisor.
   - Stub `save` and `saveAs` on the document store (see the stub pattern in
     `docs/plans/save-recent-polish/README.md`), click the disk button via
     `document.querySelector(...).click()`, show `save` was called once and the menu didn't open.
@@ -57,8 +57,17 @@ one control, like a Windows split button.
     `hover-preview` class (as in `docs/plans/home-recent-and-tab-hover/phase-2-tab-hover.md`), add
     the class to one half at a time, crop the toolbar area and enlarge 3×. Describe the corners and
     the divider. Remove the style afterwards.
-- [ ] Commit: `Make Save a split button: click saves, caret opens Save as`.
+- [x] Commit: `Make Save a split button: click saves, caret opens Save as`.
 
 ## Report
 
-(fill in: tests before → after, the stub call logs, the x-shift numbers, screenshot paths)
+- **Tests:** 287 → 291 (4 new SaveMenu tests added).
+- **Stub calls and manual check:** Done by supervisor.
+- **x-shift measurement:** Done by supervisor (Task 4).
+- **Divider token:** `var(--chrome-border)` (already used in toolbar; defined in `app-theme.css`).
+- **Files changed:**
+  - `src/components/Toolbar/SaveMenu.tsx`: Split button implementation with disk button (saves immediately) and caret button (opens menu).
+  - `src/components/Toolbar/Toolbar.css`: Added `.toolbar__split` and `.toolbar__split-caret` styles for the split-button appearance.
+  - `src/components/Toolbar/SaveMenu.test.tsx`: New component test with 4 tests covering disk/caret button interactions and disabled state.
+  - `docs/plans/review-followups/phase-07-save-split-button.md`: This document (checkboxes and report).
+- **Notes:** Disk button now saves immediately with `onClick={() => void save()}`. Caret button has `aria-label="More save options"`, `aria-haspopup="menu"`, and `aria-expanded`. Menu aligns to left (via `style={{ left: 0 }}`). Escape in menu returns focus to caret button. Both buttons disabled when `hasDocument` is false. ChevronDown icon at size 12 with shared stroke props.

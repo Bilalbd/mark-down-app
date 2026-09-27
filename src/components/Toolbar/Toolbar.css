@@ -61,6 +61,40 @@
   box-shadow: 0 0 0 1px var(--chrome-border);
 }
 
+.toolbar__split {
+  display: flex;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.toolbar__split .toolbar__btn {
+  border-radius: 0;
+}
+.toolbar__split .toolbar__btn:first-child {
+  border-radius: 5px 0 0 5px;
+}
+.toolbar__split-caret {
+  height: 28px;
+  padding: 0 6px;
+  border: 0;
+  background: transparent;
+  color: var(--chrome-fg-muted);
+  display: grid;
+  place-items: center;
+  border-radius: 0 5px 5px 0;
+  border-left: 1px solid var(--chrome-border);
+  cursor: pointer;
+}
+.toolbar__split-caret:hover:not(:disabled) {
+  background: var(--chrome-hover);
+  color: var(--chrome-fg);
+}
+.toolbar__split-caret.is-active {
+  color: var(--accent);
+}
+.toolbar__split-caret:disabled {
+  opacity: 0.4;
+}
+
 .toolbar__menu {
   position: relative;
 }

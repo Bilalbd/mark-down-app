@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Save } from 'lucide-react';
+import { ChevronDown, Save } from 'lucide-react';
 import { useDocumentStore } from '@/store/document';
 import { ICON } from './Toolbar';
 
 export function SaveMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const caretRef = useRef<HTMLButtonElement>(null);
   const firstItemRef = useRef<HTMLButtonElement>(null);
   const hasDocument = useDocumentStore((s) => s.hasDocument);
   const save = useDocumentStore((s) => s.save);
@@ -20,7 +20,7 @@ export function SaveMenu() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setOpen(false);
-        buttonRef.current?.focus();
+        caretRef.current?.focus();
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
         const items = ref.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
@@ -62,21 +62,29 @@ export function SaveMenu() {
   };
 
   return (
-    <div className="toolbar__menu" ref={ref}>
+    <div className="toolbar__split" ref={ref}>
       <button
-        ref={buttonRef}
-        className={`toolbar__btn ${open ? 'is-active' : ''}`}
-        title="Save"
+        className="toolbar__btn"
+        title="Save (Ctrl+S)"
         aria-label="Save"
+        disabled={!hasDocument}
+        onClick={() => void save()}
+      >
+        <Save {...ICON} />
+      </button>
+      <button
+        ref={caretRef}
+        className={`toolbar__split-caret ${open ? 'is-active' : ''}`}
+        aria-label="More save options"
         aria-haspopup="menu"
         aria-expanded={open}
         disabled={!hasDocument}
         onClick={() => setOpen((v) => !v)}
       >
-        <Save {...ICON} />
+        <ChevronDown size={12} strokeWidth={2} absoluteStrokeWidth />
       </button>
       {open && (
-        <div className="toolbar__dropdown" role="menu">
+        <div className="toolbar__dropdown" role="menu" style={{ left: 0 }}>
           <button
             ref={firstItemRef}
             role="menuitem"
