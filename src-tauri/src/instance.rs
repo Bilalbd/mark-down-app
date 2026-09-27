@@ -52,6 +52,28 @@ pub fn existing_instance_is_hung(identifier: &str) -> bool {
     }
 }
 
+/// A cloaked window is laid out and painted but not drawn on screen.
+#[cfg(windows)]
+pub fn set_cloaked(window: &tauri::WebviewWindow, cloaked: bool) {
+    if let Ok(hwnd) = window.hwnd() {
+        let value: i32 = if cloaked { 1 } else { 0 };
+        let size = std::mem::size_of::<i32>() as u32;
+        let _ = unsafe {
+            windows_sys::Win32::Graphics::Dwm::DwmSetWindowAttribute(
+                hwnd.0 as _,
+                windows_sys::Win32::Graphics::Dwm::DWMWA_CLOAK as u32,
+                &value as *const i32 as *const _,
+                size,
+            )
+        };
+    }
+}
+
+#[cfg(not(windows))]
+pub fn set_cloaked(window: &tauri::WebviewWindow, cloaked: bool) {
+    let _ = (window, cloaked);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

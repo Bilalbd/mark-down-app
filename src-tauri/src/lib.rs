@@ -7,6 +7,7 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tauri::{Emitter, Listener, Manager};
+use tauri_plugin_window_state::{StateFlags, WindowExt};
 
 const IDENTIFIER: &str = "com.bilal.markdown-viewer";
 const SHOW_FALLBACK: Duration = Duration::from_secs(5);
@@ -17,6 +18,9 @@ static APP_READY: AtomicBool = AtomicBool::new(false);
 
 /// Set to true when .setup() completes. Used by the startup watchdog.
 static SETUP_DONE: AtomicBool = AtomicBool::new(false);
+
+/// Set to true when the window is first revealed to the user.
+static REVEALED: AtomicBool = AtomicBool::new(false);
 
 /// Build relaunch arguments: returns None if already relaunched, else args[1..] plus --new-window (not duplicated) and --relaunched.
 fn relaunch_args(args: &[String]) -> Option<Vec<String>> {
@@ -88,6 +92,15 @@ fn is_app_url(url: &tauri::Url) -> bool {
     }
 }
 
+/// Uncloak the window on first call, then show and focus.
+fn reveal(window: &tauri::WebviewWindow) {
+    if !REVEALED.swap(true, Ordering::SeqCst) {
+        instance::set_cloaked(window, false);
+    }
+    let _ = window.show();
+    let _ = window.set_focus();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let args: Vec<String> = std::env::args().collect();
@@ -135,9 +148,11 @@ pub fn run() {
                 let _ = app.emit("open-requested", ());
             }
             if let Some(w) = app.get_webview_window("main") {
-                let _ = w.unminimize();
-                let _ = w.show();
-                let _ = w.set_focus();
+                if REVEALED.load(Ordering::SeqCst) {
+                    let _ = w.unminimize();
+                    let _ = w.show();
+                    let _ = w.set_focus();
+                }
             }
         }));
     }
@@ -146,7 +161,13 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        // VISIBLE isn't restored; the window stays cloaked until reveal() uncloaks it.
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(StateFlags::all() & !StateFlags::VISIBLE)
+                .skip_initial_state("main")
+                .build(),
+        )
         .plugin(
             tauri::plugin::Builder::<tauri::Wry, ()>::new("navigation-guard")
                 .on_navigation(|_webview, url| is_app_url(url))
@@ -178,29 +199,29 @@ pub fn run() {
             watch::unwatch_file
         ])
         .setup(|app| {
-            // The window starts hidden (tauri.conf.json) so the native frame and
-            // tauri-plugin-window-state's geometry restore never paint a blank
-            // window; the frontend shows it once React has painted a first frame.
             let window = app.get_webview_window("main").expect("main window exists");
 
-            // Listen for app-ready from the frontend and show the window.
+            // Cloak window, restore state, show for layout/paint (all off-screen); uncloak in reveal().
+            instance::set_cloaked(&window, true);
+            let _ = window.restore_state(StateFlags::all() & !StateFlags::VISIBLE);
+            let _ = window.show();
+
+            // Listen for app-ready from the frontend and reveal the window.
             {
                 let w = window.clone();
                 app.handle().clone().listen("app-ready", move |_event| {
                     APP_READY.store(true, Ordering::Relaxed);
-                    let _ = w.show();
-                    let _ = w.set_focus();
+                    reveal(&w);
                 });
             }
 
-            // Fallback: if app-ready doesn't arrive, show the window anyway after SHOW_FALLBACK.
+            // Fallback: if app-ready doesn't arrive, reveal the window anyway after SHOW_FALLBACK.
             {
                 let w = window.clone();
                 std::thread::spawn(move || {
                     std::thread::sleep(SHOW_FALLBACK);
                     if !APP_READY.load(Ordering::Relaxed) {
-                        let _ = w.show();
-                        let _ = w.set_focus();
+                        reveal(&w);
                     }
                 });
             }

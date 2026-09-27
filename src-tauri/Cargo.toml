@@ -27,7 +27,7 @@ tauri-plugin-single-instance = "2"
 base64 = "0.22"
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.60", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
+windows-sys = { version = "0.60", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_Graphics_Dwm"] }
 
 [profile.release]
 codegen-units = 1
