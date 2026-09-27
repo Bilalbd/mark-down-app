@@ -71,7 +71,7 @@ Ln 12, Col 5   240 lines   1,234 words                         100%   UTF-8   CR
 ## Verify
 
 - [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
-- [ ] Manual check in **light and dark** on copies of `fixtures/gfm.md` and `fixtures/crlf.md`:
+- [x] Manual check in **light and dark** on copies of `fixtures/gfm.md` and `fixtures/crlf.md`:
   - Formatted: no Ln/Col; lines, words, zoom, `UTF-8`/`CRLF` as appropriate, `Markdown`.
   - Source: move the cursor (set the selection from eval with `editorView.dispatch`) and check
     `Ln, Col` updates; select a paragraph and check `N of M words`.
@@ -105,4 +105,19 @@ Implemented Phase 3 status bar with all requested features:
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Review found four problems; the agent fixed three in `fd142a2`: Ln/Col now shows in Split too, the
+cursor is set on mount (one shared helper), and the formatters take `Encoding`/`Eol`. The fourth,
+the typographic apostrophe (U+2019) in `countWords`, was lost twice by the agent's tools (its
+"curly" test used a plain apostrophe), so the supervisor fixed it directly with a `’` escape
+and a test that fails on the old regex (3 words instead of 2): `3738fd8`. The agent skipped the
+manual check.
+
+**Manual check (supervisor, dev app in its own window and WebView2 folder):** on a copy of
+`gfm.md`, Formatted shows `75 lines | 166 words | 100% | UTF-8 | LF | Markdown` with no Ln/Col;
+entering Source shows `Ln 1, Col 1` at once; cursor on line 20 → `Ln 20, Col 5`; line 3 selected →
+`12 of 166 words`; Split keeps Ln/Col; zoom 130% → click → `100%`. `crlf.md` → `CRLF`;
+`utf16le.md` → `UTF-16 LE | CRLF`. Toggle off: the bar goes and the content grows by 22 px (no page
+scroll); on again. Enlarged crops in light and dark: chrome background, top border, muted text, even
+spacing. `huge.md`: `6,002 lines | 60,604 words`; 40 keystrokes with a frame each took 362–400 ms
+with the bar vs 321–355 ms without (4 alternating runs), under 1 ms per keystroke, every keystroke
+within one frame.
