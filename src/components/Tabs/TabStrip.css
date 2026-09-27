@@ -207,6 +207,18 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
 
+/* The tab right-click menu: placed at the pointer (left/top set inline), above everything. */
+.tabstrip__context {
+  position: fixed;
+  z-index: 50;
+}
+
+.tabstrip__separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--chrome-border);
+}
+
 .tabstrip__dropdown button {
   display: flex;
   align-items: center;
@@ -230,6 +242,12 @@
 .tabstrip__dropdown button:focus-visible {
   outline: none;
   background: var(--chrome-hover);
+}
+
+.tabstrip__dropdown button:disabled {
+  opacity: 0.4;
+  cursor: default;
+  background: transparent;
 }
 
 .tabstrip__dropdown span {

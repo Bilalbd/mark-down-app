@@ -70,6 +70,7 @@ export function TabStrip() {
 
       return {
         id: tab.id,
+        path: tabPath,
         label,
         title,
         dirty,
@@ -525,12 +526,7 @@ export function TabStrip() {
       {contextMenu && (
         <TabContextMenu
           tabId={contextMenu.tabId}
-          tabPath={
-            items.find((t) => t.id === contextMenu.tabId)?.title === 'New tab' ||
-            items.find((t) => t.id === contextMenu.tabId)?.title?.startsWith('Untitled')
-              ? null
-              : path
-          }
+          tabPath={items.find((t) => t.id === contextMenu.tabId)?.path ?? null}
           x={contextMenu.x}
           y={contextMenu.y}
           onClose={() => setContextMenu(null)}

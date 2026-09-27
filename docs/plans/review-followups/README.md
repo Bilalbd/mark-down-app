@@ -137,7 +137,7 @@ After each phase, the supervisor:
 | 5 | 69a0041 + supervisor fix | 252 → 271 | Diff reviewed; fixed missing README row, reused cycleIndex, renamed variable; shortcuts, window mode and links checked in app | Pool change reverted (11.55% faster, below the 20% bar) |
 | 6 | fbbfe0b + supervisor fix | 271 → 287 | Diff reviewed; fixed stale dialog buttons (new test), held-key resizing, double save; resizers, focus ring (both themes) and dialog checked in app | |
 | 7 | b4b4fa6 + supervisor fix | 287 → 291 | Menu spanned the whole toolbar (found in app); fixed positioning, kept it right-aligned inside the window; both themes checked | |
-| 8 | | | | |
+| 8 | a78c46c + supervisor fix | 291 → 316 | Menu used the active tab's path for every tab (fixed + test); Escape focus, inline styles, disabled look fixed; drag, keys, menu checked in app | Bilal moved tabs by hand in one run; clean rerun recorded |
 | 9 | | | | |
 | 10 | | | | |
 | 11 | | | | |

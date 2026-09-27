@@ -107,7 +107,7 @@ dropdown styles the `+` menu uses (`.tabstrip__dropdown`).
 ## Verify
 
 - [ ] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
-- [ ] Manual check with four scratch tabs (`fixtures/tabs/one.md`, `two.md`, `fixtures/gfm.md`,
+- [x] Manual check with four scratch tabs (`fixtures/tabs/one.md`, `two.md`, `fixtures/gfm.md`, (done by the supervisor, see below)
   `fixtures/math.md` copies), **both themes**:
   - Drag: dispatch `pointerdown` / several `pointermove` / `pointerup` events (`PointerEvent` with
     `pointerId: 1`, `button: 0`, `clientX`) on the first tab to past the third tab's midpoint.
@@ -127,3 +127,33 @@ dropdown styles the `+` menu uses (`.tabstrip__dropdown`).
 ## Report
 
 (fill in: tests before → after, order before/after each check, screenshot paths)
+
+## Supervisor check
+
+Diff reviewed. Fixed directly (follow-up commit):
+- **Wrong path in the menu:** TabStrip passed the *active* document's path as `tabPath` for every
+  tab, so Copy path / Reveal on an inactive tab used the active tab's file; "untitled" was also
+  guessed from the label (a real `Untitled notes.md` would have been treated as untitled). Each tab
+  item now carries its own path. New `TabStrip.test.tsx` (fails on a78c46c, passes now).
+- Escape didn't return focus to the tab (the agent's report said it did); it does now.
+- Inline styles for `position: fixed`, `z-index` and the separator moved to CSS classes
+  (`.tabstrip__context`, `.tabstrip__separator`); only the computed left/top stay inline.
+- Found in the app: disabled menu items looked enabled, and items with and without icons didn't
+  line up. Added a disabled style and icons for Close others / Close to the right.
+
+`pnpm test` 316 passed (26 files); lint, tsc clean.
+
+**Manual check (supervisor, four scratch tabs one/two/gfm/math):** dragging the first tab (pointer
+events) to three-quarters of the third tab moved it to index 2 (`move(0, 2)`), the tab showed
+`.is-dragging` with a translateX mid-drag (screenshot), and the drop didn't change the active tab.
+Ctrl+Shift+← on the active last tab called `move(3, 2)` and kept focus on it; Ctrl+Shift+→ on the
+last tab did nothing. (Bilal moved tabs by hand during one run; the numbers above are from a clean
+rerun.) Right-click on the last tab near the right edge: menu flipped left and stayed inside the
+window (x 1426–1626 of 1646), Close to the right disabled, first item focused; screenshots in dark and
+light. Close others with a dirty tab: the prompt appeared, Cancel stopped the command and every tab
+stayed; with all clean it left only the chosen tab, active. The `+` menu still shows New file / Open
+file… / Open recent. Clipboard contents couldn't be read back from the page (NotAllowedError); Copy
+path is covered by the unit test. Settings equal to the backup at the end.
+
+Note for the supervisor: synthetic pointer events must use `pointerId: 1` (the mouse); any other id
+makes `setPointerCapture` throw, so a synthetic drag silently does nothing.

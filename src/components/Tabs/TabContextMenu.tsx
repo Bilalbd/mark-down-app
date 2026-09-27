@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { X, Copy, FolderOpen } from 'lucide-react';
+import { ArrowRightToLine, Copy, FolderOpen, SquareX, X } from 'lucide-react';
 import { useTabsStore } from '@/store/tabs';
 import { menuPosition } from '@/lib/tabs';
 import { revealInExplorer } from '@/lib/tauri';
@@ -77,6 +77,7 @@ export function TabContextMenu({ tabId, tabPath, x, y, onClose }: TabContextMenu
       } else if (e.key === 'Escape') {
         e.preventDefault();
         onClose();
+        document.querySelector<HTMLElement>(`[data-tab-id="${CSS.escape(tabId)}"]`)?.focus();
       }
     };
 
@@ -84,7 +85,7 @@ export function TabContextMenu({ tabId, tabPath, x, y, onClose }: TabContextMenu
     return () => {
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [onClose]);
+  }, [onClose, tabId]);
 
   // Close menu on click outside
   useEffect(() => {
@@ -127,13 +128,8 @@ export function TabContextMenu({ tabId, tabPath, x, y, onClose }: TabContextMenu
     <div
       ref={menuRef}
       role="menu"
-      className="tabstrip__dropdown"
-      style={{
-        position: 'fixed',
-        left: `${menuPos.left}px`,
-        top: `${menuPos.top}px`,
-        zIndex: 50,
-      }}
+      className="tabstrip__dropdown tabstrip__context"
+      style={{ left: menuPos.left, top: menuPos.top }}
     >
       <button
         ref={firstItemRef}
@@ -147,19 +143,16 @@ export function TabContextMenu({ tabId, tabPath, x, y, onClose }: TabContextMenu
         disabled={isSingleTab}
         onClick={() => void handleAction(() => closeOthers(tabId))}
       >
-        <span>Close others</span>
+        <SquareX {...MENU_ICON} /> <span>Close others</span>
       </button>
       <button
         role="menuitem"
         disabled={isLastTab}
         onClick={() => void handleAction(() => closeToRight(tabId))}
       >
-        <span>Close to the right</span>
+        <ArrowRightToLine {...MENU_ICON} /> <span>Close to the right</span>
       </button>
-      <div
-        role="separator"
-        style={{ height: 1, background: 'var(--chrome-border)', margin: '4px 0' }}
-      />
+      <div role="separator" className="tabstrip__separator" />
       <button
         role="menuitem"
         disabled={tabPath === null}
