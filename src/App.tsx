@@ -292,18 +292,11 @@ export default function App() {
               </p>
               {recentFiles.length > 0 && (
                 <div className="empty-state__recent">
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
+                  <div className="empty-state__recent-head">
                     <p className="empty-state__recent-title">Recent</p>
                     <button
-                      className="link-button"
+                      className="link-button empty-state__recent-clear"
                       onClick={() => useSettingsStore.getState().clearRecentFiles()}
-                      style={{ fontSize: 'inherit' }}
                     >
                       Clear
                     </button>

@@ -141,4 +141,4 @@ After each phase, the supervisor:
 | 9 | d772157 + supervisor fix | 316 → 331 | Clean round; offset lookup made a binary search; anchor link, cross-format find (both themes) and huge.md timing checked in app | Single-letter find on huge.md ~150 ms before and after (highlight cost) |
 | 10 | 033fbe9 | 331 → 339 | Diff reviewed, no fixes needed; real second window opened and captured in app; settings restored | Clean round |
 | 11 | 49fb95a + supervisor fix | 339 → 348 | Fonts were never inlined and the CSS rewrite merged rules (both fixed, test added); exports rendered offline in headless Edge | Build: 22 lazy font chunks, none at startup |
-| 12 | | | | |
+| 12 | b02f95f + supervisor fix | 348 → 363 | Clear button styling and separator role fixed; zoom, editor wheel and both Clear actions checked in app | Found 2 scratch entries in Bilal's recent files from Phase 1 runs; removed them |

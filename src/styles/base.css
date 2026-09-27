@@ -68,8 +68,20 @@ button:focus-visible {
   width: min(520px, 100%);
 }
 
+.empty-state__recent-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+/* Doubled class: `.link-button` comes later and resets `font`, so match its specificity + 1. */
+.link-button.empty-state__recent-clear {
+  font-size: 11px;
+}
+
 .empty-state__recent-title {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;

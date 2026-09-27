@@ -523,7 +523,7 @@ export function TabStrip() {
                           <span className="tabstrip__recent-dir">{shortDir(dirname(p))}</span>
                         </button>
                       ))}
-                      <div className="tabstrip__separator" />
+                      <div role="separator" className="tabstrip__separator" />
                       <button role="menuitem" onClick={handleClearRecentFiles}>
                         Clear recent files
                       </button>
