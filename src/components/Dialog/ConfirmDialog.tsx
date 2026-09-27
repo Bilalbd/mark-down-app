@@ -59,19 +59,45 @@ export function ConfirmDialog() {
   const current = useDialogStore((s) => s.current);
   const close = useDialogStore((s) => s.close);
   const primaryRef = useRef<HTMLButtonElement>(null);
+  const buttonsRef = useRef<HTMLButtonElement[]>([]);
+  const focusedBeforeRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!current) return;
+    focusedBeforeRef.current = document.activeElement as HTMLElement;
     primaryRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
         e.stopImmediatePropagation();
         close(null);
+      } else if (e.key === 'Tab') {
+        const buttons = buttonsRef.current;
+        if (buttons.length === 0) return;
+        const currentIndex = buttons.indexOf(document.activeElement as HTMLButtonElement);
+        if (e.shiftKey) {
+          // Shift+Tab from the first button goes to the last
+          if (currentIndex === 0 || currentIndex === -1) {
+            e.preventDefault();
+            buttons[buttons.length - 1].focus();
+          }
+        } else {
+          // Tab from the last button goes to the first
+          if (currentIndex === buttons.length - 1) {
+            e.preventDefault();
+            buttons[0].focus();
+          }
+        }
       }
     };
     window.addEventListener('keydown', onKey, { capture: true });
-    return () => window.removeEventListener('keydown', onKey, { capture: true });
+    return () => {
+      window.removeEventListener('keydown', onKey, { capture: true });
+      // Restore focus when dialog closes
+      if (focusedBeforeRef.current && focusedBeforeRef.current.isConnected) {
+        focusedBeforeRef.current.focus();
+      }
+    };
   }, [current, close]);
 
   if (!current) return null;
@@ -90,10 +116,15 @@ export function ConfirmDialog() {
         </h2>
         <p className="dialog__message">{current.message}</p>
         <div className="dialog__buttons">
-          {current.buttons.map((b) => (
+          {current.buttons.map((b, idx) => (
             <button
               key={b.id}
-              ref={b.primary ? primaryRef : undefined}
+              ref={(el) => {
+                if (el) {
+                  buttonsRef.current[idx] = el;
+                }
+                if (b.primary) primaryRef.current = el;
+              }}
               className={`dialog__btn ${b.primary ? 'is-primary' : ''} ${b.danger ? 'is-danger' : ''}`}
               onClick={() => close(b.id)}
             >

@@ -3,6 +3,7 @@ import type { EditorView } from '@codemirror/view';
 import { SourceEditor } from '@/components/Editor/SourceEditor';
 import { Preview } from '@/components/Preview/Preview';
 import { clamp, collectPreviewBlocks, lineForOffset, offsetForLine } from '@/lib/scrollSync';
+import { resizeByKey } from '@/lib/resize';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import './SplitView.css';
@@ -40,6 +41,19 @@ export function SplitView() {
     window.addEventListener('mouseup', onUp);
   };
 
+  const onDividerKeyDown = (e: React.KeyboardEvent) => {
+    const newRatio = resizeByKey(e.key, e.shiftKey, ratio, {
+      min: MIN_RATIO,
+      max: MAX_RATIO,
+      step: 0.02,
+    });
+    if (newRatio !== null) {
+      e.preventDefault();
+      set('splitRatio', newRatio);
+      persist('splitRatio');
+    }
+  };
+
   return (
     <div className="split" ref={containerRef}>
       <div className="split__pane" style={{ flexBasis: `${ratio * 100}%` }}>
@@ -48,8 +62,14 @@ export function SplitView() {
       <div
         className="split__divider"
         onMouseDown={onDividerDown}
+        onKeyDown={onDividerKeyDown}
         role="separator"
         aria-orientation="vertical"
+        aria-label="Resize panes"
+        tabIndex={0}
+        aria-valuemin={25}
+        aria-valuemax={75}
+        aria-valuenow={Math.round(ratio * 100)}
       />
       <div className="split__pane split__pane--grow">
         {editorSide === 'left' ? <Preview /> : <SourceEditor />}

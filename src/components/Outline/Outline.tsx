@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, ChevronDown, ChevronUp, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import type { HeadingInfo } from '@/markdown/plugins';
+import { resizeByKey } from '@/lib/resize';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import './Outline.css';
@@ -209,6 +210,19 @@ export function Outline() {
     window.addEventListener('mouseup', onUp);
   };
 
+  const onResizerKeyDown = (e: React.KeyboardEvent) => {
+    const newWidth = resizeByKey(e.key, e.shiftKey, width, {
+      min: MIN_WIDTH,
+      max: MAX_WIDTH,
+      step: 16,
+    });
+    if (newWidth !== null) {
+      e.preventDefault();
+      set('outlineWidth', newWidth);
+      persist('outlineWidth');
+    }
+  };
+
   const renderNodes = (nodes: OutlineNode[], depth: number) => (
     <ul className="outline__list" role={depth === 0 ? 'tree' : 'group'}>
       {nodes.map((n) => {
@@ -304,7 +318,18 @@ export function Outline() {
           renderNodes(tree, 0)
         )}
       </div>
-      <div className="outline__resizer" onMouseDown={onResizeStart} />
+      <div
+        className="outline__resizer"
+        onMouseDown={onResizeStart}
+        onKeyDown={onResizerKeyDown}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize outline"
+        tabIndex={0}
+        aria-valuemin={MIN_WIDTH}
+        aria-valuemax={MAX_WIDTH}
+        aria-valuenow={width}
+      />
     </aside>
   );
 }

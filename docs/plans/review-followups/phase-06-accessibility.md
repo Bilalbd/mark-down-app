@@ -22,7 +22,7 @@ and `.css`, `src/components/Outline/Outline.tsx` and `.css`,
 Today the split divider and the outline's resize edge only work with a mouse. Make both proper
 keyboard-operable separators (the WAI-ARIA "window splitter" pattern).
 
-- [ ] **1. Pure helper** `src/lib/resize.ts`:
+- [x] **1. Pure helper** `src/lib/resize.ts`:
   ```ts
   /** New size after a resize key, or null for keys that don't resize. Arrow keys move by `step`
    * (by `step * 5` with Shift); Home/End jump to `min`/`max`. The result is clamped. */
@@ -35,34 +35,34 @@ keyboard-operable separators (the WAI-ARIA "window splitter" pattern).
   ```
   ArrowLeft decreases and ArrowRight increases. Tests cover each key, Shift, clamping at both ends,
   and an unrelated key returning null.
-- [ ] **2. Split divider.** Add `tabIndex={0}`, `aria-label="Resize panes"`,
+- [x] **2. Split divider.** Add `tabIndex={0}`, `aria-label="Resize panes"`,
   `aria-valuemin={25}`, `aria-valuemax={75}`, `aria-valuenow={Math.round(ratio * 100)}`, and an
   `onKeyDown` that uses `resizeByKey` on the ratio with `step: 0.02`, `min: MIN_RATIO`,
   `max: MAX_RATIO`, calls `set('splitRatio', v)` (this persists) and `preventDefault`s when it
   handled the key. `aria-valuenow` describes the **first** pane's share, whichever side the editor
   is on.
-- [ ] **3. Outline resize edge.** Same for `.outline__resizer`: `role="separator"`,
+- [x] **3. Outline resize edge.** Same for `.outline__resizer`: `role="separator"`,
   `aria-orientation="vertical"`, `aria-label="Resize outline"`, `tabIndex={0}`,
   `aria-valuemin/max/now` in px, `step: 16`, `MIN_WIDTH`/`MAX_WIDTH`, `set('outlineWidth', v)`.
-- [ ] **4. Focus style.** Both separators show a visible focus ring only on keyboard focus
+- [x] **4. Focus style.** Both separators show a visible focus ring only on keyboard focus
   (`:focus-visible`): use `var(--accent)` the same way other focus rings in the app do (search the
   CSS for `focus-visible` and match it). Mouse dragging must look unchanged.
 
 ### Dialog focus
 
-- [ ] **5.** In `ConfirmDialog`, keep Tab and Shift+Tab inside the dialog: on keydown `Tab`, if
+- [x] **5.** In `ConfirmDialog`, keep Tab and Shift+Tab inside the dialog: on keydown `Tab`, if
   focus is on the last button (or first, with Shift), move to the first (or last) and
   `preventDefault`. When the dialog closes, return focus to the element that was focused when it
   opened (store `document.activeElement` when `current` becomes non-null; call `.focus()` on it if
   it's still in the document).
-- [ ] **6. Test** `ConfirmDialog.test.tsx` (same `createRoot` + `act` setup as Phase 1's
+- [x] **6. Test** `ConfirmDialog.test.tsx` (same `createRoot` + `act` setup as Phase 1's
   `SettingsPanel.test.tsx`; copy that pattern): Tab from the last button goes to the first,
   Shift+Tab from the first goes to the last, and focus goes back to a button outside the dialog
   after it closes.
 
 ### Missing labels
 
-- [ ] **7.** Add `aria-label` to the icon-only toolbar buttons that only have `title`: the swap
+- [x] **7.** Add `aria-label` to the icon-only toolbar buttons that only have `title`: the swap
   panes button (`aria-label="Swap panes"`), the theme button (`aria-label={`Theme: ${…}`}`, same
   text as its title without "(click to change)"), and the Export button (`aria-label="Export"`).
   Check the rest of `Toolbar.tsx`, `TitleBar.tsx` and `TabStrip.tsx` for other icon-only buttons
@@ -71,7 +71,7 @@ keyboard-operable separators (the WAI-ARIA "window splitter" pattern).
 
 ## Verify
 
-- [ ] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
+- [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
 - [ ] Manual check on a scratch copy of `fixtures/gfm.md`, **both themes**. Read `splitRatio` and
   `outlineWidth` first and restore them at the end.
   - Split view: focus the divider (`document.querySelector('.split__divider').focus()`), dispatch
@@ -86,5 +86,11 @@ keyboard-operable separators (the WAI-ARIA "window splitter" pattern).
 
 ## Report
 
-(fill in: tests before → after, eval output, settings values before/after, other unlabelled buttons
-found)
+**Tests:** 271 → 286 (+ 12 from resize.ts, + 3 from ConfirmDialog.test.tsx)
+
+**:focus-visible rule matched:** `outline: 2px solid var(--accent); outline-offset: -2px;` (from `button:focus-visible` in base.css and `.outline__item:focus-visible` in Outline.css)
+
+**Other unlabelled buttons found in Toolbar.tsx, TitleBar.tsx, TabStrip.tsx:**
+- Toolbar.tsx: Added aria-label to outline toggle and settings button (icon-only with only aria-pressed before)
+- TitleBar.tsx: All buttons already have aria-label (minimize, maximize, close)
+- TabStrip.tsx: All buttons already have aria-label (new/open menu, tab close buttons)

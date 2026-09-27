@@ -49,6 +49,7 @@ export function Toolbar() {
       <button
         className={`toolbar__btn ${outlineVisible ? 'is-active' : ''}`}
         title="Toggle outline (Ctrl+\)"
+        aria-label="Toggle outline"
         onClick={() => set('outlineVisible', !outlineVisible)}
         aria-pressed={outlineVisible}
       >
@@ -73,6 +74,7 @@ export function Toolbar() {
         <button
           className="toolbar__btn"
           title={`Swap panes (source on the ${splitEditorSide === 'left' ? 'right' : 'left'})`}
+          aria-label="Swap panes"
           onClick={() => set('splitEditorSide', splitEditorSide === 'left' ? 'right' : 'left')}
         >
           <ArrowLeftRight {...ICON} />
@@ -99,6 +101,7 @@ export function Toolbar() {
       <button
         className="toolbar__btn"
         title={`Theme: ${THEME_LABEL[appTheme]} (click to change)`}
+        aria-label={`Theme: ${THEME_LABEL[appTheme]}`}
         onClick={cycleTheme}
       >
         <ThemeIcon {...ICON} />
@@ -107,6 +110,7 @@ export function Toolbar() {
       <button
         className={`toolbar__btn ${settingsOpen ? 'is-active' : ''}`}
         title="Settings (Ctrl+,)"
+        aria-label="Settings"
         onClick={() => setSettingsOpen(!settingsOpen)}
         aria-pressed={settingsOpen}
       >

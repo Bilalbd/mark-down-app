@@ -114,6 +114,7 @@ export function ExportMenu() {
       <button
         className={`toolbar__btn ${open ? 'is-active' : ''}`}
         title="Export"
+        aria-label="Export"
         aria-haspopup="menu"
         aria-expanded={open}
         disabled={!hasDocument}
