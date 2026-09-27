@@ -1,7 +1,7 @@
 # v0.8 polish
 
 Eight changes Bilal asked for on 2026-09-27, before calling the app 0.8. This folder turns them into
-seven phases. Each phase is done by its own Haiku agent, **in order**, on branch
+seven phases. Each phase is done by its own sub-agent (Haiku for Phases 1–4, Sonnet 5 from 2026-09-28 on, at Bilal's request), **in order**, on branch
 `claude/v0.8-polish`. A phase doesn't start until the one before it is committed and the
 supervisor has checked it.
 
@@ -69,14 +69,14 @@ save-recent-polish rules too. They all apply here. In particular:
   **copies** of fixtures from your scratchpad, never the repo files.
 - Backslashes (Windows paths, regexes) only through the Write/Edit tools.
 - Commit once, with the message from the table, ending with a blank line and
-  `Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>`. Tick your phase document's checkboxes
+  `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` (Phases 1–4 used the Haiku 4.5 line). Tick your phase document's checkboxes
   and fill in its Report in the same commit.
 - Update `README.md` in the same commit when your phase changes a feature, shortcut or setting (each
   phase says whether it does).
 
 ## Launching a phase agent (supervisor)
 
-One Haiku agent per phase, in the foreground, in this worktree. Prompt:
+One Sonnet 5 agent per phase (`model: "sonnet"`), in the foreground, in this worktree. Prompt:
 
 > You are implementing Phase N of `docs/plans/v0.8-polish/`. Read `CLAUDE.md`,
 > `docs/plans/v0.8-polish/README.md` and `docs/plans/v0.8-polish/<phase doc>` in full, then do
