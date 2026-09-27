@@ -39,14 +39,14 @@ one control, like a Windows split button.
   Escape returns focus to the **caret** button, arrow keys, first item focused on open).
 - [x] **3.** CSS for `.toolbar__split` and its two buttons as described above. Keep print styles
   unaffected (the toolbar is hidden when printing; check `base.css`).
-- [ ] **4.** Nothing else in the toolbar moves: compare the x position of the Export and theme
+- [x] **4.** Nothing else in the toolbar moves: compare the x position of the Export and theme
   buttons before and after (read `getBoundingClientRect().left` for each) and report the shift.
   A shift equal to the caret's width is expected.
 
 ## Verify
 
 - [x] `pnpm test` (287 → 291 tests), `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
-- [ ] Manual check on a scratch copy of `fixtures/gfm.md`, **both themes**: Done by supervisor.
+- [x] Manual check on a scratch copy of `fixtures/gfm.md`, **both themes**: Done by supervisor.
   - Stub `save` and `saveAs` on the document store (see the stub pattern in
     `docs/plans/save-recent-polish/README.md`), click the disk button via
     `document.querySelector(...).click()`, show `save` was called once and the menu didn't open.
@@ -71,3 +71,24 @@ one control, like a Windows split button.
   - `src/components/Toolbar/SaveMenu.test.tsx`: New component test with 4 tests covering disk/caret button interactions and disabled state.
   - `docs/plans/review-followups/phase-07-save-split-button.md`: This document (checkboxes and report).
 - **Notes:** Disk button now saves immediately with `onClick={() => void save()}`. Caret button has `aria-label="More save options"`, `aria-haspopup="menu"`, and `aria-expanded`. Menu aligns to left (via `style={{ left: 0 }}`). Escape in menu returns focus to caret button. Both buttons disabled when `hasDocument` is false. ChevronDown icon at size 12 with shared stroke props.
+
+## Supervisor check
+
+**Layout bug found in the app and fixed (follow-up commit):** `.toolbar__split` wasn't a
+positioning container (`position` unset, plus `overflow: hidden`), and the menu got `left: 0` from an
+inline style while the stylesheet already sets `right: 0`. Measured in the app: the Save menu spanned
+the whole toolbar, x 0–1646 px, from the window's left edge. The jsdom tests couldn't catch this.
+Fix: `position: relative` on `.toolbar__split`, no `overflow: hidden`, no inline style. Aligning the
+menu to the disk button's left edge (as planned) made it run 28 px past the window's right edge, since
+the button sits near the right of the toolbar, so the menu keeps the toolbar's right-aligned
+dropdown like the Export menu: now x 1346–1536, just under the split button.
+
+**Task 4:** Export, Theme and Settings are at exactly the same x as before (1542, 1576, 1610); the
+Save group starts 24 px further left (1508 → 1484) to make room for the caret.
+
+**Manual check (supervisor, scratch gfm.md):** with `save`/`saveAs` stubbed, the disk button called
+`save` once and didn't open the menu; the caret opened it; "Save as…" called `saveAs` once and closed
+it. Screenshots in dark and light (crops of the toolbar): disk half hovered has rounded left corners
+and a square right edge; caret half hovered is the reverse; with the menu open the caret turns the
+accent colour and the menu sits under the split. The 1px `--chrome-border` divider is faint but
+present. Settings equal to the backup at the end. `pnpm test` 291 passed; lint, tsc clean.

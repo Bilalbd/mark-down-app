@@ -84,7 +84,7 @@ export function SaveMenu() {
         <ChevronDown size={12} strokeWidth={2} absoluteStrokeWidth />
       </button>
       {open && (
-        <div className="toolbar__dropdown" role="menu" style={{ left: 0 }}>
+        <div className="toolbar__dropdown" role="menu">
           <button
             ref={firstItemRef}
             role="menuitem"

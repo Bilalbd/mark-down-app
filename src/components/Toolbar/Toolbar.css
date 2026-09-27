@@ -62,9 +62,9 @@
 }
 
 .toolbar__split {
+  position: relative;
   display: flex;
   border-radius: 5px;
-  overflow: hidden;
 }
 .toolbar__split .toolbar__btn {
   border-radius: 0;
