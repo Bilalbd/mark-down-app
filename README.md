@@ -58,6 +58,7 @@ the file it was opened with.
 | Ctrl+T | New tab |
 | Ctrl+W | Close tab |
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous tab |
+| Ctrl+PageDown / Ctrl+PageUp | Next / previous tab |
 | Ctrl+1 … Ctrl+9 | Go to tab |
 | Ctrl+E | Toggle formatted / source |
 | Ctrl+Shift+E | Toggle split view |

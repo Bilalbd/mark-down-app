@@ -21,6 +21,7 @@ import {
 } from '@/lib/tauri';
 import { pruneEditorCache } from '@/lib/editorCache';
 import {
+  cycleIndex,
   findTabByPath,
   isBlankDocument,
   moveItem,
@@ -583,6 +584,5 @@ export async function cycleTab(delta: 1 | -1): Promise<void> {
   const tabs = state.tabs;
   const activeIdx = tabs.findIndex((t) => t.id === state.activeId);
   if (activeIdx < 0) return;
-  const nextIdx = (((activeIdx + delta) % tabs.length) + tabs.length) % tabs.length;
-  await state.activate(tabs[nextIdx].id);
+  await state.activate(tabs[cycleIndex(tabs.length, activeIdx, delta)].id);
 }

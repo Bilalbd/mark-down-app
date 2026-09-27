@@ -134,7 +134,7 @@ After each phase, the supervisor:
 | 2 | ff6b479, b883752, 7847b2e, 76f4dd3 + supervisor fix | 234 → 248 | Three review rounds (id-only preset compare, write-queue deadlock, failing/deleted/vacuous tests); supervisor finished the race fix and tests; checked in app with settings restored | Agent's dev app failed to launch twice; supervisor's launched fine |
 | 3 | ea1e4d6 | 248 → 252 | Diff reviewed; render counts, outline in all views and huge.md timing checked in app by supervisor | Clean first round; App renders per 10 keystrokes 20 → 0; huge.md p90 48 → 25 ms |
 | 4 | 6a86d2a + supervisor fix | 252 → 252 (Rust 35 → 36) | Diff reviewed; fixed duplicate events, failed-watch cleanup, unused param; checked tabs, live reload and images in app | Clean first round apart from those three |
-| 5 | | | | |
+| 5 | 69a0041 + supervisor fix | 252 → 271 | Diff reviewed; fixed missing README row, reused cycleIndex, renamed variable; shortcuts, window mode and links checked in app | Pool change reverted (11.55% faster, below the 20% bar) |
 | 6 | | | | |
 | 7 | | | | |
 | 8 | | | | |

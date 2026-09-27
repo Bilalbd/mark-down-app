@@ -104,7 +104,7 @@ also repeats.
 ## Verify
 
 - [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
-- [ ] Manual check (dark theme). Open three scratch copies of `fixtures/tabs/one.md`,
+- [x] Manual check (dark theme). Open three scratch copies of `fixtures/tabs/one.md`, (done by the supervisor, see below)
   `fixtures/tabs/two.md` and `fixtures/gfm.md` as tabs. Dispatch keydown events on `window`
   (`new KeyboardEvent('keydown', { key: '2', ctrlKey: true, bubbles: true })` etc.) and show the
   active tab after each of: Ctrl+1, Ctrl+2, Ctrl+9, Ctrl+Tab, Ctrl+Shift+Tab (key `'Tab'`, shiftKey),
@@ -147,3 +147,22 @@ also repeats.
 
 **Test speedup analysis:**
 The `pool: 'vmThreads'` change showed an 11.55% speedup (from median 6873 ms to 6079 ms), which is below the 20% threshold. The change was reverted per task requirements.
+
+## Supervisor check
+
+Diff reviewed against the phase document. Fixed directly (follow-up commit): the README shortcut
+table was missing the Ctrl+PageDown / Ctrl+PageUp row (task 5); `cycleTab` re-implemented the
+wrap-around instead of using `cycleIndex`; `numpadShortcuts` renamed `tabNumberShortcuts` (they're
+the number-row keys). `pnpm test` 271 passed, lint and tsc clean. Pool change correctly reverted
+(11.55% < 20%).
+
+**Manual check (supervisor, dev app, scratch copies of one.md, two.md, gfm.md, links.md):** with
+three tabs, Ctrl+1 → one, Ctrl+2 → two, Ctrl+9 → gfm (last), Ctrl+Tab → one (wraps), Ctrl+Shift+Tab →
+gfm, Ctrl+PageDown → one, Ctrl+PageUp → gfm, Ctrl+5 (out of range) → no change. Window mode with one
+tab: Ctrl+W does nothing (`openFilesIn` put back to `tab`). Clicking the relative `gfm.md` link in
+links.md focused the gfm tab and `location.href` didn't change. Screenshot of Settings → General shows
+the new shortcut row (it wraps onto two lines, like the existing Ctrl+Tab row). Settings equal to the
+backup at the end.
+
+Seen during the check (not from this phase): one dev launch hung with `markdown-viewer.exe` running,
+no WebView2 process and no window; a relaunch worked in 10 s. Reported to Bilal.

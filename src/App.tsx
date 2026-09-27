@@ -188,7 +188,7 @@ export default function App() {
   const dialogOpen = useDialogStore((s) => s.current !== null);
 
   const shortcuts = useMemo(() => {
-    const numpadShortcuts = Object.fromEntries(
+    const tabNumberShortcuts = Object.fromEntries(
       Array.from({ length: 8 }, (_, i) => [`ctrl+${i + 1}`, () => void activateTabAt(i)]),
     );
 
@@ -222,7 +222,7 @@ export default function App() {
       'ctrl+shift+tab': () => void cycleTab(-1),
       'ctrl+pageup': () => void cycleTab(-1),
       'ctrl+9': () => void activateTabAt(-1),
-      ...numpadShortcuts,
+      ...tabNumberShortcuts,
     };
   }, [
     openWithDialog,
