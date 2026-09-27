@@ -1,5 +1,10 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { useSettingsStore, isPreviewFullWidth } from '@/store/settings';
+import {
+  useSettingsStore,
+  isPreviewFullWidth,
+  zoomPreviewBy,
+  resetPreviewZoom,
+} from '@/store/settings';
 
 // No Tauri in this environment, so the store falls back to memory-only persistence.
 describe('useSettingsStore recent files', () => {
@@ -67,5 +72,66 @@ describe('isPreviewFullWidth', () => {
 
   it('is false when previewFullWidth is on but viewMode is source', () => {
     expect(isPreviewFullWidth({ previewFullWidth: true, viewMode: 'source' })).toBe(false);
+  });
+});
+
+describe('zoomPreviewBy', () => {
+  beforeEach(() => {
+    useSettingsStore.setState({ previewZoom: 1 });
+  });
+
+  it('steps up by 0.1', () => {
+    expect(zoomPreviewBy(0.1)).toBe(1.1);
+  });
+
+  it('steps down by 0.1', () => {
+    useSettingsStore.setState({ previewZoom: 1.5 });
+    expect(zoomPreviewBy(-0.1)).toBe(1.4);
+  });
+
+  it('clamps to max 3', () => {
+    useSettingsStore.setState({ previewZoom: 2.95 });
+    expect(zoomPreviewBy(0.1)).toBe(3);
+  });
+
+  it('clamps to min 0.5', () => {
+    useSettingsStore.setState({ previewZoom: 0.55 });
+    expect(zoomPreviewBy(-0.1)).toBe(0.5);
+  });
+
+  it('rounds to 2 decimals (10 steps of 0.1 from 1 gives exactly 2)', () => {
+    useSettingsStore.setState({ previewZoom: 1 });
+    let zoom = 1;
+    for (let i = 0; i < 10; i++) {
+      zoom = zoomPreviewBy(0.1);
+      useSettingsStore.setState({ previewZoom: zoom });
+    }
+    expect(zoom).toBe(2);
+  });
+});
+
+describe('resetPreviewZoom', () => {
+  it('returns 1', () => {
+    expect(resetPreviewZoom()).toBe(1);
+  });
+});
+
+describe('useSettingsStore clear recent files', () => {
+  beforeEach(() => {
+    useSettingsStore.setState({ recentFiles: [] });
+  });
+
+  it('clears recent files', () => {
+    const { addRecentFile, clearRecentFiles } = useSettingsStore.getState();
+    addRecentFile('a.md');
+    addRecentFile('b.md');
+    clearRecentFiles();
+    expect(useSettingsStore.getState().recentFiles).toEqual([]);
+  });
+
+  it('is a no-op when list is already empty', () => {
+    const { clearRecentFiles } = useSettingsStore.getState();
+    clearRecentFiles();
+    expect(useSettingsStore.getState().recentFiles).toEqual([]);
   });
 });

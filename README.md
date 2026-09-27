@@ -8,15 +8,16 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
 ## Features
 
 - **Tabs** — open multiple files as tabs in one window. Drag files from Explorer, use `Ctrl+O` to
-  open several at once, or open from recent files. Reorder tabs by dragging them left or right, or
-  use `Ctrl+Shift+←/→` to move them. Right-click a tab for a context menu with Close, Close others,
-  Close to the right, Copy path, and Reveal in File Explorer. Each tab keeps its own view mode
-  (Formatted / Source / Split), scroll position and undo history. A file already open in a tab is
-  focussed instead of opened again. When the app is already running and you open a `.md` file from
-  Explorer (double-click or *Open With*), it opens as a tab in the running window which comes to
-  the front (**New tab** mode), or in a new window unless this window is empty or showing the start
-  screen (**New window** mode). Configure the behaviour in **Settings → General** (**Open files in:**
-  New tab / New window, default New tab).
+  open several at once, or open from recent files (clear them on the start screen or in the **Open
+  recent** menu). Reorder tabs by dragging them left or right, or use `Ctrl+Shift+←/→` to move
+  them. Right-click a tab for a context menu with Close, Close others, Close to the right, Copy
+  path, and Reveal in File Explorer. Each tab keeps its own view mode (Formatted / Source / Split),
+  scroll position and undo history. A file already open in a tab is focussed instead of opened
+  again. When the app is already running and you open a `.md` file from Explorer (double-click or
+  *Open With*), it opens as a tab in the running window which comes to the front (**New tab**
+  mode), or in a new window unless this window is empty or showing the start screen (**New window**
+  mode). Configure the behaviour in **Settings → General** (**Open files in:** New tab / New
+  window, default New tab).
 - **Formatted / Source / Split** views (`Ctrl+E`, `Ctrl+Shift+E`) with the source line kept in
   place when switching, and bidirectional scroll sync in Split. Formatted view has a full-width
   toggle in the toolbar that fits the document to the window, and it's remembered.
@@ -71,7 +72,7 @@ the file it was opened with.
 | Ctrl+\ | Toggle outline |
 | Ctrl+F | Find |
 | Ctrl+, | Settings |
-| Ctrl+= / Ctrl+− / Ctrl+0 | Zoom preview |
+| Ctrl+= / Ctrl+− / Ctrl+0 / Ctrl+wheel | Zoom preview |
 
 ## Development
 

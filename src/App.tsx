@@ -25,7 +25,7 @@ import {
   type FileChangedEvent,
 } from './lib/tauri';
 import { samePath, shortDir } from './lib/tabs';
-import { useSettingsStore } from './store/settings';
+import { useSettingsStore, zoomPreviewBy, resetPreviewZoom } from './store/settings';
 import { isDirty, useDocumentStore } from './store/document';
 import {
   activateTabAt,
@@ -50,7 +50,6 @@ export default function App() {
   const set = useSettingsStore((s) => s.set);
   const viewMode = useSettingsStore((s) => s.viewMode);
   const outlineVisible = useSettingsStore((s) => s.outlineVisible);
-  const previewZoom = useSettingsStore((s) => s.previewZoom);
   const recentFiles = useSettingsStore((s) => s.recentFiles);
 
   const path = useDocumentStore((s) => s.path);
@@ -175,15 +174,9 @@ export default function App() {
     await newDocumentPerSetting();
   }, []);
 
-  const zoomIn = useCallback(
-    () => set('previewZoom', Math.min(3, +(previewZoom + 0.1).toFixed(2))),
-    [set, previewZoom],
-  );
-  const zoomOut = useCallback(
-    () => set('previewZoom', Math.max(0.5, +(previewZoom - 0.1).toFixed(2))),
-    [set, previewZoom],
-  );
-  const zoomReset = useCallback(() => set('previewZoom', 1), [set]);
+  const zoomIn = useCallback(() => set('previewZoom', zoomPreviewBy(0.1)), [set]);
+  const zoomOut = useCallback(() => set('previewZoom', zoomPreviewBy(-0.1)), [set]);
+  const zoomReset = useCallback(() => set('previewZoom', resetPreviewZoom()), [set]);
 
   const dialogOpen = useDialogStore((s) => s.current !== null);
 
@@ -299,7 +292,22 @@ export default function App() {
               </p>
               {recentFiles.length > 0 && (
                 <div className="empty-state__recent">
-                  <p className="empty-state__recent-title">Recent</p>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <p className="empty-state__recent-title">Recent</p>
+                    <button
+                      className="link-button"
+                      onClick={() => useSettingsStore.getState().clearRecentFiles()}
+                      style={{ fontSize: 'inherit' }}
+                    >
+                      Clear
+                    </button>
+                  </div>
                   <ul className="empty-state__recent-list">
                     {recentFiles.map((path) => (
                       <li key={path}>

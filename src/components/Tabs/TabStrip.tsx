@@ -321,6 +321,12 @@ export function TabStrip() {
     void openPath(path);
   };
 
+  const handleClearRecentFiles = () => {
+    useSettingsStore.getState().clearRecentFiles();
+    setMenuOpen(false);
+    setFlyoutOpen(false);
+  };
+
   return (
     <div className="tabstrip">
       <div
@@ -505,17 +511,23 @@ export function TabStrip() {
                   {recentFiles.length === 0 ? (
                     <div className="tabstrip__empty">No recent files</div>
                   ) : (
-                    recentFiles.map((p) => (
-                      <button
-                        key={p}
-                        role="menuitem"
-                        title={p}
-                        onClick={() => void handleRecentFileClick(p)}
-                      >
-                        <span className="tabstrip__recent-name">{basename(p)}</span>
-                        <span className="tabstrip__recent-dir">{shortDir(dirname(p))}</span>
+                    <>
+                      {recentFiles.map((p) => (
+                        <button
+                          key={p}
+                          role="menuitem"
+                          title={p}
+                          onClick={() => void handleRecentFileClick(p)}
+                        >
+                          <span className="tabstrip__recent-name">{basename(p)}</span>
+                          <span className="tabstrip__recent-dir">{shortDir(dirname(p))}</span>
+                        </button>
+                      ))}
+                      <div className="tabstrip__separator" />
+                      <button role="menuitem" onClick={handleClearRecentFiles}>
+                        Clear recent files
                       </button>
-                    ))
+                    </>
                   )}
                 </div>
               )}

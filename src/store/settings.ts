@@ -71,6 +71,8 @@ interface SettingsState extends Settings {
   addRecentFile: (path: string) => void;
   /** Drops `path` from recentFiles (e.g. it became unreadable or was moved). */
   removeRecentFile: (path: string) => void;
+  /** Clears all recent files. */
+  clearRecentFiles: () => void;
 }
 
 let store: Store | null = null;
@@ -205,11 +207,26 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     if (next.length === get().recentFiles.length) return;
     get().set('recentFiles', next);
   },
+
+  clearRecentFiles: () => {
+    get().set('recentFiles', []);
+  },
 }));
 
 /** Whether the preview should ignore the preset's content width (Formatted view only, not Split). */
 export function isPreviewFullWidth(s: Pick<Settings, 'previewFullWidth' | 'viewMode'>): boolean {
   return s.previewFullWidth && s.viewMode === 'formatted';
+}
+
+/** Zoom preview in or out by a delta (0.1 step), clamped to 0.5–3 and rounded to 2 decimals. */
+export function zoomPreviewBy(delta: number): number {
+  const current = useSettingsStore.getState().previewZoom;
+  return Math.round(Math.max(0.5, Math.min(3, current + delta)) * 100) / 100;
+}
+
+/** Reset preview zoom to 100%. */
+export function resetPreviewZoom(): number {
+  return 1;
 }
 
 /** For tests: returns a promise that resolves when all queued writes complete. */

@@ -5,10 +5,11 @@ import { useResolvedTheme } from '@/lib/useAppTheme';
 import { classifyLink } from '@/lib/links';
 import { dirname, isTauri, toAssetUrl, openExternal, revealInExplorer } from '@/lib/tauri';
 import { useDocumentStore } from '@/store/document';
-import { useSettingsStore, isPreviewFullWidth } from '@/store/settings';
+import { useSettingsStore, isPreviewFullWidth, zoomPreviewBy } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import { openPath } from '@/store/tabs';
 import { samePath } from '@/lib/tabs';
+import { stepWheel, type WheelAccumulator } from '@/lib/wheelAccumulator';
 import './Preview.css';
 
 const RENDER_DEBOUNCE_MS = 150;
@@ -57,11 +58,30 @@ export function Preview() {
   const renderSeq = useRef(0);
   const renderedLoadIdRef = useRef(-1);
   const restoredLoadIdRef = useRef(-1);
+  const wheelAccRef = useRef<WheelAccumulator>({ delta: 0, lastDirection: null });
 
   useEffect(() => {
     setPreviewScrollEl(scrollRef.current);
     return () => setPreviewScrollEl(null);
   }, [setPreviewScrollEl]);
+
+  // Non-passive wheel listener for Ctrl+wheel zoom (React's onWheel is passive)
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      const steps = stepWheel(wheelAccRef.current, e.deltaY);
+      if (steps !== 0) {
+        useSettingsStore.getState().set('previewZoom', zoomPreviewBy(steps * 0.1));
+      }
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
 
   useEffect(() => {
     const seq = ++renderSeq.current;
