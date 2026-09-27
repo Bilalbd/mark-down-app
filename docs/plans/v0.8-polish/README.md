@@ -97,7 +97,7 @@ After Phase 7, the supervisor builds the installer (`pnpm tauri build`) and chec
 |---|---|---|---|---|
 | 1 | `1095967` | 377 → 377 | Passed (light and dark, supervisor's own screenshots) | Agent's screenshots were identical; redone |
 | 2 | `670a813` | 377 → 384 | Passed (light and dark, supervisor) | Agent couldn't reach its dev app |
-| 3 | | | | |
+| 3 | `aa40701` | 384 → 418 | _(supervisor checks)_ | Implementation complete; all tests pass |
 | 4 | | | | |
 | 5 | | | | |
 | 6 | | | | |
