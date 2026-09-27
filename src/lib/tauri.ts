@@ -57,6 +57,13 @@ export function setAssetRoot(dir: string | null): Promise<void> {
   return invoke('set_asset_root', { dir });
 }
 
+/** Reads an image under the current document's folder as a `data:` URL for embedding
+ * in HTML export. Only works inside Tauri. */
+export function readAssetDataUrl(path: string): Promise<string> {
+  if (!isTauri()) return Promise.reject(new Error('readAssetDataUrl requires Tauri'));
+  return invoke<string>('read_asset_data_url', { path });
+}
+
 export const toAssetUrl = (absPath: string): string => convertFileSrc(absPath, 'mdasset');
 
 export function dirname(path: string): string {

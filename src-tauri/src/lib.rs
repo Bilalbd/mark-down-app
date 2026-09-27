@@ -79,6 +79,7 @@ pub fn run() {
             commands::take_pending_opens,
             commands::open_in_new_window,
             assets::set_asset_root,
+            assets::read_asset_data_url,
             watch::watch_file,
             watch::unwatch_file
         ])

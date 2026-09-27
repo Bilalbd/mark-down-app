@@ -25,6 +25,8 @@ export interface Settings {
   openFilesIn: OpenFilesIn;
   /** Formatted view fills the window width instead of the preset's content width. */
   previewFullWidth: boolean;
+  /** Embeds images and maths fonts in HTML exports for offline use. */
+  selfContainedExport: boolean;
 }
 
 const MAX_RECENT_FILES = 5;
@@ -50,6 +52,7 @@ const DEFAULTS: Settings = {
   blockRemoteImages: false,
   openFilesIn: 'tab',
   previewFullWidth: false,
+  selfContainedExport: true,
 };
 
 interface SettingsState extends Settings {

@@ -2,7 +2,7 @@ use percent_encoding::percent_decode_str;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::http::{header::CONTENT_TYPE, Request, Response, StatusCode};
-use tauri::Manager;
+use tauri::{AppHandle, Manager};
 
 /// The open document's folder (canonicalised), or `None` for an untitled document.
 /// Replaces every previous `set_asset_root` call - only the current document's own
@@ -12,7 +12,7 @@ use tauri::Manager;
 pub struct AssetRoot(pub Mutex<Option<PathBuf>>);
 
 #[tauri::command]
-pub fn set_asset_root(app: tauri::AppHandle, dir: Option<String>) -> Result<(), String> {
+pub fn set_asset_root(app: AppHandle, dir: Option<String>) -> Result<(), String> {
     let resolved = match dir {
         Some(d) => Some(std::fs::canonicalize(d).map_err(|e| e.to_string())?),
         None => None,
@@ -22,6 +22,42 @@ pub fn set_asset_root(app: tauri::AppHandle, dir: Option<String>) -> Result<(), 
         .lock()
         .map_err(|e| e.to_string())? = resolved;
     Ok(())
+}
+
+/// Reads an image under the current document's folder as a `data:` URL, for embedding in an
+/// HTML export. Same access rule as the `mdasset` protocol: nothing outside `AssetRoot`.
+#[tauri::command]
+pub fn read_asset_data_url(app: AppHandle, path: String) -> Result<String, String> {
+    let root = app
+        .state::<AssetRoot>()
+        .0
+        .lock()
+        .map_err(|e| e.to_string())?
+        .clone();
+
+    let Some(root) = root else {
+        return Err("no document folder".to_string());
+    };
+
+    let requested = PathBuf::from(path);
+
+    if !is_within_root(&requested, &root) {
+        return Err("not allowed".to_string());
+    }
+
+    let bytes = std::fs::read(&requested).map_err(|e| e.to_string())?;
+
+    if bytes.len() > 20 * 1024 * 1024 {
+        return Err("file too large".to_string());
+    }
+
+    Ok(to_data_url(&bytes, &requested))
+}
+
+fn to_data_url(bytes: &[u8], path: &Path) -> String {
+    let content_type = content_type_for(path);
+    let encoded = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, bytes);
+    format!("data:{};base64,{}", content_type, encoded)
 }
 
 /// True when `requested`, canonicalised, is `root` or lives under it. Canonicalising
@@ -193,5 +229,27 @@ mod tests {
             content_type_for(Path::new("noext")),
             "application/octet-stream"
         );
+    }
+
+    #[test]
+    fn to_data_url_encodes_png() {
+        let bytes = vec![0x89, 0x50, 0x4E, 0x47]; // PNG magic
+        let url = to_data_url(&bytes, Path::new("test.png"));
+        assert!(url.starts_with("data:image/png;base64,"));
+        assert!(url.contains("iVBO")); // base64 of PNG magic
+    }
+
+    #[test]
+    fn to_data_url_rejects_sibling_directory() {
+        let root = unique_dir("root-data-url-sibling");
+        let sibling = unique_dir("root-data-url-sibling-b");
+        let file = sibling.join("secret.png");
+        std::fs::write(&file, b"secret").unwrap();
+        let root = root.canonicalize().unwrap();
+
+        assert!(!is_within_root(&file, &root));
+
+        std::fs::remove_dir_all(&root).unwrap();
+        std::fs::remove_dir_all(&sibling).unwrap();
     }
 }

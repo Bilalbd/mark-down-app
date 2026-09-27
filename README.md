@@ -42,9 +42,11 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
 - **Links** in the preview: `http(s)`/`mailto:` open externally; a relative link to another
   Markdown file opens it in the app (with the usual unsaved-changes prompt); a relative link
   to anything else reveals it in File Explorer; in-page `#anchor` links scroll to the heading.
-- **Export** as a standalone HTML file, or print / save as PDF. The exported HTML links the
-  KaTeX stylesheet from a CDN (needs internet to render math when opened) and falls back to
-  system fonts for Inter/Open Sans/JetBrains Mono, since the bundled font files aren't embedded.
+- **Export** as a standalone HTML file, or print / save as PDF. With **Self-contained HTML
+  export** on (the default, in Settings → General → Export), local images and the KaTeX
+  stylesheet and fonts are embedded as data URLs, so the file works offline anywhere. Remote
+  images are still linked. The bundled preset fonts (Inter/Open Sans/JetBrains Mono) aren't
+  embedded; the exported file falls back to system fonts for those.
 - Registers itself for `.md` / `.markdown` so *Open with* and double-click work.
 
 **Note:** Open tabs aren't restored when the app restarts: it starts on the start screen, or with

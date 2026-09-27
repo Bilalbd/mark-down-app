@@ -13,6 +13,8 @@ export interface ExportOptions {
   bodyHtml: string;
   preset: StylePreset;
   theme: ResolvedTheme;
+  /** When provided, inlined in a `<style>` tag instead of linked from the CDN. */
+  katexCss?: string;
 }
 
 /**
@@ -20,7 +22,13 @@ export interface ExportOptions {
  * active preset's styling baked in. Local images are rewritten from the app's asset
  * protocol to file:// URLs so they still resolve when the file is opened directly.
  */
-export function buildExportHtml({ title, bodyHtml, preset, theme }: ExportOptions): string {
+export function buildExportHtml({
+  title,
+  bodyHtml,
+  preset,
+  theme,
+  katexCss,
+}: ExportOptions): string {
   const body = rewriteAssetUrls(bodyHtml);
   const needsKatex = body.includes('class="katex');
   const css = [
@@ -44,9 +52,10 @@ export function buildExportHtml({ title, bodyHtml, preset, theme }: ExportOption
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
 <meta name="generator" content="Markdown Viewer">
-${needsKatex ? `<link rel="stylesheet" href="${KATEX_CSS_URL}">` : ''}
+${needsKatex && !katexCss ? `<link rel="stylesheet" href="${KATEX_CSS_URL}">` : ''}
 <style>
 ${css}
+${katexCss ? `/* katex */\n${katexCss}` : ''}
 </style>
 </head>
 <body>
@@ -58,11 +67,45 @@ ${body}
 `;
 }
 
+/** Decodes and collects every local asset path from the HTML. */
+export function assetPaths(html: string): string[] {
+  const paths = new Set<string>();
+  const regex = /(?:src|href)="http:\/\/(?:asset|mdasset)\.localhost\/([^"]+)"/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(html))) {
+    paths.add(decodeURIComponent(match[1]));
+  }
+  return Array.from(paths);
+}
+
+/** Replaces asset-protocol URLs with entries from the map (or falls back to file:// URLs). */
+export function replaceAssetUrls(html: string, urls: ReadonlyMap<string, string>): string {
+  return html.replace(
+    /(src|href)="http:\/\/(?:asset|mdasset)\.localhost\/([^"]+)"/g,
+    (_m, attr, enc) => {
+      const path = decodeURIComponent(enc);
+      const replacement = urls.get(path) || toFileUrl(path);
+      return `${attr}="${replacement}"`;
+    },
+  );
+}
+
 /** http://asset.localhost/C%3A%5Cdir%5Cimg.png → file:///C:/dir/img.png */
 export function rewriteAssetUrls(html: string): string {
   return html.replace(
     /(src|href)="http:\/\/(?:asset|mdasset)\.localhost\/([^"]+)"/g,
     (_m, attr, enc) => `${attr}="${toFileUrl(decodeURIComponent(enc))}"`,
+  );
+}
+
+/** Rewrites KaTeX `@font-face` rules to use data: URLs instead of file system paths. */
+export function inlineKatexFonts(css: string, fonts: ReadonlyMap<string, string>): string {
+  return css.replace(
+    /src:\s*url\(fonts\/([^)]+\.woff2)\)[^;]*/g,
+    (_m, filename) => {
+      const dataUrl = fonts.get(filename);
+      return dataUrl ? `src: url(${dataUrl})` : _m;
+    },
   );
 }
 

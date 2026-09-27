@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Download } from 'lucide-react';
 import { save as saveDialog } from '@tauri-apps/plugin-dialog';
-import { buildExportHtml } from '@/lib/export';
-import { basename, isTauri, writeFile } from '@/lib/tauri';
+import { assetPaths, buildExportHtml, inlineKatexFonts, replaceAssetUrls } from '@/lib/export';
+import { basename, isTauri, readAssetDataUrl, writeFile } from '@/lib/tauri';
 import { useResolvedTheme, type ResolvedTheme } from '@/lib/useAppTheme';
 import { renderMermaidBlocks, whenMermaidIdle } from '@/markdown/mermaid';
 import { useDocumentStore } from '@/store/document';
@@ -72,7 +72,50 @@ export function ExportMenu() {
     try {
       const preset = presets.find((p) => p.id === activeId) ?? presets[0];
       const title = path ? basename(path).replace(/\.[^.]+$/, '') : 'Untitled';
-      const html = buildExportHtml({ title, bodyHtml: preview.el.innerHTML, preset, theme });
+      const selfContained = useSettingsStore.getState().selfContainedExport;
+      let bodyHtml = preview.el.innerHTML;
+      let katexCss: string | undefined;
+
+      if (selfContained) {
+        // Embed images as data URLs
+        const paths = assetPaths(bodyHtml);
+        const urls = new Map<string, string>();
+        await Promise.all(
+          paths.map(async (p) => {
+            try {
+              const url = await readAssetDataUrl(p);
+              urls.set(p, url);
+            } catch {
+              // Fall back to file:// URL on error
+            }
+          }),
+        );
+        bodyHtml = replaceAssetUrls(bodyHtml, urls);
+
+        // Inline KaTeX fonts if present
+        if (bodyHtml.includes('class="katex')) {
+          const katexCssRaw = await import('katex/dist/katex.min.css?raw').then(
+            (m) => m.default,
+          );
+          const fontsGlob = import.meta.glob(
+            '/node_modules/katex/dist/fonts/*.woff2',
+            { query: '?inline', import: 'default' },
+          );
+          const fontMap = new Map<string, string>();
+          await Promise.all(
+            Object.entries(fontsGlob).map(async ([path, loader]) => {
+              const filename = path.split('/').pop();
+              if (filename && typeof loader === 'function') {
+                const url = await (loader as () => Promise<{ default: string }>)();
+                fontMap.set(filename, url.default);
+              }
+            }),
+          );
+          katexCss = inlineKatexFonts(katexCssRaw, fontMap);
+        }
+      }
+
+      const html = buildExportHtml({ title, bodyHtml, preset, theme, katexCss });
       if (!isTauri()) {
         const blob = new Blob([html], { type: 'text/html' });
         const a = Object.assign(document.createElement('a'), {

@@ -15,6 +15,7 @@ export function GeneralTab() {
   const blockRemoteImages = useSettingsStore((s) => s.blockRemoteImages);
   const editorLineNumbers = useSettingsStore((s) => s.editorLineNumbers);
   const editorFontSize = useSettingsStore((s) => s.editorFontSize);
+  const selfContainedExport = useSettingsStore((s) => s.selfContainedExport);
   const set = useSettingsStore((s) => s.set);
 
   return (
@@ -87,6 +88,15 @@ export function GeneralTab() {
             unit="px"
             onChange={(v) => set('editorFontSize', v)}
           />
+        </Row>
+      </Section>
+
+      <Section title="Export">
+        <Row
+          label="Self-contained HTML export"
+          hint="Embeds images and maths fonts; larger files"
+        >
+          <Toggle value={selfContainedExport} onChange={(v) => set('selfContainedExport', v)} />
         </Row>
       </Section>
 
