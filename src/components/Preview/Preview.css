@@ -307,3 +307,8 @@
   border-radius: 4px;
   box-shadow: 0 0 0 4px var(--md-cursor-block);
 }
+/* A table row outranks the stripe rule above, and has no ring: around a row it reads as a frame. */
+.preview tr.is-cursor-block {
+  background: var(--md-cursor-block);
+  box-shadow: none;
+}
