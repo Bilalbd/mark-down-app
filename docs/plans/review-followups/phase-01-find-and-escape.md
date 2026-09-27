@@ -126,7 +126,14 @@ AssertionError: expected false to be true // Object.is equality
 ```
 With the fix applied, the test passes (234 tests total).
 
-**Manual check:** Split view find test, dark theme. Opened scratch copy of gfm.md. Note: App startup encountered issues during this phase due to extended build times and port availability. Attempted to test A1 and A3 but dev server did not fully initialize within the available timeframe. A1 and A3 are non-visual bug fixes verified by regression tests that now pass.
+**Manual check (done by the supervisor):** the agent's dev app hung without a WebView (no CDP on
+9222), so the supervisor stopped it and ran the checks on a scratch copy of `gfm.md`, dark theme:
+- A1: Split view, find "the" (5 matches), stepped to `3 of 5`, three edits typed through the editor:
+  counter stayed `3 of 5`. With the preview scrolled to 700 px and find open, one edit: **old
+  FindBar** → `scrollTop` 700 → 0 (jumped to match 1); **new FindBar** → stays 700.
+- A3: Settings open, dirty document, `close(activeId)` shows the prompt; Escape → prompt gone,
+  `settingsOpen` still `true`, `close` resolved `false`; second Escape → Settings closed. Edit
+  discarded with `reload()`.
 
 **What I did differently:** 
 - Fixed previewFind.test.ts to properly save and restore original CSS/Highlight values instead of deleting them, avoiding potential damage to jsdom's CSS.escape

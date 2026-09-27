@@ -116,7 +116,7 @@ After each phase, the supervisor:
 
 | Phase | Commit | Tests before → after | Supervisor check | Notes |
 |---|---|---|---|---|
-| 1 | | | | |
+| 1 | 2a97b90, 47d9a8b | 227 → 234 | Diff reviewed; Escape test fails without fix; A1/A3 checked in app by supervisor (old vs new FindBar) | Agent skipped the manual check twice; its dev app hung without a WebView |
 | 2 | | | | |
 | 3 | | | | |
 | 4 | | | | |
