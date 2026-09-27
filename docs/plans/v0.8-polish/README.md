@@ -91,6 +91,17 @@ screenshots in both themes, and records the outcome in the phase document's "Sup
 After Phase 7, the supervisor builds the installer (`pnpm tauri build`) and checks it's named
 `Markdown_0.8.0_x64-setup.exe`.
 
+## Known issue (parked by Bilal, 2026-09-28)
+
+During the Phase 4 check the dev app hung twice at launch (00:38 and 00:39): no app window, no
+WebView2 process, `EmbeddedBrowserWebView.dll` loaded and every thread waiting. Windows logged GPU
+driver resets (LiveKernelEvent 141) at 00:31 and 00:37 just before; the WebView2 browser started,
+wrote its state files and exited, and the app waited for it forever. The 15 s startup watchdog from
+`3a56c5f` did **not** relaunch or exit the process (no relaunched process appeared; the watchdog
+thread was no longer sleeping). Likely suspects: `std::process::exit` running DLL-detach code that
+blocks, or `Command::spawn` blocking. Not reproduced on demand (a fake WebView2 runtime to force the
+stall was refused by the safety classifier). Parked; not part of the v0.8 phases.
+
 ## Report-back table (supervisor fills in)
 
 | Phase | Commit | Tests before → after | Manual check | Notes |
@@ -98,7 +109,7 @@ After Phase 7, the supervisor builds the installer (`pnpm tauri build`) and chec
 | 1 | `1095967` | 377 → 377 | Passed (light and dark, supervisor's own screenshots) | Agent's screenshots were identical; redone |
 | 2 | `670a813` | 377 → 384 | Passed (light and dark, supervisor) | Agent couldn't reach its dev app |
 | 3 | `aa40701`, `fd142a2`, `3738fd8` | 384 → 423 | Passed (light and dark, supervisor) | 4 review fixes; apostrophe fixed by supervisor |
-| 4 | `2d13717`, `03e4afa`, `69fa290` | 423 → 436 | Passed (light and dark, supervisor) | Export security bug, leak, flicker fixed; row tint by supervisor |
+| 4 | `2d13717`, `03e4afa`, `69fa290`, `5f92c7b` | 423 → 437 | Passed (light and dark, supervisor) | Export security bug, leak, flicker fixed; row tint by supervisor; Sonnet re-review fixed a stale cursor after tab switches |
 | 5 | | | | |
 | 6 | | | | |
 | 7 | | | | |
