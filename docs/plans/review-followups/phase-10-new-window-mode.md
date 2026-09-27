@@ -74,7 +74,7 @@ unchanged.
 ## Verify
 
 - [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
-- [ ] Manual check. Done by the supervisor.
+- [x] Manual check. Done by the supervisor. (done by the supervisor, see below)
 - [x] Commit: `Open every file in its own window in New window mode`.
 
 ## Report
@@ -126,3 +126,18 @@ unchanged.
 - `docs/plans/review-followups/phase-10-new-window-mode.md`
 
 **Final Settings hint text:** "Every file opens in its own window, unless this one is empty" (window mode); "All files open as tabs in this window" (tab mode)
+
+## Supervisor check
+
+Diff reviewed against the phase document: matches it. The two changed existing tests
+("openPath in window mode replaces active document", and the rejection test now starting from an
+open document) reflect the deliberate behaviour change; the agent's commit message should have said
+so, recorded here instead. No code changes needed. `pnpm test` 339 passed (26 files).
+
+**Manual check (supervisor, dev app started on the start screen, `openFilesIn` set to window):**
+`openPath(gfm.md)` loaded it in this window (no new process); `openPath(math.md)` returned true,
+this window still showed gfm.md with one tab, no error, and a second `markdown-viewer` process
+appeared (14136 → 14136 + 26088). PrintWindow capture of the new window shows math.md rendered,
+with the window-mode title bar (no tab strip). Closed the second process, then put `openFilesIn`,
+the theme and recent files back through the first window's store (after `refreshAll()`, since the
+second window had written recent files); the settings file equals the backup at the end.
