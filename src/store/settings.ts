@@ -62,6 +62,8 @@ interface SettingsState extends Settings {
   persist: <K extends keyof Settings>(key: K) => void;
   /** Re-reads `key` from disk (another window's process may have changed it). */
   refresh: <K extends keyof Settings>(key: K) => Promise<void>;
+  /** Re-reads every saved setting from disk, for when another window may have changed them. */
+  refreshAll: () => Promise<void>;
   /** Moves `path` to the front of recentFiles, deduped and capped. */
   addRecentFile: (path: string) => void;
   /** Drops `path` from recentFiles (e.g. it became unreadable or was moved). */
@@ -69,16 +71,33 @@ interface SettingsState extends Settings {
 }
 
 let store: Store | null = null;
+let writeChain: Promise<void> = Promise.resolve();
 
 async function getStore(): Promise<Store | null> {
   if (store) return store;
   try {
-    store = await loadStore('settings.json', { autoSave: true, defaults: { ...DEFAULTS } });
+    store = await loadStore('settings.json', { autoSave: false, defaults: { ...DEFAULTS } });
     return store;
   } catch {
     // Not running inside Tauri (e.g. plain Vite dev or tests) — fall back to memory only.
     return null;
   }
+}
+
+/**
+ * Queues a write that re-reads settings.json first, so a value another window saved since we
+ * loaded isn't overwritten with our stale copy.
+ */
+function writeKey<K extends keyof Settings>(key: K, value: Settings[K]): void {
+  writeChain = writeChain
+    .then(async () => {
+      const s = await getStore();
+      if (!s) return;
+      await s.reload().catch(() => undefined);
+      await s.set(key, value).catch(() => undefined);
+      await s.save().catch(() => undefined);
+    })
+    .catch(() => undefined);
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -105,12 +124,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     if (get()[key] === value) return;
     set({ [key]: value } as Partial<Settings>);
     if (EPHEMERAL_KEYS.has(key) || opts?.persist === false) return;
-    void getStore().then((s) => s?.set(key, value));
+    writeKey(key, value);
   },
 
   persist: (key) => {
     if (EPHEMERAL_KEYS.has(key)) return;
-    void getStore().then((s) => s?.set(key, get()[key]));
+    writeKey(key, get()[key]);
   },
 
   refresh: async <K extends keyof Settings>(key: K) => {
@@ -119,6 +138,25 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     await s.reload();
     const v = await s.get<Settings[K]>(key);
     if (v !== undefined) set({ [key]: v } as Partial<Settings>);
+  },
+
+  refreshAll: async () => {
+    const s = await getStore();
+    if (!s) return;
+    await s.reload();
+    const entries = await s.entries<Settings[keyof Settings]>();
+    const patch: Partial<Settings> = {};
+    let hasChanges = false;
+    for (const [k, v] of entries) {
+      if (k in DEFAULTS && !EPHEMERAL_KEYS.has(k as keyof Settings)) {
+        const key = k as keyof Settings;
+        if (get()[key] !== v) {
+          (patch as Record<string, unknown>)[k] = v;
+          hasChanges = true;
+        }
+      }
+    }
+    if (hasChanges) set(patch);
   },
 
   addRecentFile: (path) => {
@@ -136,4 +174,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 /** Whether the preview should ignore the preset's content width (Formatted view only, not Split). */
 export function isPreviewFullWidth(s: Pick<Settings, 'previewFullWidth' | 'viewMode'>): boolean {
   return s.previewFullWidth && s.viewMode === 'formatted';
+}
+
+/** For tests: returns a promise that resolves when all queued writes complete. */
+export function whenSettingsWritten(): Promise<void> {
+  return writeChain;
 }

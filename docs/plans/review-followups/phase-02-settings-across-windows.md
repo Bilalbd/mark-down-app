@@ -42,7 +42,7 @@ first.
 
 ## Tasks
 
-- [ ] **1. Settings writes.** In `settings.ts`:
+- [x] **1. Settings writes.** In `settings.ts`:
   - Load the store with `autoSave: false` (keep `defaults`).
   - Add a module-level `let writeChain: Promise<void> = Promise.resolve();` and a helper
     ```ts
@@ -55,25 +55,25 @@ first.
     (`.catch(() => undefined)` with a comment: a failed write mustn't block later writes, and the
     in-memory value is still right for this session).
   - `set` and `persist` call `writeKey` instead of `s.set` directly.
-- [ ] **2. `refreshAll`.** Add `refreshAll: () => Promise<void>` to `SettingsState` (JSDoc: re-reads
+- [x] **2. `refreshAll`.** Add `refreshAll: () => Promise<void>` to `SettingsState` (JSDoc: re-reads
   every saved setting from disk, for when another window may have changed them). Implement like
   `load`: `await s.reload()`, read `entries()`, apply every key that's in `DEFAULTS` and not in
   `EPHEMERAL_KEYS`. Skip the `set()` call entirely if nothing differs (compare with `get()`;
   arrays compare with `JSON.stringify`), to avoid needless re-renders. Keep `refresh(key)` working as
   before (it's still used).
-- [ ] **3. Presets.** In `style.ts`, same pattern: `autoSave: false`, a `writeChain`, and `persist()`
+- [x] **3. Presets.** In `style.ts`, same pattern: `autoSave: false`, a `writeChain`, and `persist()`
   does `reload()` → `set('activePresetId', …)` → `set('userPresets', …)` → `save()`. Add
   `refresh: () => Promise<void>` to the style store: reload, read both keys, normalise the user
   presets exactly as `load` does, and apply them (keep the active id valid, as `load` does). Skip the
   update if nothing changed. Factor the shared parsing out of `load` into a small function so `load`
   and `refresh` don't duplicate it.
-- [ ] **4. Refresh on focus.** In `App.tsx`, add an effect (only `if (isTauri())`) that listens to
+- [x] **4. Refresh on focus.** In `App.tsx`, add an effect (only `if (isTauri())`) that listens to
   `getCurrentWindow().onFocusChanged(({ payload: focused }) => …)` and, when `focused`, runs
   `useSettingsStore.getState().refreshAll()` and `useStyleStore.getState().refresh()` (both
   `void …` with `.catch(() => undefined)` and a comment saying why it's safe). Follow the existing
   `let unlisten` pattern. `core:default` already includes window focus events; confirm in the
   Report that no capability change was needed.
-- [ ] **5. Regression tests.** Mock the plugin with a fake that has a shared "disk" `Map` and a
+- [x] **5. Regression tests.** Mock the plugin with a fake that has a shared "disk" `Map` and a
   per-store in-memory `Map`: `load` returns a store whose `reload()` copies disk → memory, `set`
   writes memory, `save()` copies memory → disk, `get`/`entries` read memory. Tests:
   - **Settings:** load; then change a key **on the fake disk only** (simulating another window);
@@ -90,8 +90,8 @@ first.
 
 ## Verify
 
-- [ ] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
-- [ ] Manual check (dark theme; restore everything). Start the dev app on a scratch copy of
+- [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
+- [x] Manual check (dark theme; restore everything). Start the dev app on a scratch copy of
   `fixtures/gfm.md`. Read and note `appTheme`, `outlineWidth` and the recent-files count. Check the
   real write path works in one window: `set('outlineWidth', <current + 10>)`, wait 500 ms, read
   `%APPDATA%\com.bilal.markdown-viewer\settings.json` with the Read tool and show the new value.
@@ -99,7 +99,7 @@ first.
   a second window), trigger `__mdv.settings.getState().refreshAll()` and show the store picked it up.
   Put `outlineWidth` back to the original value through the store and confirm the file shows it.
   (A real two-window test isn't possible with CDP on one port; say so in the Report.)
-- [ ] Commit: `Stop windows overwriting each other's settings`.
+- [x] Commit: `Stop windows overwriting each other's settings`.
 
 ## Report
 

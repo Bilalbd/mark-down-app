@@ -153,6 +153,27 @@ export default function App() {
     return () => unlisten?.();
   }, []);
 
+  // Refresh settings and presets on window focus, in case another window changed them.
+  useEffect(() => {
+    if (!isTauri()) return;
+    let unlisten: (() => void) | undefined;
+    void getCurrentWindow()
+      .onFocusChanged(({ payload: focused }) => {
+        if (focused) {
+          void useSettingsStore
+            .getState()
+            .refreshAll()
+            .catch(() => undefined);
+          void useStyleStore
+            .getState()
+            .refresh()
+            .catch(() => undefined);
+        }
+      })
+      .then((u) => (unlisten = u));
+    return () => unlisten?.();
+  }, []);
+
   // New note: blank document straight into Source mode so typing can start immediately.
   const createNew = useCallback(async () => {
     await newDocumentPerSetting();

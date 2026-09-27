@@ -104,17 +104,28 @@ interface StyleState {
   remove: (id: string) => void;
   importPreset: (json: string) => { ok: true; id: string } | { ok: false; error: string };
   exportPreset: (id: string) => string;
+  /** Re-reads presets from disk, for when another window may have changed them. */
+  refresh: () => Promise<void>;
 }
 
 let store: Store | null = null;
+let writeChain: Promise<void> = Promise.resolve();
+
 async function getStore(): Promise<Store | null> {
   if (store) return store;
   try {
-    store = await loadStore('presets.json', { autoSave: true });
+    store = await loadStore('presets.json', { autoSave: false });
     return store;
   } catch {
     return null;
   }
+}
+
+/** Parses and normalizes user presets from disk. */
+function parseUserPresets(raw: StylePreset[]): StylePreset[] {
+  return raw
+    .map((p) => normalizePreset(p, p.id ?? newId()))
+    .filter((p): p is StylePreset => p !== null);
 }
 
 function persist(state: Pick<StyleState, 'presets' | 'activePresetId'>) {
@@ -122,11 +133,16 @@ function persist(state: Pick<StyleState, 'presets' | 'activePresetId'>) {
     activePresetId: state.activePresetId,
     userPresets: state.presets.filter((p) => !p.builtin),
   };
-  void getStore().then(async (s) => {
-    if (!s) return;
-    await s.set('activePresetId', data.activePresetId);
-    await s.set('userPresets', data.userPresets);
-  });
+  writeChain = writeChain
+    .then(async () => {
+      const s = await getStore();
+      if (!s) return;
+      await s.reload().catch(() => undefined);
+      await s.set('activePresetId', data.activePresetId).catch(() => undefined);
+      await s.set('userPresets', data.userPresets).catch(() => undefined);
+      await s.save().catch(() => undefined);
+    })
+    .catch(() => undefined);
 }
 
 const newId = () => `user-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
@@ -164,9 +180,7 @@ export const useStyleStore = create<StyleState>((set, get) => ({
     if (s) {
       const activePresetId = (await s.get<string>('activePresetId')) ?? BUILTIN_PRESETS[0].id;
       const raw = (await s.get<StylePreset[]>('userPresets')) ?? [];
-      const userPresets = raw
-        .map((p) => normalizePreset(p, p.id ?? newId()))
-        .filter((p): p is StylePreset => p !== null);
+      const userPresets = parseUserPresets(raw);
       const presets = [...BUILTIN_PRESETS, ...userPresets];
       set({
         presets,
@@ -255,5 +269,29 @@ export const useStyleStore = create<StyleState>((set, get) => ({
     delete rest.id;
     delete rest.builtin;
     return JSON.stringify(rest, null, 2);
+  },
+
+  refresh: async () => {
+    const s = await getStore();
+    if (!s) return;
+    await s.reload();
+    const activePresetId = (await s.get<string>('activePresetId')) ?? BUILTIN_PRESETS[0].id;
+    const raw = (await s.get<StylePreset[]>('userPresets')) ?? [];
+    const userPresets = parseUserPresets(raw);
+    const presets = [...BUILTIN_PRESETS, ...userPresets];
+    const finalActiveId = presets.some((p) => p.id === activePresetId)
+      ? activePresetId
+      : BUILTIN_PRESETS[0].id;
+
+    // Skip update if nothing changed
+    const current = get();
+    if (
+      current.presets.length === presets.length &&
+      current.presets.every((p) => presets.some((q) => q.id === p.id)) &&
+      current.activePresetId === finalActiveId
+    ) {
+      return;
+    }
+    set({ presets, activePresetId: finalActiveId });
   },
 }));
