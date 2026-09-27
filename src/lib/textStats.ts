@@ -3,7 +3,7 @@ import type { Eol } from '@/lib/eol';
 
 /** Counts runs of letters or digits, where apostrophes join parts into single words. */
 export function countWords(text: string): number {
-  const matches = text.match(/[\p{L}\p{N}]+(?:[''][\p{L}\p{N}]+)*/gu);
+  const matches = text.match(/[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu);
   return matches ? matches.length : 0;
 }
 

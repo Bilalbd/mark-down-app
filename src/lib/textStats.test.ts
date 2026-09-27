@@ -27,6 +27,11 @@ describe('textStats', () => {
       expect(countWords("don't stop")).toBe(2);
     });
 
+    it('treats a typographic apostrophe like a plain one', () => {
+      expect(countWords('don’t stop')).toBe(2);
+      expect(countWords('it’s')).toBe(1);
+    });
+
     it('counts single apostrophe word', () => {
       expect(countWords("don't")).toBe(1);
     });
