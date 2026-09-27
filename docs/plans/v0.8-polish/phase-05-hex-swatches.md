@@ -162,4 +162,20 @@ output continues to go through `sanitizeHtml`, unchanged in this phase.
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Built by a Sonnet 5 agent (cut off once by a usage limit, then resumed with Bilal's mid-phase
+change: the swatch inside the inline-code pill). Diff reviewed: both renderer rules re-validate the
+hex before writing it into `style`; inline code keeps markdown-it's escaping; link text is skipped;
+the plain-text rules match the phase document. `pnpm test` 463 passed, lint and tsc clean.
+
+**Manual check (supervisor, dev app in its own window and WebView2 folder, `fixtures/colors.md`
+loaded into an untitled note so nothing enters recent files):** 20 swatches, every inline-code one
+inside its `<code>` pill (11.2 px) and every plain-text one right after the code (12.8 px);
+enlarged screenshots in light and dark: swatches text-height and centred, pill and swatch read as
+one chip; no swatch for `##abc`, `#abcdefg`, the inline code `#ABC.`, or link text; the heading
+"Brand #AA00BB" gets one sized to the heading. Very dark colours (`#123`, `#2024`) are faint on the
+dark theme but outlined.
+
+Process issues: the agent opened the repo's `fixtures/huge.md` directly (not a copy; unchanged per
+git) and ran the dev app several times, so its settings snapshot included earlier test files and two
+fixtures ended up in Bilal's recent files; the supervisor's repair of that list was refused by the
+safety classifier and is left for Bilal. It also left its Vite server running (stopped by pid).
