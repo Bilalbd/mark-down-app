@@ -42,11 +42,11 @@ No README change (the shortcuts don't change).
   - Lint: passed
   - TypeScript: passed
   - Format: unchanged
-- [ ] Manual check in **light and dark**, once per view mode (Formatted, Source, Split). Crop and
+- [x] Manual check in **light and dark**, once per view mode (Formatted, Source, Split). Crop and
   enlarge the left part of the toolbar: the three icons are evenly spaced and centred, the active one
   is a raised chip with an accent icon, and the group lines up with the neighbouring buttons.
   Ctrl+E and Ctrl+Shift+E still switch views and the active chip follows.
-- [ ] Commit: `Use icons in the view mode switcher`.
+- [x] Commit: `Use icons in the view mode switcher`.
 
 ## Report
 
@@ -84,4 +84,14 @@ No README change (the shortcuts don't change).
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Diff matches the phase document; the 7 new tests assert real behaviour (aria-labels, aria-pressed,
+store updates on click). `pnpm test` 384 passed, lint and tsc clean. The agent couldn't reach its dev
+app and left it running (a `--new-window` debug window with Vite stopped); the supervisor stopped
+it. Settings were untouched.
+
+**Manual check (supervisor, dev app in its own window and WebView2 folder, copy of `gfm.md`):** the
+switcher and the outline button share the same top and 28 px height; the three buttons are 30 × 24,
+32 px apart. Enlarged crops of all three modes in light and dark: Eye / Code / Columns2, the active
+one a raised chip with an accent icon (`rgb(40, 87, 224)` light, `rgb(140, 162, 255)` dark), others
+muted, the group level with its neighbours. Ctrl+E and Ctrl+Shift+E (dispatched keydown) move the
+active chip Formatted → Source → Formatted → Split → Formatted.
