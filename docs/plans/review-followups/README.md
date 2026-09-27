@@ -73,6 +73,14 @@ Follow `docs/plans/tabs/README.md` ("Rules for every phase agent", "Running the 
 - Check visible changes in **light and dark**. The display is at 175% scaling (screenshots are
   in device pixels, so CSS px × 1.75). Crop and enlarge small UI details, open every screenshot with
   the Read tool, and describe only what it actually shows.
+- **The manual check is never optional.** If the dev app isn't reachable over CDP
+  (`node scripts/cdp.mjs eval "document.title"`) within 5 minutes: stop **everything** you started
+  (`Stop-Process -Name markdown-viewer,cargo`, the process listening on port 1420, and your
+  background task), check with `Get-Process markdown-viewer` and `Get-NetTCPConnection -LocalPort
+  1420,9222` that nothing is left, then start it **once** more. A `markdown-viewer` process with no
+  port 9222 is hung: kill it; don't wait on it. If the second try fails too, say so plainly in your
+  final message; never describe the check as done or "deferred". Before you finish, confirm no
+  `markdown-viewer`, `cargo` or port-1420 process of yours is still running.
 - CDP can't hover or right-click. Where a phase needs that, it tells you how to trigger the state
   from `eval` instead.
 - Keep scratch files in your scratchpad. Before committing, `git status` must show only the files
