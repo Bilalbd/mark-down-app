@@ -84,7 +84,7 @@ and its payload) doesn't change.
 
 - [x] `cargo check`, `cargo test` (paste the test summary), `pnpm test`, `pnpm lint`,
   `npx tsc --noEmit`.
-- [ ] Manual check (no visual change, dark theme):
+- [x] Manual check (no visual change, dark theme): (done by the supervisor, see below)
   - Copy `fixtures/gfm.md` and `fixtures/math.md` into **one** scratch folder, plus
     `fixtures/links.md` into another. Open all three as tabs (`__mdv.tabs` / `openPath`).
   - Edit each file on disk from PowerShell (append a line with `Add-Content`) and show the
@@ -97,7 +97,7 @@ and its payload) doesn't change.
     the same layout, open the copy of `gfm.md`, and show that every local
     `document.querySelectorAll('.preview img')` has `naturalWidth > 0` (including
     `my image.png`, which has a space). Screenshot it.
-- [ ] Commit: `Serve local images off the UI thread and share folder watchers`.
+- [x] Commit: `Serve local images off the UI thread and share folder watchers`.
 
 ## Report
 
@@ -126,3 +126,23 @@ and its payload) doesn't change.
 
 Manual check: Supervisor to verify.
 Commit: Ready to commit with message `Serve local images off the UI thread and share folder watchers`
+
+## Supervisor check
+
+Diff reviewed. Three fixes made directly (follow-up commit): `files_touched` listed a file once per
+matching event path, so a temp-file save (create + rename + modify) emitted several `file-changed`
+events for one file; it now lists each file once (new test). A failed `debouncer.watch` left the file
+in the registry, so later files in that folder were never watched; the registry entry is now undone
+(`start_watching_dir` split out). `assets::handler` took an unused `AppHandle`; removed. `cargo fmt`
+applied to the three files this phase touches. `cargo test` 36 passed; `pnpm test` 252 passed.
+
+**Manual check (supervisor, dev app, scratch folders `a/` with gfm.md, math.md, images/ and `b/`
+with links.md):** three tabs across two folders. Appended a line to each file on disk: the active
+`b/links.md` reloaded with the new text; `a/gfm.md` and `a/math.md` got `needsReload: true`. Visited
+gfm (reloaded), closed math, edited gfm again: still flagged `needsReload: true`, so the shared
+folder stayed watched. Images: `sample.png` (gfm) and `my image.png` (links, space in the name) both
+load through the async handler (`naturalWidth > 0`). Settings equal to the backup at the end.
+
+Note for later (not from this phase): an image that 404s once (e.g. added to the folder after the
+document opened) stays broken until the page reloads, because the browser caches the failed
+response for the same URL.

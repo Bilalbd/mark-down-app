@@ -2,8 +2,8 @@ mod assets;
 mod commands;
 mod watch;
 
-use tauri::{Listener, Manager, Emitter};
 use std::path::Path;
+use tauri::{Emitter, Listener, Manager};
 
 /// Whether `url` is a location the app's own webview should be allowed to navigate to.
 /// Everything else (a relative `.md` link resolving to a real navigation, `file:`, a
@@ -62,13 +62,13 @@ pub fn run() {
         .manage(assets::AssetRoot::default())
         .manage(commands::PendingOpens::default())
         .register_asynchronous_uri_scheme_protocol("mdasset", |ctx, request, responder| {
-            let app = ctx.app_handle().clone();
-            let root = match app.state::<assets::AssetRoot>().0.lock() {
+            let root = match ctx.app_handle().state::<assets::AssetRoot>().0.lock() {
                 Ok(guard) => guard.clone(),
                 Err(_) => None,
             };
+            // Reading the image runs off the UI thread, so a large file can't freeze the window.
             tauri::async_runtime::spawn_blocking(move || {
-                let response = assets::handler(app, root, request);
+                let response = assets::handler(root, request);
                 responder.respond(response);
             });
         })

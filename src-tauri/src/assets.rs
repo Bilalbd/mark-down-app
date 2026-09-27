@@ -17,7 +17,10 @@ pub fn set_asset_root(app: tauri::AppHandle, dir: Option<String>) -> Result<(), 
         Some(d) => Some(std::fs::canonicalize(d).map_err(|e| e.to_string())?),
         None => None,
     };
-    *app.state::<AssetRoot>().0.lock().map_err(|e| e.to_string())? = resolved;
+    *app.state::<AssetRoot>()
+        .0
+        .lock()
+        .map_err(|e| e.to_string())? = resolved;
     Ok(())
 }
 
@@ -60,18 +63,17 @@ fn empty_response(status: StatusCode) -> Response<Vec<u8>> {
 /// Handler for the `mdasset://` protocol, registered in `lib.rs`. Serves only files
 /// under the current document's folder (`AssetRoot`), so relative images can load
 /// without the unboundedly-growing access the old `asset:` scope allowed.
-/// Runs off the main thread on a blocking thread pool.
-pub fn handler(
-    _app: tauri::AppHandle,
-    root: Option<PathBuf>,
-    request: Request<Vec<u8>>,
-) -> Response<Vec<u8>> {
+/// Runs off the main thread on a blocking thread pool; `root` is the `AssetRoot` read when
+/// the request arrived.
+pub fn handler(root: Option<PathBuf>, request: Request<Vec<u8>>) -> Response<Vec<u8>> {
     let Some(root) = root else {
         return empty_response(StatusCode::FORBIDDEN);
     };
 
     let raw_path = request.uri().path();
-    let decoded = percent_decode_str(raw_path).decode_utf8_lossy().into_owned();
+    let decoded = percent_decode_str(raw_path)
+        .decode_utf8_lossy()
+        .into_owned();
     let requested = PathBuf::from(decoded.strip_prefix('/').unwrap_or(&decoded));
 
     if !is_within_root(&requested, &root) {
@@ -158,7 +160,11 @@ mod tests {
 
         // ".../images/../../<outside-dir-name>/secret.png" - never actually walks off the
         // filesystem, but resolves outside `root` once canonicalised.
-        let traversal = sub.join("..").join("..").join(outside.file_name().unwrap()).join("secret.png");
+        let traversal = sub
+            .join("..")
+            .join("..")
+            .join(outside.file_name().unwrap())
+            .join("secret.png");
 
         assert!(!is_within_root(&traversal, &root_canon));
 
@@ -179,7 +185,13 @@ mod tests {
         assert_eq!(content_type_for(Path::new("a.png")), "image/png");
         assert_eq!(content_type_for(Path::new("a.JPG")), "image/jpeg");
         assert_eq!(content_type_for(Path::new("a.svg")), "image/svg+xml");
-        assert_eq!(content_type_for(Path::new("a.unknown")), "application/octet-stream");
-        assert_eq!(content_type_for(Path::new("noext")), "application/octet-stream");
+        assert_eq!(
+            content_type_for(Path::new("a.unknown")),
+            "application/octet-stream"
+        );
+        assert_eq!(
+            content_type_for(Path::new("noext")),
+            "application/octet-stream"
+        );
     }
 }

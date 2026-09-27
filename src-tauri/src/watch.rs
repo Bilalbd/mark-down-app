@@ -31,7 +31,10 @@ impl Registry {
             return None;
         }
         let dir_buf = dir.to_path_buf();
-        let files = self.by_dir.entry(dir_buf.clone()).or_insert_with(HashSet::new);
+        let files = self
+            .by_dir
+            .entry(dir_buf.clone())
+            .or_insert_with(HashSet::new);
         let is_first = files.is_empty();
         files.insert(file.to_path_buf());
         is_first.then_some(dir_buf)
@@ -51,8 +54,9 @@ impl Registry {
         is_last.then_some(dir.to_path_buf())
     }
 
-    /// Every watched file whose folder and file name match one of the event paths.
-    /// Compares file names case-insensitively (Windows file systems are case-insensitive).
+    /// Every watched file whose folder and file name match one of the event paths, each
+    /// listed once however many events touched it. Compares file names case-insensitively
+    /// (Windows file systems are case-insensitive).
     fn files_touched(&self, event_paths: &[PathBuf]) -> Vec<PathBuf> {
         let mut touched = Vec::new();
         for (dir, files) in &self.by_dir {
@@ -61,7 +65,7 @@ impl Registry {
                     if let Some(event_name) = event_path.file_name() {
                         for file in files {
                             if let Some(file_name) = file.file_name() {
-                                if same_name(file_name, event_name) {
+                                if same_name(file_name, event_name) && !touched.contains(file) {
                                     touched.push(file.clone());
                                 }
                             }
@@ -121,7 +125,11 @@ fn mtime_ms(path: &Path) -> u64 {
 /// file and renaming, so the parent directory is watched and events are filtered to the
 /// file of interest. One debouncer watches all folders, reducing CPU and threads.
 #[tauri::command]
-pub fn watch_file(app: AppHandle, state: State<'_, WatchState>, path: String) -> Result<(), String> {
+pub fn watch_file(
+    app: AppHandle,
+    state: State<'_, WatchState>,
+    path: String,
+) -> Result<(), String> {
     let target = PathBuf::from(&path);
 
     let mut inner = state.inner.lock().map_err(|e| e.to_string())?;
@@ -129,7 +137,11 @@ pub fn watch_file(app: AppHandle, state: State<'_, WatchState>, path: String) ->
     // Check if already watched
     {
         let registry = inner.registry.lock().map_err(|e| e.to_string())?;
-        if registry.by_dir.values().any(|files| files.contains(&target)) {
+        if registry
+            .by_dir
+            .values()
+            .any(|files| files.contains(&target))
+        {
             return Ok(());
         }
     }
@@ -141,55 +153,73 @@ pub fn watch_file(app: AppHandle, state: State<'_, WatchState>, path: String) ->
     };
 
     if should_watch_dir {
-        let dir = target
-            .parent()
-            .ok_or_else(|| "file has no parent directory".to_string())?
-            .to_path_buf();
-
-        // Create debouncer if needed
-        if inner.debouncer.is_none() {
-            let registry = inner.registry.clone();
-            let app_handle = app.clone();
-            let debouncer = new_debouncer(
-                Duration::from_millis(300),
-                None,
-                move |result: DebounceEventResult| {
-                    let Ok(events) = result else { return };
-                    let event_paths: Vec<PathBuf> = events.iter().flat_map(|e| &e.paths).cloned().collect();
-
-                    let touched = {
-                        let registry = match registry.lock() {
-                            Ok(r) => r,
-                            Err(_) => return,
-                        };
-                        registry.files_touched(&event_paths)
-                    };
-
-                    for file in touched {
-                        let exists = file.exists();
-                        let _ = app_handle.emit(
-                            "file-changed",
-                            FileChanged {
-                                path: file.to_string_lossy().into_owned(),
-                                mtime: if exists { mtime_ms(&file) } else { 0 },
-                                removed: !exists,
-                            },
-                        );
-                    }
-                },
-            )
-            .map_err(|e| e.to_string())?;
-            inner.debouncer = Some(debouncer);
+        let started = start_watching_dir(&app, &mut inner, &target);
+        if started.is_err() {
+            // Undo the bookkeeping, or later files in this folder would never be watched.
+            if let Ok(mut registry) = inner.registry.lock() {
+                registry.remove(&target);
+            }
         }
-
-        // Watch the directory
-        if let Some(debouncer) = &mut inner.debouncer {
-            debouncer
-                .watch(&dir, RecursiveMode::NonRecursive)
-                .map_err(|e| e.to_string())?;
-        }
+        started?;
     }
 
+    Ok(())
+}
+
+/// Creates the shared debouncer on first use and starts watching `target`'s folder.
+fn start_watching_dir(
+    app: &AppHandle,
+    inner: &mut WatchStateInner,
+    target: &Path,
+) -> Result<(), String> {
+    let dir = target
+        .parent()
+        .ok_or_else(|| "file has no parent directory".to_string())?
+        .to_path_buf();
+
+    // Create debouncer if needed
+    if inner.debouncer.is_none() {
+        let registry = inner.registry.clone();
+        let app_handle = app.clone();
+        let debouncer = new_debouncer(
+            Duration::from_millis(300),
+            None,
+            move |result: DebounceEventResult| {
+                let Ok(events) = result else { return };
+                let event_paths: Vec<PathBuf> =
+                    events.iter().flat_map(|e| &e.paths).cloned().collect();
+
+                // Take the lock only to find the files; never hold it while emitting.
+                let touched = {
+                    let registry = match registry.lock() {
+                        Ok(r) => r,
+                        Err(_) => return,
+                    };
+                    registry.files_touched(&event_paths)
+                };
+
+                for file in touched {
+                    let exists = file.exists();
+                    let _ = app_handle.emit(
+                        "file-changed",
+                        FileChanged {
+                            path: file.to_string_lossy().into_owned(),
+                            mtime: if exists { mtime_ms(&file) } else { 0 },
+                            removed: !exists,
+                        },
+                    );
+                }
+            },
+        )
+        .map_err(|e| e.to_string())?;
+        inner.debouncer = Some(debouncer);
+    }
+
+    if let Some(debouncer) = &mut inner.debouncer {
+        debouncer
+            .watch(&dir, RecursiveMode::NonRecursive)
+            .map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 
@@ -318,6 +348,20 @@ mod tests {
         let touched = reg.files_touched(&[event_old, event_new]);
         // Only the watched file matches
         assert_eq!(touched, vec![file]);
+    }
+
+    #[test]
+    fn registry_files_touched_lists_a_file_once_per_batch() {
+        let mut reg = Registry::default();
+        let file = PathBuf::from("/tmp/a.txt");
+        reg.add(&file);
+        // A temp-file save: a create, a rename onto the file, then a modify of the file.
+        let events = [
+            PathBuf::from("/tmp/a.txt.tmp"),
+            PathBuf::from("/tmp/a.txt"),
+            PathBuf::from("/tmp/A.TXT"),
+        ];
+        assert_eq!(reg.files_touched(&events), vec![file]);
     }
 
     #[test]
