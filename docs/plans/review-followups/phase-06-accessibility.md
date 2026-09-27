@@ -82,7 +82,7 @@ keyboard-operable separators (the WAI-ARIA "window splitter" pattern).
     the active tab **without awaiting**, then dispatch Tab on `document.activeElement` 3 times and
     show focus stays on the dialog's buttons (log `document.activeElement.textContent` each time).
     Cancel the dialog with Escape. Discard the edit afterwards.
-- [ ] Commit: `Make resizers keyboard-operable and keep focus in dialogs`.
+- [x] Commit: `Make resizers keyboard-operable and keep focus in dialogs`.
 
 ## Report
 
