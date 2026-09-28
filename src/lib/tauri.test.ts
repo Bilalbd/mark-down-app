@@ -1,11 +1,14 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  guidePath,
   readClipboardText,
   spellCheck,
   spellLanguages,
   spellSuggest,
   writeClipboardText,
 } from '@/lib/tauri';
+
+vi.mock('@tauri-apps/api/path', () => ({ resolveResource: vi.fn() }));
 
 // These wrappers must be safe when Tauri isn't there (plain Vite dev, or tests): `isTauri()`
 // is false in jsdom, since `window.__TAURI_INTERNALS__` is never set here.
@@ -49,5 +52,39 @@ describe('clipboard wrappers outside Tauri', () => {
 
     await expect(readClipboardText()).resolves.toBe('clipboard contents');
     expect(readText).toHaveBeenCalled();
+  });
+});
+
+describe('guidePath', () => {
+  beforeEach(async () => {
+    const { resolveResource } = await import('@tauri-apps/api/path');
+    vi.mocked(resolveResource).mockReset();
+  });
+
+  afterEach(() => {
+    delete (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+  });
+
+  it('resolves to null outside Tauri, without calling resolveResource', async () => {
+    const { resolveResource } = await import('@tauri-apps/api/path');
+    await expect(guidePath()).resolves.toBeNull();
+    expect(resolveResource).not.toHaveBeenCalled();
+  });
+
+  it('resolves the bundled resource path inside Tauri, and caches it', async () => {
+    const { resolveResource } = await import('@tauri-apps/api/path');
+    vi.mocked(resolveResource).mockResolvedValue(
+      'C:\\Program Files\\Markdown\\resources\\guide\\Guide.md',
+    );
+    (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+
+    await expect(guidePath()).resolves.toBe(
+      'C:\\Program Files\\Markdown\\resources\\guide\\Guide.md',
+    );
+    await expect(guidePath()).resolves.toBe(
+      'C:\\Program Files\\Markdown\\resources\\guide\\Guide.md',
+    );
+    expect(resolveResource).toHaveBeenCalledTimes(1); // cached, not re-resolved
+    expect(resolveResource).toHaveBeenCalledWith('resources/guide/Guide.md');
   });
 });

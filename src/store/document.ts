@@ -4,10 +4,12 @@ import { askSaveChanges, useDialogStore } from '@/components/Dialog/ConfirmDialo
 import { useSettingsStore } from '@/store/settings';
 import { applyEol, normalizeEol, type Eol } from '@/lib/eol';
 import { suggestFileName } from '@/lib/fileName';
+import { samePath } from '@/lib/tabs';
 import { extractHeadings } from '@/markdown/render';
 import {
   basename,
   dirname,
+  guidePath,
   isTauri,
   readFile,
   setAssetRoot,
@@ -130,6 +132,14 @@ export function setSaveTargetGuard(guard: SaveTargetGuard): void {
   saveTargetGuard = guard;
 }
 
+/** True when `path` is the bundled guide's own path - it isn't a file the user opened, so it's
+ * kept out of Recent, and Save always goes to Save as (see `save`/`saveAs` below). */
+async function isGuidePath(path: string | null): Promise<boolean> {
+  if (!path) return false;
+  const guide = await guidePath();
+  return guide !== null && samePath(guide, path);
+}
+
 /** Handles opening files; the tabs store installs the implementation that respects the setting. */
 export type OpenHandler = (path: string) => Promise<boolean>;
 let openHandler: OpenHandler = async (path) => {
@@ -176,7 +186,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       if (previous && previous !== path) {
         await unwatchFile(previous).catch(() => undefined);
       }
-      useSettingsStore.getState().addRecentFile(path);
+      // The bundled guide isn't a file the user opened - keep it out of Recent.
+      if (!(await isGuidePath(path))) {
+        useSettingsStore.getState().addRecentFile(path);
+      }
       return true;
     } catch (e) {
       set({ error: `Could not open ${basename(path)}: ${String(e)}` });
@@ -255,9 +268,12 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     if (!isTauri()) return false;
     if (get().lossy && !(await confirmLossySave())) return false;
     const { path: currentPath, content: currentContent } = get();
-    const defaultPath =
-      currentPath ??
-      suggestFileName(currentContent, extractHeadings(currentContent)[0]?.text ?? null);
+    const guide = await guidePath();
+    const isGuide = currentPath !== null && guide !== null && samePath(guide, currentPath);
+    const defaultPath = isGuide
+      ? 'Guide.md'
+      : (currentPath ??
+        suggestFileName(currentContent, extractHeadings(currentContent)[0]?.text ?? null));
     const target = await saveDialog({
       defaultPath,
       filters: [
@@ -266,6 +282,11 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       ],
     });
     if (!target) return false;
+    // The guide is bundled read-only; writing over its own path would corrupt the install.
+    if (guide !== null && samePath(guide, target)) {
+      set({ error: "Can't save over the guide. Choose a different file name." });
+      return false;
+    }
     if (saveTargetGuard(target) === 'blocked') {
       set({ error: 'That file is open in another tab with unsaved changes.' });
       return false;
@@ -325,6 +346,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     if (!hasDocument) return false;
     if (!path) return get().saveAs();
     if (lossy && !(await confirmLossySave())) return false;
+    // The guide can't be overwritten in place - Ctrl+S always falls through to Save as.
+    if (await isGuidePath(path)) return get().saveAs();
     try {
       const mtime = await writeFile(path, applyEol(content, eol), encoding);
       set({ savedContent: content, mtime, error: null, externalChange: null, lossy: false });

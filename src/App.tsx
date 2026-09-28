@@ -34,6 +34,7 @@ import {
   cycleTab,
   hasUnsavedTabs,
   newDocumentPerSetting,
+  openGuide,
   openPath,
   openPaths,
   routeExternalOpen,
@@ -215,6 +216,7 @@ export default function App() {
       'ctrl+0': zoomReset,
       'ctrl+,': () => setSettingsOpen(!settingsOpen),
       'ctrl+f': () => setFindOpen(true),
+      f1: () => void openGuide(),
       'ctrl+t': () => {
         const settings = useSettingsStore.getState();
         if (settings.openFilesIn !== 'tab') return;
@@ -303,6 +305,11 @@ export default function App() {
                   Ctrl+N
                 </button>{' '}
                 to start a new note
+              </p>
+              <p className="empty-state__hint">
+                <button className="link-button" onClick={() => void openGuide()}>
+                  New here? Read the guide
+                </button>
               </p>
               {recentFiles.length > 0 && (
                 <div className="empty-state__recent">

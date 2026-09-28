@@ -8,6 +8,7 @@ const mockWriteFile = vi.fn();
 const mockWatchFile = vi.fn().mockResolvedValue(undefined);
 const mockUnwatchFile = vi.fn().mockResolvedValue(undefined);
 const mockSetAssetRoot = vi.fn().mockResolvedValue(undefined);
+const mockGuidePath = vi.fn<() => Promise<string | null>>().mockResolvedValue(null);
 
 vi.mock('@/lib/tauri', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/tauri')>();
@@ -19,6 +20,7 @@ vi.mock('@/lib/tauri', async (importOriginal) => {
     watchFile: (...args: Parameters<typeof actual.watchFile>) => mockWatchFile(...args),
     unwatchFile: (...args: Parameters<typeof actual.unwatchFile>) => mockUnwatchFile(...args),
     setAssetRoot: (...args: Parameters<typeof actual.setAssetRoot>) => mockSetAssetRoot(...args),
+    guidePath: () => mockGuidePath(),
   };
 });
 
@@ -55,6 +57,7 @@ describe('document store', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAskSaveChanges.mockResolvedValue('discard');
+    mockGuidePath.mockResolvedValue(null);
     useDocumentStore.setState(RESET_STATE);
     useSettingsStore.setState({ recentFiles: [] });
   });
@@ -286,5 +289,68 @@ describe('document store', () => {
     expect(useDocumentStore.getState().error).toContain('Could not reload');
     expect(useDocumentStore.getState().error).toContain('test.md');
     expect(useDocumentStore.getState().error).toContain('file not found');
+  });
+
+  it('does not add the guide to recent files when opening it', async () => {
+    mockGuidePath.mockResolvedValue('C:\\guide\\Guide.md');
+    mockReadFile.mockResolvedValue({
+      content: '# Guide',
+      mtime: 1,
+      encoding: 'utf8',
+      lossy: false,
+    });
+
+    await useDocumentStore.getState().open('C:\\guide\\Guide.md');
+
+    expect(useSettingsStore.getState().recentFiles).not.toContain('C:\\guide\\Guide.md');
+  });
+
+  it('still adds an ordinary file to recent files (guide check does not affect other opens)', async () => {
+    mockGuidePath.mockResolvedValue('C:\\guide\\Guide.md');
+    mockReadFile.mockResolvedValue({ content: 'a', mtime: 1, encoding: 'utf8', lossy: false });
+
+    await useDocumentStore.getState().open('C:\\docs\\a.md');
+
+    expect(useSettingsStore.getState().recentFiles).toContain('C:\\docs\\a.md');
+  });
+
+  it('save on the guide routes to Save as with a default name of Guide.md', async () => {
+    mockGuidePath.mockResolvedValue('C:\\guide\\Guide.md');
+    mockReadFile.mockResolvedValue({
+      content: '# Guide',
+      mtime: 1,
+      encoding: 'utf8',
+      lossy: false,
+    });
+    await useDocumentStore.getState().open('C:\\guide\\Guide.md');
+
+    const mockDialogModule = vi.mocked(await import('@tauri-apps/plugin-dialog'), {
+      partial: true,
+    });
+    mockDialogModule.save.mockResolvedValue(null); // cancel; we only care what it was called with
+
+    await useDocumentStore.getState().save();
+
+    expect(mockDialogModule.save).toHaveBeenCalledWith(
+      expect.objectContaining({ defaultPath: 'Guide.md' }),
+    );
+    expect(mockWriteFile).not.toHaveBeenCalled();
+  });
+
+  it('saveAs refuses to write over the guide file', async () => {
+    mockGuidePath.mockResolvedValue('C:\\guide\\Guide.md');
+    mockReadFile.mockResolvedValue({ content: 'a', mtime: 1, encoding: 'utf8', lossy: false });
+    await useDocumentStore.getState().open('C:\\docs\\a.md');
+
+    const mockDialogModule = vi.mocked(await import('@tauri-apps/plugin-dialog'), {
+      partial: true,
+    });
+    mockDialogModule.save.mockResolvedValue('C:\\guide\\Guide.md');
+
+    const ok = await useDocumentStore.getState().saveAs();
+
+    expect(ok).toBe(false);
+    expect(mockWriteFile).not.toHaveBeenCalled();
+    expect(useDocumentStore.getState().error).toContain('guide');
   });
 });

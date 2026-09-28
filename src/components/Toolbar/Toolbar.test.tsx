@@ -16,6 +16,12 @@ vi.hoisted(() => {
 vi.mock('@/lib/tauri');
 vi.mock('@tauri-apps/api/event');
 
+const mockOpenGuide = vi.fn();
+vi.mock('@/store/tabs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/store/tabs')>();
+  return { ...actual, openGuide: () => mockOpenGuide() };
+});
+
 import { Toolbar } from './Toolbar';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -144,5 +150,20 @@ describe('Toolbar view mode switcher', () => {
     expect((buttons[0] as HTMLElement).classList.contains('is-active')).toBe(false);
     expect((buttons[1] as HTMLElement).classList.contains('is-active')).toBe(true);
     expect((buttons[2] as HTMLElement).classList.contains('is-active')).toBe(false);
+  });
+
+  it('renders a Guide button that opens the guide on click', () => {
+    act(() => {
+      root.render(<Toolbar />);
+    });
+
+    const btn = container.querySelector<HTMLButtonElement>('[aria-label="Guide"]');
+    expect(btn).not.toBeNull();
+    expect(btn?.title).toBe('Guide (F1)');
+
+    act(() => {
+      btn!.click();
+    });
+    expect(mockOpenGuide).toHaveBeenCalled();
   });
 });

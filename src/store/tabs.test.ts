@@ -8,6 +8,7 @@ import {
   cycleTab,
   hasUnsavedTabs,
   newDocumentPerSetting,
+  openGuide,
   openPath,
   openPaths,
   routeExternalOpen,
@@ -20,6 +21,7 @@ const mockWatchFile = vi.fn().mockResolvedValue(undefined);
 const mockUnwatchFile = vi.fn().mockResolvedValue(undefined);
 const mockSetAssetRoot = vi.fn().mockResolvedValue(undefined);
 const mockOpenInNewWindow = vi.fn().mockResolvedValue(undefined);
+const mockGuidePath = vi.fn<() => Promise<string | null>>().mockResolvedValue(null);
 
 vi.mock('@/lib/tauri', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/tauri')>();
@@ -33,6 +35,7 @@ vi.mock('@/lib/tauri', async (importOriginal) => {
     setAssetRoot: (...args: Parameters<typeof actual.setAssetRoot>) => mockSetAssetRoot(...args),
     openInNewWindow: (...args: Parameters<typeof actual.openInNewWindow>) =>
       mockOpenInNewWindow(...args),
+    guidePath: () => mockGuidePath(),
   };
 });
 
@@ -69,6 +72,7 @@ describe('tabs store', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAskSaveChanges.mockResolvedValue('discard');
+    mockGuidePath.mockResolvedValue(null);
     useDocumentStore.setState(RESET_DOC_STATE);
     useSettingsStore.setState({ viewMode: 'formatted' });
     useViewStore.setState({ topLine: 0 });
@@ -948,6 +952,35 @@ describe('tabs store', () => {
       // Currently at B, cycle forward (wraps to A)
       await cycleTab(1);
       expect(useTabsStore.getState().activeId).toBe(aTabId);
+    });
+  });
+
+  describe('openGuide', () => {
+    it('does nothing when the guide resource cannot be resolved', async () => {
+      mockGuidePath.mockResolvedValue(null);
+
+      await openGuide();
+
+      expect(useTabsStore.getState().tabs).toHaveLength(1);
+    });
+
+    it('opens the guide as a new tab, and focuses it instead of opening a second copy', async () => {
+      mockGuidePath.mockResolvedValue('C:\\guide\\Guide.md');
+      useSettingsStore.setState({ openFilesIn: 'tab' });
+      useDocumentStore.setState({
+        ...RESET_DOC_STATE,
+        hasDocument: true,
+        path: 'C:\\docs\\a.md',
+        content: 'a',
+        savedContent: 'a',
+      });
+
+      await openGuide();
+      expect(useTabsStore.getState().tabs).toHaveLength(2);
+      expect(useDocumentStore.getState().path).toBe('C:\\guide\\Guide.md');
+
+      await openGuide();
+      expect(useTabsStore.getState().tabs).toHaveLength(2); // focused, not opened twice
     });
   });
 });

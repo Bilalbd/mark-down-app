@@ -270,6 +270,7 @@ export function GeneralTab() {
               ['Ctrl+\\', 'Toggle outline'],
               ['Ctrl+F', 'Find'],
               ['Ctrl+,', 'Settings'],
+              ['F1', 'Guide'],
               ['Ctrl+= / Ctrl+− / Ctrl+0 / Ctrl+wheel', 'Zoom preview'],
             ].map(([k, d]) => (
               <tr key={k}>

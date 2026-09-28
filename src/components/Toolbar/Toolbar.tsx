@@ -1,5 +1,6 @@
 import {
   ArrowLeftRight,
+  CircleHelp,
   Code,
   Columns2,
   Eye,
@@ -18,6 +19,7 @@ import {
   isPreviewFullWidth,
 } from '@/store/settings';
 import { useViewStore } from '@/store/view';
+import { openGuide } from '@/store/tabs';
 import { ExportMenu } from './ExportMenu';
 import { SaveMenu } from './SaveMenu';
 import './Toolbar.css';
@@ -113,6 +115,15 @@ export function Toolbar() {
         onClick={cycleTheme}
       >
         <ThemeIcon {...ICON} />
+      </button>
+
+      <button
+        className="toolbar__btn"
+        title="Guide (F1)"
+        aria-label="Guide"
+        onClick={() => void openGuide()}
+      >
+        <CircleHelp {...ICON} />
       </button>
 
       <button

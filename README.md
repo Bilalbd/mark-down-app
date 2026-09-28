@@ -55,6 +55,11 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
 - **Block remote images** (off by default, in Settings) stops `http(s)` image sources from
   loading in the preview, for documents from sources you don't fully trust.
 - **Find** (`Ctrl+F`) in both views.
+- **Guide** — a built-in user guide covering every feature, opened from the **Guide** toolbar
+  button, **F1**, or a link on the start screen. It's a normal (if read-only) document: it opens
+  as a tab or window like any other, and Find, the outline, presets and printing all work on it.
+  Editing it is allowed, but saving always goes through **Save as**, so the bundled copy can't be
+  overwritten.
 - **Links** in the preview: `http(s)`/`mailto:` open externally; a relative link to another
   Markdown file opens it in the app (with the usual unsaved-changes prompt); a relative link
   to anything else reveals it in File Explorer; in-page `#anchor` links scroll to the heading.
@@ -87,6 +92,7 @@ the file it was opened with.
 | Ctrl+\ | Toggle outline |
 | Ctrl+F | Find |
 | Ctrl+, | Settings |
+| F1 | Guide |
 | Ctrl+= / Ctrl+− / Ctrl+0 / Ctrl+wheel | Zoom preview |
 
 **Editing (Source view)**

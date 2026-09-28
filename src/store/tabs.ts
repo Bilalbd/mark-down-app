@@ -14,6 +14,7 @@ import { useViewStore } from '@/store/view';
 import {
   basename,
   dirname,
+  guidePath,
   isTauri,
   openInNewWindow,
   setAssetRoot,
@@ -590,6 +591,15 @@ export async function openPath(path: string): Promise<boolean> {
       return false;
     },
   );
+}
+
+/** Opens the bundled guide (the toolbar's Guide button, F1, and the start-screen link), through
+ * the normal `openPath` route: a tab or a new window per "Open files in", and a copy already open
+ * is focused rather than opened twice. Does nothing if the resource can't be resolved (outside
+ * Tauri, or a broken install). */
+export async function openGuide(): Promise<void> {
+  const path = await guidePath();
+  if (path) await openPath(path);
 }
 
 /** Creates a new document the way the "Open files in" setting says: new tab or replace current. */

@@ -266,4 +266,11 @@ describe('GeneralTab', () => {
     expect(useSettingsStore.getState().spellLanguages).toEqual(['en']);
     expect(arCheckbox.checked).toBe(false);
   });
+
+  it('lists F1 for the guide in the shortcuts table', async () => {
+    await render();
+    const rows = Array.from(container.querySelectorAll('.settings__shortcuts tr'));
+    const guideRow = rows.find((r) => r.textContent?.includes('Guide'));
+    expect(guideRow?.querySelector('kbd')?.textContent).toBe('F1');
+  });
 });

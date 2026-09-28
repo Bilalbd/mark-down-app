@@ -1,6 +1,7 @@
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { emit } from '@tauri-apps/api/event';
 import { getVersion } from '@tauri-apps/api/app';
+import { resolveResource } from '@tauri-apps/api/path';
 
 export const isTauri = (): boolean => '__TAURI_INTERNALS__' in window;
 
@@ -152,6 +153,19 @@ export function writeClipboardText(text: string): Promise<void> {
 export function getAppVersion(): Promise<string | null> {
   if (!isTauri()) return Promise.resolve(null);
   return getVersion().catch(() => null);
+}
+
+/** Resolved once and reused: the bundled guide's path never changes within a run. */
+let cachedGuidePath: string | null | undefined;
+
+/** Absolute path of the bundled guide (`src-tauri/resources/guide/Guide.md`, added to
+ * `bundle.resources`), resolved and cached on first call. `null` outside Tauri, or if the
+ * resource can't be found (a broken install). */
+export async function guidePath(): Promise<string | null> {
+  if (!isTauri()) return null;
+  if (cachedGuidePath !== undefined) return cachedGuidePath;
+  cachedGuidePath = await resolveResource('resources/guide/Guide.md').catch(() => null);
+  return cachedGuidePath;
 }
 
 export interface SpellError {
