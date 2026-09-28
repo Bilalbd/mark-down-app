@@ -36,7 +36,7 @@ The installer isn't code-signed, so Windows SmartScreen may warn when you first 
 - **Zoom** the rendered document (`Ctrl+=`, `Ctrl+−`, `Ctrl+0`, or `Ctrl` + wheel) — the Source
   editor has its own Font size setting instead.
 - **Status bar** (toggleable) shows line and word counts, cursor position in Source, preview
-  zoom, file encoding, line-ending style and spelling language.
+  zoom (click to reset), file encoding and line-ending style.
 - Links: `http(s)`/`mailto:` open externally; a relative link to another Markdown file opens it
   in the app; a relative link to anything else reveals it in File Explorer; `#anchor` links scroll
   to the heading.
@@ -46,9 +46,10 @@ The installer isn't code-signed, so Windows SmartScreen may warn when you first 
 **Writing**
 
 - A Source editor with Markdown syntax highlighting.
-- Right-click anywhere for a menu with formatting (Heading, Bold, Italic, Strikethrough, Inline
-  code, Link, Code block, Quote, Bulleted/Numbered/Task list, Horizontal rule) plus Cut, Copy,
-  Paste and Select all; the **Menu** key or **Shift+F10** opens it at the cursor without a mouse.
+- Right-click in the Source editor for a menu with formatting (Heading, Bold, Italic,
+  Strikethrough, Inline code, Link, Code block, Quote, Bulleted/Numbered/Task list, Horizontal
+  rule) plus Cut, Copy, Paste and Select all; the **Menu** key or **Shift+F10** opens it at the
+  cursor without a mouse. In the formatted view, right-click offers Copy and Select all.
 - Formatting shortcuts: `Ctrl+B`, `Ctrl+I`, `Ctrl+K`, and `Ctrl+Shift+1…6` for headings (press a
   heading's own shortcut again to turn it back into a paragraph).
 - Spell check with red wavy underlines — see below.
