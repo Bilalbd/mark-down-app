@@ -84,6 +84,16 @@ the file it was opened with.
 | Ctrl+, | Settings |
 | Ctrl+= / Ctrl+− / Ctrl+0 / Ctrl+wheel | Zoom preview |
 
+**Editing (Source view)**
+
+| Shortcut | Action |
+|---|---|
+| Ctrl+B | Bold |
+| Ctrl+I | Italic |
+| Ctrl+K | Link |
+| Ctrl+Shift+1 … Ctrl+Shift+6 | Heading 1–6 |
+| Ctrl+Shift+0 | Paragraph |
+
 ## Development
 
 Prerequisites: Node 20+, pnpm, Rust (stable, MSVC toolchain), Visual Studio Build Tools with the

@@ -13,6 +13,7 @@ import {
   highlightSpecialChars,
 } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
+import { Prec } from '@codemirror/state';
 import { bracketMatching, indentOnInput } from '@codemirror/language';
 import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
@@ -26,6 +27,7 @@ import { effectiveSpellLanguages } from '@/lib/spell';
 import { spellLanguages as fetchSpellLanguages } from '@/lib/tauri';
 import { editorHighlighting, editorTheme } from './editorTheme';
 import { spellcheckExtension } from './spellcheck';
+import { setHeading, toggleBold, toggleItalic, insertLink } from '@/lib/formatting';
 import './SourceEditor.css';
 
 const gutterCompartment = new Compartment();
@@ -99,6 +101,100 @@ function buildExtensions(): Extension[] {
     // open, so register an invisible one that FindBar opens/closes.
     search({ top: true, createPanel: () => ({ dom: hiddenPanel(), top: true }) }),
     EditorView.lineWrapping,
+    Prec.high(
+      keymap.of([
+        {
+          key: 'Mod-b',
+          run: (view) => {
+            const spec = toggleBold(view.state);
+            if (!spec) return false;
+            view.dispatch(spec);
+            return true;
+          },
+        },
+        {
+          key: 'Mod-i',
+          run: (view) => {
+            const spec = toggleItalic(view.state);
+            if (!spec) return false;
+            view.dispatch(spec);
+            return true;
+          },
+        },
+        {
+          key: 'Mod-k',
+          run: (view) => {
+            const spec = insertLink(view.state);
+            if (!spec) return false;
+            view.dispatch(spec);
+            return true;
+          },
+        },
+        {
+          key: 'Mod-Shift-1',
+          run: (view) => {
+            const spec = setHeading(view.state, 1);
+            if (!spec) return false;
+            view.dispatch(spec);
+            return true;
+          },
+        },
+        {
+          key: 'Mod-Shift-2',
+          run: (view) => {
+            const spec = setHeading(view.state, 2);
+            if (!spec) return false;
+            view.dispatch(spec);
+            return true;
+          },
+        },
+        {
+          key: 'Mod-Shift-3',
+          run: (view) => {
+            const spec = setHeading(view.state, 3);
+            if (!spec) return false;
+            view.dispatch(spec);
+            return true;
+          },
+        },
+        {
+          key: 'Mod-Shift-4',
+          run: (view) => {
+            const spec = setHeading(view.state, 4);
+            if (!spec) return false;
+            view.dispatch(spec);
+            return true;
+          },
+        },
+        {
+          key: 'Mod-Shift-5',
+          run: (view) => {
+            const spec = setHeading(view.state, 5);
+            if (!spec) return false;
+            view.dispatch(spec);
+            return true;
+          },
+        },
+        {
+          key: 'Mod-Shift-6',
+          run: (view) => {
+            const spec = setHeading(view.state, 6);
+            if (!spec) return false;
+            view.dispatch(spec);
+            return true;
+          },
+        },
+        {
+          key: 'Mod-Shift-0',
+          run: (view) => {
+            const spec = setHeading(view.state, 0);
+            if (!spec) return false;
+            view.dispatch(spec);
+            return true;
+          },
+        },
+      ]),
+    ),
     keymap.of([
       ...defaultKeymap,
       ...historyKeymap,

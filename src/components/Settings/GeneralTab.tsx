@@ -281,6 +281,29 @@ export function GeneralTab() {
             ))}
           </tbody>
         </table>
+        <table className="settings__shortcuts">
+          <tbody>
+            <tr>
+              <td colSpan={2}>
+                <strong>Editing (Source view)</strong>
+              </td>
+            </tr>
+            {[
+              ['Ctrl+B', 'Bold'],
+              ['Ctrl+I', 'Italic'],
+              ['Ctrl+K', 'Link'],
+              ['Ctrl+Shift+1 … Ctrl+Shift+6', 'Heading 1–6'],
+              ['Ctrl+Shift+0', 'Paragraph'],
+            ].map(([k, d]) => (
+              <tr key={k}>
+                <td>
+                  <kbd>{k}</kbd>
+                </td>
+                <td>{d}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </Section>
 
       {version && <p className="settings__version">Version {version}</p>}
