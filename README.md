@@ -1,79 +1,116 @@
 # Markdown
 
-A simple, fast Markdown viewer and editor for Windows. Double-click a `.md` file and it opens
-rendered; flip to Source to edit; the outline keeps you oriented.
-
+A small, fast Markdown viewer and editor for Windows. Double-click a `.md` file and it opens
+rendered, like a document; flip to Source to edit the raw text, or Split to see both at once.
 Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, KaTeX and Mermaid.
+
+<p align="center">
+  <img src="docs/images/formatted-light.png" width="48%" alt="Formatted view, light theme">
+  <img src="docs/images/split-dark.png" width="48%" alt="Split view, dark theme">
+</p>
+
+## Install
+
+Download `Markdown_<version>_x64-setup.exe` from the
+[Releases page](https://github.com/Bilalbd/mark-down-app/releases) and run it. It's a per-user
+install (no admin rights needed) and registers the app for `.md` and `.markdown` files, so
+*Open with* and double-click work. It needs the WebView2 runtime, which is already built into
+Windows 11.
+
+The installer isn't code-signed, so Windows SmartScreen may warn when you first run it — choose
+**More info → Run anyway** to continue.
 
 ## Features
 
-- **Tabs** — open multiple files as tabs in one window. Drag files from Explorer, use `Ctrl+O` to
-  open several at once, or open from recent files (clear them on the start screen or in the **Open
-  recent** menu). Reorder tabs by dragging them left or right, or use `Ctrl+Shift+←/→` to move
-  them. Right-click a tab for a context menu with Close, Close others, Close to the right, Copy
-  path, and Reveal in File Explorer. Each tab keeps its own view mode (Formatted / Source / Split),
-  scroll position and undo history. A file already open in a tab is focussed instead of opened
-  again. When the app is already running and you open a `.md` file from Explorer (double-click or
-  *Open With*), it opens as a tab in the running window which comes to the front (**New tab**
-  mode), or in a new window unless this window is empty or showing the start screen (**New window**
-  mode). Configure the behaviour in **Settings → General** (**Open files in:** New tab / New
-  window, default New tab).
-- **Formatted / Source / Split** views (`Ctrl+E`, `Ctrl+Shift+E`) with the source line kept in
-  place when switching, and bidirectional scroll sync in Split. Formatted view has a full-width
-  toggle in the toolbar that fits the document to the window, and it's remembered.
-- **Editing** in Source mode with markdown syntax highlighting, `Ctrl+S` to save and `Ctrl+Shift+S`
-  to save as, a dirty indicator in the title bar and a Save / Don't save / Cancel guard on close.
-  Saving a new, untitled note for the first time suggests a file name from its first heading (or
-  first line, if it has none).
-- **Spell check** in Source mode, using the languages installed in Windows (red wavy
-  underlines) — code, URLs, HTML, maths and front matter are skipped. On by default; pick the
-  languages and manage a personal dictionary in Settings → General → Spelling.
-- **Right-click menus** replace the browser's default one everywhere in the app. In Source view:
-  spelling suggestions, Add to dictionary and Ignore on a misspelled word; Cut / Copy / Paste /
-  Select all; and formatting (Heading, Bold, Italic, Strikethrough, Inline code, Link, Code block,
-  Quote, Bulleted/Numbered/Task list, Horizontal rule). In Formatted view: Copy and Select all. The
-  **Menu** key or **Shift+F10** opens the Source view menu at the cursor.
-- Reads and preserves UTF-8 (with or without BOM) and UTF-16 (LE/BE) files, and CRLF/LF line
-  endings, round-tripping each on save; a file with invalid-UTF-8 bytes asks before saving
-  over them.
-- **Outline** sidebar (`Ctrl+\`) — collapsible, resizable, click to jump, follows your scroll.
-- **Status bar** — shows line and word counts, cursor position in Source mode, preview zoom level,
-  file encoding, line ending style and language. Toggleable in Settings → General (**Show status
-  bar**, on by default).
-- **Styling presets** — Boulayla (the default), GitHub, Obsidian, Claude, Manuscript (serif:
-  Sitka Text headings over Charter or Georgia), Nord, Rosé Pine, Catppuccin and Solarized built in. Every font, size, spacing
-  and colour (separately for light and dark) is editable in Settings (`Ctrl+,`); presets can be
-  copied, renamed, imported and exported as JSON, and each has a custom-CSS slot. Inter, Open Sans
-  and JetBrains Mono (used by most of the presets) are bundled so they render correctly even
-  though Windows doesn't ship them.
-- **Light / dark / follow-Windows** app theme.
-- GFM tables, task lists, footnotes, autolinks; fenced code with Shiki highlighting;
-  **KaTeX** math (`$…$`, `$$…$$`); **Mermaid** diagrams.
-- **Colour swatches** next to HEX colour codes (`#AA00BB`, in text or inline code) in the
-  formatted view.
-- **Live reload** when the file changes on disk (asks first if you have unsaved edits).
+**Reading**
+
+- Formatted, Source and Split views (`Ctrl+E`, `Ctrl+Shift+E`), with the source line kept in
+  place when you switch and bidirectional scroll sync in Split.
+- A full-width toggle in Formatted view fits the document to the window instead of the preset's
+  usual content width; it's remembered.
+- GFM tables, task lists, footnotes and autolinks; fenced code with Shiki syntax highlighting;
+  KaTeX maths (`$…$`, `$$…$$`); Mermaid diagrams; colour swatches next to HEX codes (`#6cb6ff`).
+- **Outline** sidebar (`Ctrl+\`) — collapsible, resizable, click a heading to jump to it, follows
+  your scroll.
+- **Find** (`Ctrl+F`) in either view.
+- **Zoom** the rendered document (`Ctrl+=`, `Ctrl+−`, `Ctrl+0`, or `Ctrl` + wheel) — the Source
+  editor has its own Font size setting instead.
+- **Status bar** (toggleable) shows line and word counts, cursor position in Source, preview
+  zoom, file encoding, line-ending style and spelling language.
+- Links: `http(s)`/`mailto:` open externally; a relative link to another Markdown file opens it
+  in the app; a relative link to anything else reveals it in File Explorer; `#anchor` links scroll
+  to the heading.
 - **Block remote images** (off by default, in Settings) stops `http(s)` image sources from
-  loading in the preview, for documents from sources you don't fully trust.
-- **Find** (`Ctrl+F`) in both views.
-- **Guide** — a built-in user guide covering every feature, opened from the **Guide** toolbar
-  button, **F1**, or a link on the start screen. It's a normal (if read-only) document: it opens
-  as a tab or window like any other, and Find, the outline, presets and printing all work on it.
-  Editing it is allowed, but saving always goes through **Save as**, so the bundled copy can't be
-  overwritten.
-- **Links** in the preview: `http(s)`/`mailto:` open externally; a relative link to another
-  Markdown file opens it in the app (with the usual unsaved-changes prompt); a relative link
-  to anything else reveals it in File Explorer; in-page `#anchor` links scroll to the heading.
-- **Export** as a standalone HTML file, or print / save as PDF. With **Self-contained HTML
-  export** on (the default, in Settings → General → Export), local images and the KaTeX
-  stylesheet and fonts are embedded as data URLs, so the file works offline anywhere. Remote
-  images are still linked. The bundled preset fonts (Inter/Open Sans/JetBrains Mono) aren't
-  embedded; the exported file falls back to system fonts for those.
-- Registers itself for `.md` / `.markdown` so *Open with* and double-click work.
+  loading in the preview, for documents you don't fully trust.
 
-**Note:** Open tabs aren't restored when the app restarts: it starts on the start screen, or with
-the file it was opened with.
+**Writing**
 
-## Keyboard Shortcuts
+- A Source editor with Markdown syntax highlighting.
+- Right-click anywhere for a menu with formatting (Heading, Bold, Italic, Strikethrough, Inline
+  code, Link, Code block, Quote, Bulleted/Numbered/Task list, Horizontal rule) plus Cut, Copy,
+  Paste and Select all; the **Menu** key or **Shift+F10** opens it at the cursor without a mouse.
+- Formatting shortcuts: `Ctrl+B`, `Ctrl+I`, `Ctrl+K`, and `Ctrl+Shift+1…6` for headings (press a
+  heading's own shortcut again to turn it back into a paragraph).
+- Spell check with red wavy underlines — see below.
+- `Ctrl+S` to save, `Ctrl+Shift+S` to save as, a dirty indicator in the title bar, and a
+  Save / Don't save / Cancel guard whenever you'd otherwise lose unsaved changes. Saving a new,
+  untitled document for the first time suggests a file name from its first heading (or first
+  line, if it has none).
+- Reads and preserves UTF-8 (with or without a byte-order mark) and UTF-16 (LE/BE), and
+  CRLF/LF line endings, round-tripping each on save; a file with invalid-UTF-8 bytes asks before
+  saving over them.
+
+**Tabs and windows**
+
+- Open files as tabs in one window, or each in its own window — set by **Open files in** in
+  Settings → General (default: New tab).
+- Drag files in from Explorer, use `Ctrl+O` to open several at once, or reopen one from **Recent
+  files**.
+- Drag a tab to reorder it, or use `Ctrl+Shift+←/→`; right-click a tab for Close, Close others,
+  Close to the right, Copy path and Reveal in File Explorer.
+- A file already open in a tab is focused instead of opened a second time. Opening a `.md` file
+  from Explorer while the app is running adds a tab to the running window (which comes to the
+  front), or opens a new window, depending on the same setting.
+
+**Styling**
+
+- Nine built-in presets — Boulayla (the default), GitHub, Obsidian, Claude, Manuscript, Nord,
+  Rosé Pine, Catppuccin and Solarized — each with its own light and dark colour set, so it looks
+  right in both app themes.
+- Every font, size, spacing and colour is editable in Settings (`Ctrl+,`); presets can be copied,
+  renamed, and exported or imported as JSON, and each has a custom-CSS slot.
+- A separate **Light / Dark / Follow Windows** theme for the app's own chrome.
+
+**Export and print**
+
+- Export as a standalone HTML file. With **Self-contained HTML export** on (the default), local
+  images and the maths font are embedded as data URLs so the file works offline anywhere; remote
+  images stay linked, and the bundled preset fonts fall back to whatever's on the system that
+  opens it.
+- Print, or save as PDF, through the normal Windows print dialog.
+
+**Files and safety**
+
+- **Live reload** when the file changes on disk, asking first if you have unsaved edits.
+- Every action that would discard unsaved work — opening another file, closing a tab, closing the
+  window — asks first.
+- Saves are atomic (a temp file, then a rename), so a crash or a full disk can't leave the file
+  half-written, and they keep the file's original line endings and encoding.
+
+## Spell check
+
+Spell check runs in the Source editor, using the languages installed in Windows, and underlines a
+word only if *every* language you've ticked rejects it (so notes that mix languages work
+correctly). It's on by default and checks your Windows display language until you choose
+otherwise, in **Settings → General → Spelling** — the list shows one entry per language, and
+right-clicking a misspelled word offers suggestions, **Add to dictionary** and **Ignore**. To add
+a language that isn't listed, install it in Windows under **Settings → Time & language → Language
+& region → Add a language**; spelling comes with its basic typing feature, no separate download
+needed.
+
+## Keyboard shortcuts
+
+**Files**
 
 | Shortcut | Action |
 |---|---|
@@ -81,12 +118,22 @@ the file it was opened with.
 | Ctrl+O | Open file |
 | Ctrl+S | Save |
 | Ctrl+Shift+S | Save as |
+
+**Tabs**
+
+| Shortcut | Action |
+|---|---|
 | Ctrl+T | New tab |
 | Ctrl+W | Close tab |
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous tab |
 | Ctrl+PageDown / Ctrl+PageUp | Next / previous tab |
 | Ctrl+1 … Ctrl+9 | Go to tab |
 | Ctrl+Shift+← / Ctrl+Shift+→ | Move tab left / right |
+
+**Views**
+
+| Shortcut | Action |
+|---|---|
 | Ctrl+E | Toggle formatted / source |
 | Ctrl+Shift+E | Toggle split view |
 | Ctrl+\ | Toggle outline |
@@ -104,10 +151,30 @@ the file it was opened with.
 | Ctrl+K | Link |
 | Ctrl+Shift+1 … Ctrl+Shift+6 | Heading 1–6 (press again for a paragraph) |
 
+This list is also in Settings → General, and always up to date with what the app actually binds.
+
+## Guide
+
+The app has a built-in guide covering every feature, with a live Markdown cheat sheet. Open it
+with the **Guide** toolbar button, **F1**, or the link on the start screen. You can also read it
+on GitHub: [`src-tauri/resources/guide/Guide.md`](src-tauri/resources/guide/Guide.md).
+
+## Where things are stored
+
+Settings and style presets live in `%APPDATA%\com.bilal.markdown-viewer\` (`settings.json`,
+`presets.json`); nothing else is written outside the files you open and save yourself.
+
+The app makes no network requests of its own. The one exception is remote (`http(s)`) images
+referenced by a document you open, which you can stop with **Block remote images** in Settings;
+everything else it renders — fonts, KaTeX, Mermaid — is bundled. (If you export with
+**Self-contained HTML export** turned off and the document has maths, the *exported* file links
+its stylesheet from a CDN instead of embedding it — that request happens in whatever later opens
+the file, not in the app.)
+
 ## Development
 
 Prerequisites: Node 20+, pnpm, Rust (stable, MSVC toolchain), Visual Studio Build Tools with the
-*Desktop development with C++* workload, WebView2 runtime (ships with Windows 11).
+*Desktop development with C++* workload, and the WebView2 runtime (ships with Windows 11).
 
 ```bash
 pnpm install
@@ -118,27 +185,42 @@ pnpm tauri build               # NSIS installer in src-tauri/target/release/bund
 ```
 
 `scripts/dev.ps1 [file.md]` launches the dev app with WebView2 remote debugging on port 9222;
-`node scripts/cdp.mjs eval "<js>" | eval-file <file> | screenshot <out.png> | pdf <out.pdf>` drives it.
-In dev builds the stores are exposed on `window.__mdv`.
-
-Test documents live in `fixtures/`, including `fixtures/tabs/` for tab-specific testing.
-
-## Layout
+`node scripts/cdp.mjs eval "<js>" | eval-file <file> | screenshot <out.png> | pdf <out.pdf>` drives
+it. In dev builds the stores are exposed on `window.__mdv` (`document`, `settings`, `view`,
+`style`, `tabs`, `render`).
 
 ```
 src/
-  markdown/    render pipeline: markdown-it + plugins, Shiki, KaTeX, Mermaid, DOMPurify
-  store/       zustand stores: document, settings, style presets, transient view state, tabs
-  components/  TitleBar, Toolbar, Preview, Editor (CodeMirror), Outline, Split, Find, Settings,
-               Tabs (TabStrip)
-  styles/      app chrome theme, preset → CSS variable mapping, built-in presets
-  lib/         Tauri invoke wrappers, shortcuts, scroll-sync maths, export, tab helpers,
-               editor cache per tab
-src-tauri/     Rust shell: file read/write, asset scope, file watcher (multiple files)
+  main.tsx, App.tsx      bootstrapping, top-level layout, app-wide shortcuts and events
+  components/             one folder per UI feature, e.g. ContextMenu, Editor, Preview, Split,
+                          StatusBar, Tabs, TitleBar, Toolbar, Settings, Find, Outline, Dialog
+  store/                  zustand stores: document, settings, style (presets), view, tabs
+  markdown/               render pipeline: markdown-it + plugins, Shiki, KaTeX, Mermaid, DOMPurify
+  lib/                    framework-free helpers and Tauri wrappers — tauri.ts, formatting.ts,
+                          editorMenu.ts, spell.ts, proseRanges.ts, shortcuts.ts, export.ts, tabs.ts…
+  styles/                 app-theme.css, base.css, preset → CSS mapping, presets/*.json
+src-tauri/src/            lib.rs (builder, navigation guard), commands.rs (file I/O, encodings),
+                          watch.rs (file watcher), assets.rs (local-image protocol), spell.rs
+                          (Windows Spell Checking API), instance.rs (single instance / new window)
+src-tauri/resources/guide/ the bundled Guide.md
+fixtures/                 hand-test documents, one per feature area, including fixtures/tabs/
 ```
 
-Settings and presets are stored in `%APPDATA%\com.bilal.markdown-viewer\`.
+Test documents live in `fixtures/`; a hand-test fixture exists for every feature area (GFM, math,
+Mermaid, Unicode, spelling, colours, line endings, tabs, a huge document for performance…).
+
+See [`CLAUDE.md`](CLAUDE.md) for the full set of conventions this project follows — it's required
+reading for anyone (or any agent) contributing code.
+
+## Icons
 
 Icon sources: `src-tauri/icons/markdown_icon.svg` (app icon, title bar, favicon) and
-`src-tauri/icons/markdown_file_icon.svg` (the `.md` file-type icon, rendered to `markdown-file.ico`
-and registered by `src-tauri/nsis/hooks.nsh` at install time).
+`src-tauri/icons/markdown_file_icon.svg` (the `.md` file-type icon, rendered to
+`markdown-file.ico` and registered by `src-tauri/nsis/hooks.nsh` at install time).
+
+## Licence
+
+This project's own code, docs and icons are released under [CC0 1.0](LICENSE) — public domain.
+Use it for anything, including commercially, without asking. Bundled fonts and third-party
+libraries (Rust crates and npm packages, listed in `Cargo.toml` and `package.json`) keep their
+own licences.
