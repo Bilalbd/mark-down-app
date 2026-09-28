@@ -44,19 +44,114 @@ run. Details:
 
 ## Verify
 
-- [ ] `pnpm test` (write the count before and after), `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
-- [ ] Dev app, real CDP mouse events (`Input.dispatchMouseEvent`, a series of `mouseMoved` steps a few
+- [x] `pnpm test` (write the count before and after), `pnpm lint`, `npx tsc --noEmit`, `pnpm format`.
+- [x] Dev app, real CDP mouse events (`Input.dispatchMouseEvent`, a series of `mouseMoved` steps a few
   pixels apart, like a person's diagonal movement): right-click in the editor, hover "Heading", then
   move diagonally down-right across "Bold"/"Italic" to "Heading 3" and click. The line becomes
   `### …`. Repeat with the menu opened near the right edge of the window, so the submenu flips to
   the left. Also check that moving straight down from "Heading" to "Bold" and resting there closes
   the submenu.
-- [ ] The same diagonal move in the tab strip's "Open recent" flyout, if you changed it.
-- [ ] Commit: `Keep submenus open while the pointer heads towards them`.
+- [x] The same diagonal move in the tab strip's "Open recent" flyout, if you changed it.
+- [x] Commit: `Keep submenus open while the pointer heads towards them`.
 
 ## Report
 
-_(agent fills in)_
+**What I found**
+
+- **Editor menu (`ContextMenu`)**: as the phase document describes, entering any plain item started
+  a 150 ms close timer. A second cause the document doesn't mention: the same `onMouseEnter` ran
+  for the items *inside* the submenu, so hovering a submenu item (e.g. "Heading 3") also started
+  the close timer, and the submenu closed 150 ms after the pointer reached it. A unit test
+  (`keeps the submenu open while the pointer is on one of its items`) fails on the old code. In
+  the running app a click still landed because it comes within 150 ms, so it was only noticeable
+  when resting on a submenu item.
+- **Tab strip "Open recent" flyout: it has the same problem.** The wrapper's `mouseleave` started
+  the 150 ms timer, and a diagonal move from the left part of "Open recent" to the last flyout
+  item leaves the wrapper through its bottom edge and crosses empty space. On the old code, a real
+  CDP move in 3 px steps 16 ms apart ended with the flyout closed (`openAtTarget: false`).
+- **No gap fix needed.** Items have no `mouseleave` handler, and the ~5 px between "Heading" and
+  its submenu (the menu's padding and border) starts no timer, so I left the CSS alone.
+
+**What changed**
+
+- `src/lib/menuAim.ts` (new): `isInsideSafeTriangle(point, apex, top, bottom, tolerance)` (any
+  corner order; a degenerate triangle contains nothing), `nearEdgeCorners(apex, box)` (picks the
+  submenu's left or right edge depending on which side it opened, so flipped submenus work) and
+  `isHeadingForSubmenu(point, apex, box)` (2 px tolerance).
+- `ContextMenu.tsx`: keeps the last three pointer positions from `mousemove` on the menu. Entering
+  a plain item while a submenu is open: if the pointer is inside the triangle from where the move
+  began (oldest recent position) to the submenu's near edge, the close timer becomes a 300 ms rest
+  timer instead of 150 ms; each further `mousemove` inside the triangle restarts it, and the first
+  move outside it closes after the usual 150 ms. Entering the submenu (or another submenu trigger)
+  cancels everything. Items inside the submenu no longer start a close timer. Keyboard handling is
+  untouched.
+- `TabStrip.tsx`: same idea for the flyout. `mouseleave` on the "Open recent" wrapper checks the
+  triangle towards the flyout; a window `mousemove` listener (only while the flyout is open) keeps
+  tracking. Entering the flyout (a descendant of the wrapper) cancels the timer as before.
+- Tests: `menuAim.test.ts` (13: inside, outside each edge, on edges and corners, tolerance,
+  flipped/mirrored, corner order, degenerate, `nearEdgeCorners`, `isHeadingForSubmenu`),
+  `ContextMenu.test.tsx` (6 new), `TabStrip.test.tsx` (4 new).
+
+**Regression test failing on the old code** (`ContextMenu.test.tsx`, "keeps the submenu open while
+the pointer crosses another item on the way to it"; mouse enters "More", moves 3 times, enters
+"Three" heading for the submenu, `advance(200)`):
+
+```
+AssertionError: expected false to be true // Object.is equality
+ FAIL  ... > submenu hover aim > keeps the submenu open while the pointer crosses another item on the way to it
+    235|       expect(submenuOpen()).toBe(true);
+```
+
+Also failing on the old code: "closes the submenu after the pointer rests on that item for 300 ms"
+(closed at 299 ms instead of 300 ms) and "keeps the submenu open while the pointer is on one of its
+items". In `TabStrip.test.tsx`, "keeps the flyout open while the pointer leaves "Open recent"
+heading for it" and "closes the flyout after the pointer rests outside for 300 ms" failed the same
+way (`expected false to be true`). The tests that close after 150 ms pass on old and new code (they
+guard the unchanged behaviour).
+
+**Verify**
+
+- `pnpm test`: 675 before, **698** after (+23). `pnpm lint`, `npx tsc --noEmit` clean; `pnpm format`
+  changed only my files. No Rust changes, so no `cargo test`.
+- In-app, real CDP `Input.dispatchMouseEvent` (a `mouseMoved` every 3-6 px, 10-16 ms apart, then
+  `mousePressed`/`mouseReleased`), dev build with a scratch `WEBVIEW2_USER_DATA_FOLDER`, copy of
+  `fixtures/gfm.md`, Source view:
+  - Right-click at a line, hover "Heading" (submenu opens on the right), diagonal move across
+    "Bold"/"Italic" to "Heading 3", click: the line became `### This file exerci...`. Submenu still open
+    just before the click.
+  - Same with the menu opened at x=1050 in a 1100 px window: submenu opened on the **left**;
+    down-left diagonal to "Heading 3", click: `### Plain, *italic*, ...`.
+  - Straight down from "Heading" to "Bold" and resting: submenu closed (open at 0 ms after
+    arrival, closed by 500 ms).
+  - Repeated with 3 px steps 16 ms apart and in the light theme (`appTheme` set with
+    `persist: false`): same results. (Later runs hit lines that were already `###`, so "Heading 3"
+    toggled them back to a paragraph; the line changed each time.)
+  - **Before the fix** (old `ContextMenu.tsx` swapped in temporarily, then restored): the same
+    diagonal ended with the submenu already closed (`openAtTarget: false`) in both the right and
+    flipped cases.
+  - Tab strip: "+" then "Open recent", diagonal move (3 px / 16 ms and 6 px / 10 ms) to the last
+    flyout item ("Clear recent files", not clicked): flyout still open after the fix
+    (`openAtTarget: true`), closed on the old code. Screenshots in dark and light looked right.
+  - Screenshots in my scratchpad (`p8\*.png`), viewed: `fixed-flipped.png` (dark, flipped),
+    `lightfix-right.png` (light), `fixedtab-tab.png` (dark), `lighttab-tab.png` (light).
+- Docs: `README.md` doesn't describe submenu behaviour (no match for submenu/flyout/hover).
+  `Guide.md` only lists what the Heading submenu contains, so nothing changed.
+- Settings: backed up `settings.json`, `presets.json` and `.window-state.json` first. My fixture was
+  the only `recentFiles` change; I removed it. Compared by value (key by key), all three files match
+  the backups. Final `recentFiles` on disk:
+  `["C:\\Agents Projects\\allocate-v3\\docs\\audits\\2026-09-27-remediation-plan.md", "C:\\Agents Projects\\allocate-v3\\docs\\audits\\2026-09-27-codebase-audit.md"]`
+  (as JSON on disk)
+  (the app writes keys in a different order than my backup; values are identical).
+- Processes: stopped only the PIDs I started (dev exe 19172, Vite 20360 and its `cmd` wrapper
+  24468, each confirmed by command line). Bilal's installed app was not running and I never
+  touched it.
+
+**Not done / follow-ups**
+
+- The tab strip's flyout tracks the pointer with a window `mousemove` listener only while it is
+  open, so a fast flick from the button straight to the flyout with no intermediate moves has no
+  apex and falls back to the old 150 ms rule (the pointer normally arrives well within that).
+- Nothing else touched.
 
 ## Supervisor check
 

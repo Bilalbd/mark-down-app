@@ -5,11 +5,18 @@ import { useDocumentStore, isDirty } from '@/store/document';
 import { useSettingsStore } from '@/store/settings';
 import { ICON } from '@/components/Toolbar/Toolbar';
 import { basename, dirname } from '@/lib/tauri';
+import { isHeadingForSubmenu, type Point } from '@/lib/menuAim';
 import { tabLabels, flyoutSide, shortDir, dropIndex } from '@/lib/tabs';
 import { TabContextMenu } from './TabContextMenu';
 import './TabStrip.css';
 
 const MENU_ICON = { ...ICON, size: 14 } as const;
+
+/** How long the pointer can be outside the "Open recent" item and its flyout before the flyout
+ * closes, and how long while it is still heading for the flyout (a pause, not a step on the way).
+ * Mirrors `ContextMenu`. */
+const FLYOUT_CLOSE_DELAY_MS = 150;
+const FLYOUT_AIM_REST_MS = 300;
 
 export function TabStrip() {
   const tabs = useTabsStore((s) => s.tabs);
@@ -29,6 +36,9 @@ export function TabStrip() {
   const submenuRef = useRef<HTMLDivElement>(null);
   const flyoutRef = useRef<HTMLDivElement>(null);
   const leaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const trailRef = useRef<Point[]>([]);
+  // Where the pointer was when it left "Open recent" heading for the flyout.
+  const aimApexRef = useRef<Point | null>(null);
   const [flyoutIsLeft, setFlyoutIsLeft] = useState(false);
 
   const recentFiles = useSettingsStore((s) => s.recentFiles);
@@ -130,6 +140,7 @@ export function TabStrip() {
   // Close flyout when clicking outside or on specific flyout actions, and cleanup timeouts
   useEffect(() => {
     if (!flyoutOpen) return;
+    trailRef.current = [];
 
     const onDown = (e: MouseEvent) => {
       if (!submenuRef.current?.contains(e.target as Node)) {
@@ -137,13 +148,30 @@ export function TabStrip() {
       }
     };
 
+    // A pointer heading for the flyout leaves "Open recent" and crosses empty space first. While it
+    // stays inside the triangle towards the flyout, each step just restarts the rest timer;
+    // leaving the triangle closes the flyout after the usual delay.
+    const onMove = (e: MouseEvent) => {
+      const point = { x: e.clientX, y: e.clientY };
+      trailRef.current = [...trailRef.current, point].slice(-3);
+      const apex = aimApexRef.current;
+      const box = flyoutRef.current?.getBoundingClientRect();
+      if (!apex || !box) return;
+      if (isHeadingForSubmenu(point, apex, box)) {
+        scheduleFlyoutClose(FLYOUT_AIM_REST_MS);
+      } else {
+        aimApexRef.current = null;
+        scheduleFlyoutClose(FLYOUT_CLOSE_DELAY_MS);
+      }
+    };
+
     window.addEventListener('mousedown', onDown);
+    window.addEventListener('mousemove', onMove);
     return () => {
       window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('mousemove', onMove);
       // Clear any pending leave timeout
-      if (leaveTimeoutRef.current) {
-        clearTimeout(leaveTimeoutRef.current);
-      }
+      cancelFlyoutClose();
     };
   }, [flyoutOpen]);
 
@@ -298,17 +326,38 @@ export function TabStrip() {
   const activeTabIndex = items.findIndex((t) => t.active);
 
   // Handle mouse enter/leave for flyout with delay
-  const handleSubmenuMouseEnter = () => {
+  function cancelFlyoutClose() {
     if (leaveTimeoutRef.current) {
       clearTimeout(leaveTimeoutRef.current);
+      leaveTimeoutRef.current = undefined;
     }
+    aimApexRef.current = null;
+  }
+
+  function scheduleFlyoutClose(delay: number) {
+    if (leaveTimeoutRef.current) clearTimeout(leaveTimeoutRef.current);
+    leaveTimeoutRef.current = setTimeout(() => setFlyoutOpen(false), delay);
+  }
+
+  const handleSubmenuMouseEnter = () => {
+    cancelFlyoutClose();
     setFlyoutOpen(true);
   };
 
-  const handleSubmenuMouseLeave = () => {
-    leaveTimeoutRef.current = setTimeout(() => {
-      setFlyoutOpen(false);
-    }, 150);
+  const handleSubmenuMouseLeave = (e: React.MouseEvent) => {
+    const box = flyoutRef.current?.getBoundingClientRect();
+    const apex = trailRef.current[0];
+    if (
+      flyoutOpen &&
+      box &&
+      apex &&
+      isHeadingForSubmenu({ x: e.clientX, y: e.clientY }, apex, box)
+    ) {
+      aimApexRef.current = apex;
+      scheduleFlyoutClose(FLYOUT_AIM_REST_MS);
+    } else {
+      scheduleFlyoutClose(FLYOUT_CLOSE_DELAY_MS);
+    }
   };
 
   const handleOpenRecentClick = () => {

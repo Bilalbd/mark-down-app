@@ -163,4 +163,131 @@ describe('ContextMenu', () => {
     expect(menu.style.left).toBe('0px');
     expect(menu.style.top).toBe('0px');
   });
+
+  describe('submenu hover aim', () => {
+    const SUBMENU_BOX = { left: 200, right: 400, top: 100, bottom: 300 };
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      // jsdom has no layout: give the submenu a box to the right of the trigger item.
+      vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+        this: HTMLElement,
+      ) {
+        const box = this.classList.contains('context-menu--submenu')
+          ? SUBMENU_BOX
+          : { left: 0, right: 0, top: 0, bottom: 0 };
+        return { ...box, x: box.left, y: box.top, width: 0, height: 0, toJSON: () => box };
+      });
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      vi.useRealTimers();
+    });
+
+    const item = (label: string) =>
+      Array.from(document.body.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(
+        (el) => el.textContent === label,
+      ) as HTMLElement;
+
+    const submenuOpen = () => document.body.querySelector('.context-menu--submenu') !== null;
+
+    function move(target: HTMLElement, x: number, y: number) {
+      act(() => {
+        target.dispatchEvent(
+          new MouseEvent('mousemove', { bubbles: true, clientX: x, clientY: y }),
+        );
+      });
+    }
+
+    /** React derives `mouseenter` from `mouseout` on the element being left when the pointer
+     * moves between elements, and from `mouseover` when it comes from outside the page. */
+    function enter(target: HTMLElement, from: HTMLElement | null, x: number, y: number) {
+      const init = { bubbles: true, clientX: x, clientY: y };
+      act(() => {
+        if (from)
+          from.dispatchEvent(new MouseEvent('mouseout', { ...init, relatedTarget: target }));
+        else target.dispatchEvent(new MouseEvent('mouseover', init));
+      });
+    }
+
+    function advance(ms: number) {
+      act(() => {
+        vi.advanceTimersByTime(ms);
+      });
+    }
+
+    /** Hovers "More" (which opens its submenu) and moves a few pixels inside it. */
+    function hoverMore() {
+      render();
+      const more = item('More');
+      enter(more, null, 148, 112);
+      move(more, 150, 114);
+      move(more, 160, 120);
+      move(more, 170, 128);
+      expect(submenuOpen()).toBe(true);
+      return more;
+    }
+
+    it('keeps the submenu open while the pointer crosses another item on the way to it', () => {
+      const more = hoverMore();
+      const three = item('Three');
+      enter(three, more, 175, 132);
+      move(three, 180, 136);
+      advance(200);
+      expect(submenuOpen()).toBe(true);
+    });
+
+    it('closes the submenu after the pointer rests on that item for 300 ms', () => {
+      const more = hoverMore();
+      const three = item('Three');
+      enter(three, more, 175, 132);
+      move(three, 180, 136);
+      advance(299);
+      expect(submenuOpen()).toBe(true);
+      advance(2);
+      expect(submenuOpen()).toBe(false);
+    });
+
+    it('closes the submenu once a move leaves the triangle towards it', () => {
+      const more = hoverMore();
+      const three = item('Three');
+      enter(three, more, 175, 132);
+      move(three, 180, 136);
+      move(three, 160, 200); // veers away, straight down
+      advance(151);
+      expect(submenuOpen()).toBe(false);
+    });
+
+    it('closes the submenu 150 ms after moving straight down to another item', () => {
+      const more = hoverMore();
+      const three = item('Three');
+      enter(three, more, 150, 140);
+      move(three, 150, 141);
+      advance(149);
+      expect(submenuOpen()).toBe(true);
+      advance(2);
+      expect(submenuOpen()).toBe(false);
+    });
+
+    it('keeps the submenu open once the pointer arrives in it', () => {
+      const more = hoverMore();
+      const three = item('Three');
+      enter(three, more, 175, 132);
+      move(three, 180, 136);
+      const submenu = document.body.querySelector('.context-menu--submenu') as HTMLElement;
+      enter(submenu, three, 205, 140);
+      advance(1000);
+      expect(submenuOpen()).toBe(true);
+    });
+
+    it('keeps the submenu open while the pointer is on one of its items', () => {
+      const more = hoverMore();
+      const moreA = item('More A');
+      enter(moreA, more, 205, 110);
+      move(moreA, 210, 112);
+      advance(1000);
+      expect(submenuOpen()).toBe(true);
+    });
+  });
 });

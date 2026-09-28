@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronRight, type LucideIcon } from 'lucide-react';
+import { isHeadingForSubmenu, type Point } from '@/lib/menuAim';
 import { flyoutSide, menuPosition } from '@/lib/tabs';
 import './ContextMenu.css';
 
@@ -9,6 +10,13 @@ const MENU_ICON = { size: 14, strokeWidth: 1.75, absoluteStrokeWidth: true } as 
 /** How long the mouse can rest on a plain item before a still-open submenu closes. Mirrors the
  * tab strip's "Open recent" flyout so both menus feel the same. */
 const SUBMENU_CLOSE_DELAY_MS = 150;
+
+/** How long the pointer can rest on an item while it is still inside the triangle towards an open
+ * submenu before the submenu closes: long enough to be a pause, not a step on the way. */
+const SUBMENU_AIM_REST_MS = 300;
+
+/** How many recent pointer positions are kept; the oldest is where a move towards a submenu began. */
+const POINTER_TRAIL_LENGTH = 3;
 
 export interface MenuItemData {
   id: string;
@@ -74,11 +82,46 @@ export function ContextMenu({ x, y, items, onAction, onClose, ariaLabel }: Conte
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
   const [submenuPos, setSubmenuPos] = useState({ left: 0, top: 0 });
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const trailRef = useRef<Point[]>([]);
+  // Where the pointer was when it started heading for the open submenu (see `aimAtSubmenu`).
+  const aimApexRef = useRef<Point | null>(null);
 
   const cancelSubmenuClose = () => {
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current);
       closeTimerRef.current = undefined;
+    }
+    aimApexRef.current = null;
+  };
+
+  const closeSubmenuAfter = (delay: number) => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => setOpenSubmenu(null), delay);
+  };
+
+  /** Whether the pointer at `point` is still heading for the open submenu, judged from where the
+   * move began (`aimApexRef`, or the oldest recent position when a move has just started). */
+  const aimAtSubmenu = (point: Point): boolean => {
+    const box = submenuRef.current?.getBoundingClientRect();
+    const apex = aimApexRef.current ?? trailRef.current[0];
+    if (!box || !apex) return false;
+    if (!isHeadingForSubmenu(point, apex, box)) return false;
+    aimApexRef.current = apex;
+    return true;
+  };
+
+  // A pointer heading for the submenu passes over other items on the way. While it stays inside the
+  // triangle towards the submenu, each step just restarts the rest timer; leaving it closes the
+  // submenu after the usual delay.
+  const onMenuMouseMove = (e: React.MouseEvent) => {
+    const point = { x: e.clientX, y: e.clientY };
+    trailRef.current = [...trailRef.current, point].slice(-POINTER_TRAIL_LENGTH);
+    if (!aimApexRef.current) return;
+    if (aimAtSubmenu(point)) {
+      closeSubmenuAfter(SUBMENU_AIM_REST_MS);
+    } else {
+      aimApexRef.current = null;
+      closeSubmenuAfter(SUBMENU_CLOSE_DELAY_MS);
     }
   };
 
@@ -222,7 +265,7 @@ export function ContextMenu({ x, y, items, onAction, onClose, ariaLabel }: Conte
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [items, openSubmenu, onAction, onClose]);
 
-  const renderItem = (entry: MenuEntry) => {
+  const renderItem = (entry: MenuEntry, inSubmenu = false) => {
     if (isSeparator(entry)) {
       return <div key={entry.id} role="separator" className="context-menu__separator" />;
     }
@@ -239,11 +282,13 @@ export function ContextMenu({ x, y, items, onAction, onClose, ariaLabel }: Conte
         aria-haspopup={hasSubmenu ? 'menu' : undefined}
         aria-expanded={hasSubmenu ? openSubmenu === entry.id : undefined}
         aria-keyshortcuts={entry.ariaKeyShortcuts}
-        onMouseEnter={() => {
-          cancelSubmenuClose();
+        onMouseEnter={(e) => {
+          const point = { x: e.clientX, y: e.clientY };
+          const towardsSubmenu = !inSubmenu && !hasSubmenu && !!openSubmenu && aimAtSubmenu(point);
+          if (!towardsSubmenu) cancelSubmenuClose();
           if (hasSubmenu) setOpenSubmenu(entry.id);
-          else if (openSubmenu)
-            closeTimerRef.current = setTimeout(() => setOpenSubmenu(null), SUBMENU_CLOSE_DELAY_MS);
+          else if (towardsSubmenu) closeSubmenuAfter(SUBMENU_AIM_REST_MS);
+          else if (openSubmenu && !inSubmenu) closeSubmenuAfter(SUBMENU_CLOSE_DELAY_MS);
         }}
         onClick={() => {
           if (hasSubmenu) {
@@ -272,8 +317,9 @@ export function ContextMenu({ x, y, items, onAction, onClose, ariaLabel }: Conte
         aria-label={ariaLabel}
         className="context-menu"
         style={{ left: pos.left, top: pos.top }}
+        onMouseMove={onMenuMouseMove}
       >
-        {items.map(renderItem)}
+        {items.map((entry) => renderItem(entry))}
       </div>
       {openItem?.submenu && (
         <div
@@ -283,11 +329,9 @@ export function ContextMenu({ x, y, items, onAction, onClose, ariaLabel }: Conte
           className="context-menu context-menu--submenu"
           style={{ left: submenuPos.left, top: submenuPos.top }}
           onMouseEnter={cancelSubmenuClose}
-          onMouseLeave={() => {
-            closeTimerRef.current = setTimeout(() => setOpenSubmenu(null), SUBMENU_CLOSE_DELAY_MS);
-          }}
+          onMouseLeave={() => closeSubmenuAfter(SUBMENU_CLOSE_DELAY_MS)}
         >
-          {openItem.submenu.map(renderItem)}
+          {openItem.submenu.map((entry) => renderItem(entry, true))}
         </div>
       )}
     </>,
