@@ -52,8 +52,8 @@ function setLineHeading(line: string, level: number): string {
   // Remove existing heading marker
   suffix = removeHeadingMarker(suffix);
 
-  // Add new heading marker if level > 0
-  if (level > 0) {
+  // Add new heading marker if level > 0 and the suffix is not blank
+  if (level > 0 && suffix.trim() !== '') {
     suffix = '#'.repeat(level) + ' ' + suffix;
   }
 
@@ -77,17 +77,19 @@ export function setHeading(
   state: EditorState,
   level: 0 | 1 | 2 | 3 | 4 | 5 | 6,
 ): TransactionSpec | null {
-  const changes: ChangeSpec[] = [];
-
-  state.changeByRange((range) => {
+  const spec = state.changeByRange((range) => {
     const startLine = state.doc.lineAt(range.from);
     const endLine = state.doc.lineAt(range.to);
+    const changes: ChangeSpec[] = [];
 
     for (let lineNo = startLine.number; lineNo <= endLine.number; lineNo++) {
       const line = state.doc.line(lineNo);
       const text = line.text;
 
-      // Check if all touched lines already have this level
+      // Skip blank lines
+      if (text.trim() === '') continue;
+
+      // Check if all touched non-blank lines already have this level
       const hasLevel = hasHeadingLevel(text, level);
 
       const newText = setLineHeading(text, hasLevel ? 0 : level);
@@ -96,15 +98,12 @@ export function setHeading(
       }
     }
 
-    return { range: EditorSelection.range(range.from, range.to) };
+    return { changes, range: EditorSelection.range(range.from, range.to) };
   });
 
-  if (changes.length === 0) return null;
+  if (!spec.changes || spec.changes.length === 0) return null;
 
-  return {
-    changes,
-    userEvent: 'input.format',
-  };
+  return { ...spec, userEvent: 'input.format' };
 }
 
 /** Find the longest run of the marker character in the text. */
@@ -122,13 +121,16 @@ function longestRun(text: string, char: string): number {
   return max;
 }
 
+/** Detect word characters (letters, digits, underscore, apostrophe). */
+function isWordChar(c: string): boolean {
+  return /[\p{L}\p{N}_']/u.test(c);
+}
+
 /** Toggle marker wrapping (e.g., ** for bold). Handles selection on word, multi-line, etc. */
 function toggleMarker(state: EditorState, marker: string, isCode = false): TransactionSpec | null {
-  const changes: ChangeSpec[] = [];
-
-  state.changeByRange((range) => {
+  const spec = state.changeByRange((range) => {
     const { from, to } = range;
-    const text = state.doc.sliceString(from, to);
+    let text = state.doc.sliceString(from, to);
 
     if (text === '') {
       // Empty selection: find the word under cursor or insert pair
@@ -136,88 +138,47 @@ function toggleMarker(state: EditorState, marker: string, isCode = false): Trans
       const lineText = line.text;
       const colInLine = from - line.from;
 
-      // Find word at cursor
-      const wordStart = Math.max(
-        0,
-        lineText.lastIndexOf(' ', colInLine - 1) + 1,
-        lineText.lastIndexOf('\t', colInLine - 1) + 1,
-      );
-      const wordEnd = lineText.indexOf(' ', colInLine);
-      const wordEndTab = lineText.indexOf('\t', colInLine);
-      const actualEnd = Math.min(
-        lineText.length,
-        wordEnd === -1 ? lineText.length : wordEnd,
-        wordEndTab === -1 ? lineText.length : wordEndTab,
-      );
+      // Find word boundaries using word character detection
+      let wordStart = colInLine;
+      let wordEnd = colInLine;
 
-      if (wordStart !== actualEnd && wordStart < colInLine && colInLine <= actualEnd) {
+      // Extend backwards to find start of word
+      while (wordStart > 0 && isWordChar(lineText[wordStart - 1])) {
+        wordStart--;
+      }
+
+      // Extend forwards to find end of word
+      while (wordEnd < lineText.length && isWordChar(lineText[wordEnd])) {
+        wordEnd++;
+      }
+
+      if (wordStart < wordEnd && wordStart <= colInLine && colInLine <= wordEnd) {
         // Word found under cursor
-        const word = lineText.slice(wordStart, actualEnd);
+        const word = lineText.slice(wordStart, wordEnd);
         const start = line.from + wordStart;
-        const end = line.from + actualEnd;
+        const end = line.from + wordEnd;
         const wrapped = marker + word + marker;
-        changes.push({ from: start, to: end, insert: wrapped });
         return {
+          changes: [{ from: start, to: end, insert: wrapped }],
           range: EditorSelection.range(start, start + wrapped.length),
         };
       } else {
         // No word: insert pair with cursor between
         const pair = marker + marker;
-        changes.push({ from, to, insert: pair });
         return {
+          changes: [{ from, to, insert: pair }],
           range: EditorSelection.cursor(from + marker.length),
         };
       }
     }
 
-    // Non-empty selection: check for wrapping or multiple lines
-    const lines = text.split('\n');
-    const hasMultipleLines = lines.length > 1;
-
-    if (hasMultipleLines) {
-      // Multi-line: apply to each non-empty line separately
-      let offset = 0;
-      let newText = '';
-      for (const line of lines) {
-        if (line.trim() === '') {
-          newText += line + '\n';
-        } else {
-          const leading = line.length - line.trimStart().length;
-          const trailing = line.length - line.trimEnd().length;
-          const spaces = line.slice(0, leading);
-          const content = line.slice(leading, line.length - trailing);
-          const trailingSpaces = line.slice(line.length - trailing);
-
-          const isWrapped =
-            content.startsWith(marker) &&
-            content.endsWith(marker) &&
-            content.length >= marker.length * 2;
-
-          if (isWrapped) {
-            newText += spaces + content.slice(marker.length, -marker.length) + trailingSpaces;
-          } else {
-            newText += spaces + marker + content + marker + trailingSpaces;
-          }
-          if (offset < text.length - 1) newText += '\n';
-        }
-        offset += line.length + 1;
-      }
-      const result = newText.endsWith('\n') ? newText.slice(0, -1) : newText;
-      changes.push({ from, to, insert: result });
-      return {
-        range: EditorSelection.range(from, from + result.length),
-      };
-    }
-
-    // Single line: handle wrapping with space trimming
+    // Non-empty selection: check for unwrapping or wrapping
     const trimmedText = text.trimStart();
     const leadingSpaces = text.length - trimmedText.length;
     const trailingText = trimmedText.trimEnd();
     const trailingSpaces = trimmedText.length - trailingText.length;
 
-    // Check if wrapped with the marker at boundaries
-    // *text* is wrapped with *, but **text** is not (when looking for *)
-    // The key: after the marker, the next character must not be the same character as the first char of the marker
+    // Check if wrapped: markers are right at the boundaries (not doubled)
     const contentLength = trailingText.length - marker.length * 2;
     const isWrapped =
       trailingText.startsWith(marker) &&
@@ -233,39 +194,70 @@ function toggleMarker(state: EditorState, marker: string, isCode = false): Trans
         trailingText.slice(marker.length, -marker.length) +
         ' '.repeat(trailingSpaces);
     } else {
-      // Wrap
-      if (isCode) {
-        // For code: handle backtick runs
-        const longest = longestRun(trailingText, '`');
-        const fence = '`'.repeat(Math.max(longest + 1, 1));
-        const needsSpace = trailingText.startsWith('`') || trailingText.endsWith('`');
-        const spacer = needsSpace ? ' ' : '';
-        newText =
-          ' '.repeat(leadingSpaces) +
-          fence +
-          spacer +
-          trailingText +
-          spacer +
-          fence +
-          ' '.repeat(trailingSpaces);
+      // Wrap - check for multi-line
+      const lines = text.split('\n');
+      const hasMultipleLines = lines.length > 1;
+
+      if (hasMultipleLines) {
+        // Multi-line: apply to each non-empty line separately
+        const resultLines = lines.map((line) => {
+          if (line.trim() === '') return line;
+          const leading = line.length - line.trimStart().length;
+          const trailing = line.length - line.trimEnd().length;
+          const spaces = line.slice(0, leading);
+          const content = line.slice(leading, line.length - trailing);
+          const trailingSpaces = line.slice(line.length - trailing);
+          return spaces + marker + content + marker + trailingSpaces;
+        });
+        newText = resultLines.join('\n');
       } else {
-        newText =
-          ' '.repeat(leadingSpaces) + marker + trailingText + marker + ' '.repeat(trailingSpaces);
+        // Single line: simple wrapping
+        if (isCode) {
+          // For code: handle backtick runs
+          const longest = longestRun(trailingText, '`');
+          const fence = '`'.repeat(Math.max(longest + 1, 1));
+          const needsSpace = trailingText.startsWith('`') || trailingText.endsWith('`');
+          const spacer = needsSpace ? ' ' : '';
+          newText =
+            ' '.repeat(leadingSpaces) +
+            fence +
+            spacer +
+            trailingText +
+            spacer +
+            fence +
+            ' '.repeat(trailingSpaces);
+        } else {
+          newText =
+            ' '.repeat(leadingSpaces) + marker + trailingText + marker + ' '.repeat(trailingSpaces);
+        }
       }
     }
 
-    changes.push({ from, to, insert: newText });
+    // Calculate selection after transformation
+    // For wrapping: selection covers the content part (between markers)
+    // For unwrapping: selection covers the unwrapped text
+    let selectionStart = from;
+    let selectionEnd = from;
+
+    if (isWrapped) {
+      // Unwrapped: selection on the bare content
+      selectionStart = from;
+      selectionEnd = from + newText.length;
+    } else {
+      // Wrapped: selection on content (not on markers)
+      selectionStart = from + marker.length;
+      selectionEnd = from + newText.length - marker.length;
+    }
+
     return {
-      range: EditorSelection.range(from, from + newText.length),
+      changes: [{ from, to, insert: newText }],
+      range: EditorSelection.range(selectionStart, selectionEnd),
     };
   });
 
-  if (changes.length === 0) return null;
+  if (!spec.changes || spec.changes.length === 0) return null;
 
-  return {
-    changes,
-    userEvent: 'input.format',
-  };
+  return { ...spec, userEvent: 'input.format' };
 }
 
 /** Toggle bold (**). */
@@ -290,11 +282,11 @@ export function toggleInlineCode(state: EditorState): TransactionSpec | null {
 
 /** Insert a link: selection/word → [text](url), or [](url) if the text looks like a URL. */
 export function insertLink(state: EditorState): TransactionSpec | null {
-  const changes: ChangeSpec[] = [];
-
-  state.changeByRange((range) => {
+  const spec = state.changeByRange((range) => {
     const { from, to } = range;
     let text = state.doc.sliceString(from, to);
+    let actualFrom = from;
+    let actualTo = to;
 
     if (text === '') {
       // Empty selection: find the word under cursor
@@ -302,20 +294,22 @@ export function insertLink(state: EditorState): TransactionSpec | null {
       const lineText = line.text;
       const colInLine = from - line.from;
 
-      const wordStart = Math.max(
-        0,
-        lineText.lastIndexOf(' ', colInLine - 1) + 1,
-        lineText.lastIndexOf('\t', colInLine - 1) + 1,
-      );
-      const wordEnd = Math.min(
-        lineText.length,
-        lineText.indexOf(' ', colInLine) === -1
-          ? lineText.length
-          : lineText.indexOf(' ', colInLine),
-      );
+      // Find word boundaries
+      let wordStart = colInLine;
+      let wordEnd = colInLine;
 
-      if (wordStart < wordEnd && wordStart < colInLine && colInLine <= wordEnd) {
+      while (wordStart > 0 && isWordChar(lineText[wordStart - 1])) {
+        wordStart--;
+      }
+
+      while (wordEnd < lineText.length && isWordChar(lineText[wordEnd])) {
+        wordEnd++;
+      }
+
+      if (wordStart < wordEnd && wordStart <= colInLine && colInLine <= wordEnd) {
         text = lineText.slice(wordStart, wordEnd);
+        actualFrom = line.from + wordStart;
+        actualTo = line.from + wordEnd;
       }
     }
 
@@ -326,36 +320,32 @@ export function insertLink(state: EditorState): TransactionSpec | null {
 
     if (looksLikeUrl) {
       newText = '[](' + text + ')';
-      cursorPos = from + 1; // cursor inside []
+      cursorPos = actualFrom + 1; // cursor inside []
     } else if (text === '') {
       newText = '[](url)';
-      cursorPos = from + 1; // cursor inside []
+      cursorPos = actualFrom + 7; // select url
     } else {
       newText = '[' + text + '](url)';
-      cursorPos = from + text.length + 3; // cursor inside ()
+      cursorPos = actualFrom + text.length + 3; // select url
     }
 
-    changes.push({ from, to, insert: newText });
-
     return {
-      range: EditorSelection.cursor(cursorPos),
+      changes: [{ from: actualFrom, to: actualTo, insert: newText }],
+      range: EditorSelection.range(cursorPos, cursorPos + (looksLikeUrl ? text.length : 3)),
     };
   });
 
-  return {
-    changes,
-    userEvent: 'input.format',
-  };
+  if (!spec.changes || spec.changes.length === 0) return null;
+
+  return { ...spec, userEvent: 'input.format' };
 }
 
 /** Toggle code block. */
 export function toggleCodeBlock(state: EditorState): TransactionSpec | null {
-  const changes: ChangeSpec[] = [];
-  const tree = syntaxTree(state);
-
-  state.changeByRange((range) => {
+  const spec = state.changeByRange((range) => {
     const startLine = state.doc.lineAt(range.from);
     const endLine = state.doc.lineAt(range.to);
+    const tree = syntaxTree(state);
 
     // Check if we're inside a code block
     let isInCodeBlock = false;
@@ -374,49 +364,38 @@ export function toggleCodeBlock(state: EditorState): TransactionSpec | null {
       },
     });
 
+    const changes: ChangeSpec[] = [];
+
     if (isInCodeBlock && codeBlockStart >= 0 && codeBlockEnd >= 0) {
-      // Remove code block: delete the fence lines
+      // Remove code block: delete the fence lines only
       const blockStartLine = state.doc.lineAt(codeBlockStart);
       const blockEndLine = state.doc.lineAt(codeBlockEnd - 1);
 
-      const lines = [];
-      for (let i = blockStartLine.number; i <= blockEndLine.number; i++) {
-        const line = state.doc.line(i);
-        const text = line.text;
-        if (text.match(/^```+/)) {
-          // This is a fence line, skip it
-          continue;
-        }
-        lines.push(line);
-      }
-
-      // Remove all fence lines
-      const delChanges: ChangeSpec[] = [];
+      // Collect fence line positions (in reverse order to delete correctly)
+      const linesToDelete: Array<{ from: number; to: number }> = [];
       for (let i = blockEndLine.number; i >= blockStartLine.number; i--) {
         const line = state.doc.line(i);
-        if (line.text.match(/^```+/)) {
-          delChanges.push({
+        if (line.text.match(/^```+|^~~~+/)) {
+          linesToDelete.push({
             from: line.from,
             to: i === blockEndLine.number ? line.to : line.to + 1,
           });
         }
       }
 
-      changes.push(...delChanges);
+      // Add delete changes in reverse
+      for (const del of linesToDelete) {
+        changes.push({ from: del.from, to: del.to, insert: '' });
+      }
 
       return {
+        changes,
         range: EditorSelection.cursor(blockStartLine.from),
       };
     } else {
       // Add code block
-      const firstLine = startLine;
-      const lastLine = endLine;
-
-      const contentStart = firstLine.from;
-      const contentEnd = lastLine.to;
       let fenceContent = '';
-
-      for (let i = firstLine.number; i <= lastLine.number; i++) {
+      for (let i = startLine.number; i <= endLine.number; i++) {
         const line = state.doc.line(i);
         fenceContent += line.text + '\n';
       }
@@ -426,34 +405,31 @@ export function toggleCodeBlock(state: EditorState): TransactionSpec | null {
       const fence = '`'.repeat(Math.max(longest + 1, 3));
 
       const newText = fence + '\n' + fenceContent + fence + '\n';
-      changes.push({
-        from: contentStart,
-        to: contentEnd,
-        insert: newText,
-      });
 
-      // Cursor after opening fence
       return {
-        range: EditorSelection.cursor(contentStart + fence.length + 1),
+        changes: [
+          {
+            from: startLine.from,
+            to: endLine.to,
+            insert: newText,
+          },
+        ],
+        range: EditorSelection.cursor(startLine.from + fence.length + 1),
       };
     }
   });
 
-  if (changes.length === 0) return null;
+  if (!spec.changes || spec.changes.length === 0) return null;
 
-  return {
-    changes,
-    userEvent: 'input.format',
-  };
+  return { ...spec, userEvent: 'input.format' };
 }
 
 /** Toggle blockquote. */
 export function toggleQuote(state: EditorState): TransactionSpec | null {
-  const changes: ChangeSpec[] = [];
-
-  state.changeByRange((range) => {
+  const spec = state.changeByRange((range) => {
     const startLine = state.doc.lineAt(range.from);
     const endLine = state.doc.lineAt(range.to);
+    const changes: ChangeSpec[] = [];
 
     // Check if all non-blank lines already have > prefix
     let allQuoted = true;
@@ -467,25 +443,38 @@ export function toggleQuote(state: EditorState): TransactionSpec | null {
 
     for (let i = startLine.number; i <= endLine.number; i++) {
       const line = state.doc.line(i);
-      if (line.text.trim() === '') continue;
+      const lineText = line.text;
 
       let newText: string;
-      const lineText = line.text;
-      if (allQuoted && lineText.trimStart().startsWith('> ')) {
-        // Remove one level
-        const trimmed = lineText.trimStart();
-        const leading = lineText.slice(0, lineText.length - trimmed.length);
-        newText = leading + trimmed.slice(2);
-      } else if (allQuoted && lineText.trimStart().startsWith('>')) {
-        // Remove > without space
-        const trimmed = lineText.trimStart();
-        const leading = lineText.slice(0, lineText.length - trimmed.length);
-        newText = leading + trimmed.slice(1);
+      if (lineText.trim() === '') {
+        // Blank lines get `>` when quoting
+        if (allQuoted && lineText.trimStart().startsWith('>')) {
+          const trimmed = lineText.trimStart();
+          const leading = lineText.slice(0, lineText.length - trimmed.length);
+          newText = leading + (trimmed.startsWith('> ') ? trimmed.slice(2) : trimmed.slice(1));
+        } else if (!allQuoted) {
+          newText = '>';
+        } else {
+          continue;
+        }
       } else {
-        // Add > prefix
-        const trimmed = lineText.trimStart();
-        const leading = lineText.slice(0, lineText.length - trimmed.length);
-        newText = leading + '> ' + trimmed;
+        // Non-blank lines
+        if (allQuoted && lineText.trimStart().startsWith('> ')) {
+          // Remove one level
+          const trimmed = lineText.trimStart();
+          const leading = lineText.slice(0, lineText.length - trimmed.length);
+          newText = leading + trimmed.slice(2);
+        } else if (allQuoted && lineText.trimStart().startsWith('>')) {
+          // Remove > without space
+          const trimmed = lineText.trimStart();
+          const leading = lineText.slice(0, lineText.length - trimmed.length);
+          newText = leading + trimmed.slice(1);
+        } else {
+          // Add > prefix
+          const trimmed = lineText.trimStart();
+          const leading = lineText.slice(0, lineText.length - trimmed.length);
+          newText = leading + '> ' + trimmed;
+        }
       }
 
       if (newText !== lineText) {
@@ -493,15 +482,12 @@ export function toggleQuote(state: EditorState): TransactionSpec | null {
       }
     }
 
-    return { range: EditorSelection.range(range.from, range.to) };
+    return { changes, range: EditorSelection.range(range.from, range.to) };
   });
 
-  if (changes.length === 0) return null;
+  if (!spec.changes || spec.changes.length === 0) return null;
 
-  return {
-    changes,
-    userEvent: 'input.format',
-  };
+  return { ...spec, userEvent: 'input.format' };
 }
 
 /** Toggle list marker. */
@@ -509,11 +495,10 @@ export function toggleList(
   state: EditorState,
   kind: 'bullet' | 'ordered' | 'task',
 ): TransactionSpec | null {
-  const changes: ChangeSpec[] = [];
-
-  state.changeByRange((range) => {
+  const spec = state.changeByRange((range) => {
     const startLine = state.doc.lineAt(range.from);
     const endLine = state.doc.lineAt(range.to);
+    const changes: ChangeSpec[] = [];
 
     // Check if all non-blank lines already have this kind of marker
     let allHaveKind = true;
@@ -524,11 +509,12 @@ export function toggleList(
       const trimmed = line.text.trimStart();
       let hasMarker = false;
 
-      if (kind === 'bullet' && /^[-*+] /.test(trimmed)) {
+      // Check task BEFORE bullet (since task has bullet marker too)
+      if (kind === 'task' && /^- \[[x ]\] /.test(trimmed)) {
+        hasMarker = true;
+      } else if (kind === 'bullet' && /^[-*+] /.test(trimmed)) {
         hasMarker = true;
       } else if (kind === 'ordered' && /^\d+[.)]\s/.test(trimmed)) {
-        hasMarker = true;
-      } else if (kind === 'task' && /^- \[[x ]\] /.test(trimmed)) {
         hasMarker = true;
       }
 
@@ -538,7 +524,7 @@ export function toggleList(
       }
     }
 
-    let lineNum = startLine.number;
+    let lineCountForNumbering = 1;
     for (let i = startLine.number; i <= endLine.number; i++) {
       const line = state.doc.line(i);
       if (line.text.trim() === '') continue;
@@ -551,45 +537,38 @@ export function toggleList(
 
       if (allHaveKind) {
         // Remove marker
-        let marker = '';
         let content = trimmed;
 
-        if (/^[-*+] /.test(trimmed)) {
-          marker = trimmed[0];
+        if (/^- \[[x ]\] /.test(trimmed)) {
+          content = trimmed.slice(6);
+        } else if (/^[-*+] /.test(trimmed)) {
           content = trimmed.slice(2);
         } else if (/^\d+[.)]\s/.test(trimmed)) {
           const m = /^\d+[.)]\s/.exec(trimmed);
-          marker = m![0];
-          content = trimmed.slice(marker.length);
-        } else if (/^- \[[x ]\] /.test(trimmed)) {
-          marker = trimmed.slice(0, 6);
-          content = trimmed.slice(6);
+          content = trimmed.slice(m![0].length);
         }
 
         newText = leading + content;
       } else {
         // Replace or add marker
         let content = trimmed;
-        let newMarker = '';
 
-        // Remove existing marker if any
-        const bulletMatch = /^[-*+] /.exec(trimmed);
-        const orderedMatch = /^\d+[.)]\s/.exec(trimmed);
-        const taskMatch = /^- \[[x ]\] /.exec(trimmed);
-
-        if (bulletMatch) {
-          content = trimmed.slice(bulletMatch[0].length);
-        } else if (orderedMatch) {
-          content = trimmed.slice(orderedMatch[0].length);
-        } else if (taskMatch) {
-          content = trimmed.slice(taskMatch[0].length);
+        // Remove existing marker if any (check task first)
+        if (/^- \[[x ]\] /.test(trimmed)) {
+          content = trimmed.slice(6);
+        } else if (/^[-*+] /.test(trimmed)) {
+          content = trimmed.slice(2);
+        } else if (/^\d+[.)]\s/.test(trimmed)) {
+          const m = /^\d+[.)]\s/.exec(trimmed);
+          content = trimmed.slice(m![0].length);
         }
 
         // Add new marker
+        let newMarker = '';
         if (kind === 'bullet') {
           newMarker = '- ';
         } else if (kind === 'ordered') {
-          newMarker = lineNum + '. ';
+          newMarker = lineCountForNumbering + '. ';
         } else if (kind === 'task') {
           newMarker = '- [ ] ';
         }
@@ -601,31 +580,27 @@ export function toggleList(
         changes.push({ from: line.from, to: line.to, insert: newText });
       }
 
-      lineNum++;
+      lineCountForNumbering++;
     }
 
-    return { range: EditorSelection.range(range.from, range.to) };
+    return { changes, range: EditorSelection.range(range.from, range.to) };
   });
 
-  if (changes.length === 0) return null;
+  if (!spec.changes || spec.changes.length === 0) return null;
 
-  return {
-    changes,
-    userEvent: 'input.format',
-  };
+  return { ...spec, userEvent: 'input.format' };
 }
 
 /** Insert a horizontal rule. */
 export function insertHorizontalRule(state: EditorState): TransactionSpec | null {
-  const changes: ChangeSpec[] = [];
-
-  state.changeByRange((range) => {
+  const spec = state.changeByRange((range) => {
     const line = state.doc.lineAt(range.from);
-    const insertAt = line.from;
+    const lineStart = line.from;
+
     let before = '';
     let after = '';
 
-    // Check if there's a blank line before
+    // Check if there's a blank line before (not at document start)
     if (line.number > 1) {
       const prevLine = state.doc.line(line.number - 1);
       if (prevLine.text.trim() !== '') {
@@ -633,7 +608,7 @@ export function insertHorizontalRule(state: EditorState): TransactionSpec | null
       }
     }
 
-    // Check if there's a blank line after
+    // Check if there's a blank line after (not at document end)
     if (line.number < state.doc.lines) {
       const nextLine = state.doc.line(line.number + 1);
       if (nextLine.text.trim() !== '') {
@@ -641,21 +616,16 @@ export function insertHorizontalRule(state: EditorState): TransactionSpec | null
       }
     }
 
-    const rule = before + '---' + after;
-    changes.push({ from: insertAt, to: insertAt, insert: rule });
-
-    // Cursor after the rule
-    const cursorPos = insertAt + before.length + 3;
+    const insertText = line.to === state.doc.length ? before + '---\n' : before + '---' + after;
+    const insertPos = line.to + 1;
 
     return {
-      range: EditorSelection.cursor(cursorPos),
+      changes: [{ from: insertPos, to: insertPos, insert: insertText }],
+      range: EditorSelection.cursor(insertPos + before.length + 3),
     };
   });
 
-  if (changes.length === 0) return null;
+  if (!spec.changes || spec.changes.length === 0) return null;
 
-  return {
-    changes,
-    userEvent: 'input.format',
-  };
+  return { ...spec, userEvent: 'input.format' };
 }

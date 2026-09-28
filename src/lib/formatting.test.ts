@@ -319,3 +319,195 @@ describe('multiple cursors', () => {
     expect(result.text).toBe('**word1** word2');
   });
 });
+
+describe('bug fixes', () => {
+  describe('1. Selection preservation', () => {
+    it('bold preserves selection around wrapped word', () => {
+      const state = createState('bold text', { from: 0, to: 4 });
+      const result = applyCommand(state, toggleBold);
+      expect(result.text).toBe('**bold** text');
+      expect(result.selection?.from).toBe(2);
+      expect(result.selection?.to).toBe(6);
+    });
+
+    it('italic preserves selection around wrapped text', () => {
+      const state = createState('hello world', { from: 0, to: 5 });
+      const result = applyCommand(state, toggleItalic);
+      expect(result.text).toBe('*hello* world');
+      expect(result.selection?.from).toBe(1);
+      expect(result.selection?.to).toBe(6);
+    });
+  });
+
+  describe('2. insertLink bugs', () => {
+    it('replaces word under cursor without duplication', () => {
+      const state = createState('hello world', { from: 6, to: 6 });
+      const result = applyCommand(state, insertLink);
+      expect(result.text).toBe('hello [world](url)');
+      expect(result.selection?.from).toBe(14);
+      expect(result.selection?.to).toBe(17);
+    });
+
+    it('selects url when wrapping text', () => {
+      const state = createState('text here', { from: 0, to: 4 });
+      const result = applyCommand(state, insertLink);
+      expect(result.text).toBe('[text](url)');
+      expect(result.selection?.from).toBe(7);
+      expect(result.selection?.to).toBe(10);
+    });
+
+    it('selects url in empty brackets for URL text', () => {
+      const state = createState('https://example.com', { from: 0, to: 19 });
+      const result = applyCommand(state, insertLink);
+      expect(result.text).toBe('[](https://example.com)');
+      expect(result.selection?.from).toBe(1);
+      expect(result.selection?.to).toBe(1);
+    });
+  });
+
+  describe('3a. Unwrapping when markers are outside selection', () => {
+    it('bold on **[word]** unwraps to word', () => {
+      const state = createState('**word**', { from: 2, to: 6 });
+      const result = applyCommand(state, toggleBold);
+      expect(result.text).toBe('word');
+      expect(result.selection?.from).toBe(0);
+      expect(result.selection?.to).toBe(4);
+    });
+  });
+
+  describe('3b. Nested marker unwrapping', () => {
+    it('italic on ***x*** unwraps italic layer', () => {
+      const state = createState('***x***', { from: 0, to: 7 });
+      const result = applyCommand(state, toggleItalic);
+      expect(result.text).toBe('**x**');
+    });
+
+    it('bold on ***x*** unwraps bold layer', () => {
+      const state = createState('***x***', { from: 0, to: 7 });
+      const result = applyCommand(state, toggleBold);
+      expect(result.text).toBe('*x*');
+    });
+  });
+
+  describe('3c. Word detection with special characters', () => {
+    it('detects word with parentheses and comma', () => {
+      const state = createState('(word),', { from: 2, to: 2 });
+      const result = applyCommand(state, toggleBold);
+      expect(result.text).toBe('(**word**),');
+    });
+
+    it('detects word at start', () => {
+      const state = createState('word', { from: 0, to: 0 });
+      const result = applyCommand(state, toggleBold);
+      expect(result.text).toBe('**word**');
+    });
+
+    it('detects word at end', () => {
+      const state = createState('word', { from: 4, to: 4 });
+      const result = applyCommand(state, toggleBold);
+      expect(result.text).toBe('**word**');
+    });
+  });
+
+  describe('3d. Multi-line blank line preservation', () => {
+    it('bold on multi-line with blank line', () => {
+      const state = createState('one\n\ntwo', { from: 0, to: 8 });
+      const result = applyCommand(state, toggleBold);
+      expect(result.text).toBe('**one**\n\n**two**');
+    });
+  });
+
+  describe('4a. List numbering from 1', () => {
+    it('numbers ordered list starting from 1', () => {
+      const state = createState('item1\nitem2\nitem3', { from: 0, to: 17 });
+      const result = applyCommand(state, (s) => toggleList(s, 'ordered'));
+      expect(result.text).toBe('1. item1\n2. item2\n3. item3');
+    });
+
+    it('numbers ordered list from 1 even when not at start', () => {
+      const state = createState('start\nitem1\nitem2', { from: 6, to: 17 });
+      const result = applyCommand(state, (s) => toggleList(s, 'ordered'));
+      expect(result.text).toBe('start\n1. item1\n2. item2');
+    });
+  });
+
+  describe('4b. Task list detection before bullet', () => {
+    it('task list + task removes markers', () => {
+      const state = createState('- [ ] x', { from: 0, to: 7 });
+      const result = applyCommand(state, (s) => toggleList(s, 'task'));
+      expect(result.text).toBe('x');
+    });
+
+    it('task list + bullet converts to bullet', () => {
+      const state = createState('- [ ] x', { from: 0, to: 7 });
+      const result = applyCommand(state, (s) => toggleList(s, 'bullet'));
+      expect(result.text).toBe('- x');
+    });
+
+    it('bullet list + task converts to task', () => {
+      const state = createState('- x', { from: 0, to: 3 });
+      const result = applyCommand(state, (s) => toggleList(s, 'task'));
+      expect(result.text).toBe('- [ ] x');
+    });
+  });
+
+  describe('5. insertHorizontalRule positioning', () => {
+    it('inserts rule after current line', () => {
+      const state = createState('hello', { from: 3, to: 3 });
+      const result = applyCommand(state, insertHorizontalRule);
+      expect(result.text).toContain('hello');
+      expect(result.text).toContain('---');
+      expect(result.text.indexOf('hello') < result.text.indexOf('---')).toBe(true);
+    });
+
+    it('keeps existing blank lines', () => {
+      const state = createState('a\n\nb', { from: 3, to: 3 });
+      const result = applyCommand(state, insertHorizontalRule);
+      expect(result.text).toBe('a\n\n---\n\nb');
+    });
+  });
+
+  describe('6. toggleCodeBlock fence handling', () => {
+    it('removes fences without leaving blank line', () => {
+      const state = createState('```\ncode\n```', { from: 0, to: 13 });
+      const result = applyCommand(state, toggleCodeBlock);
+      expect(result.text).toBe('code');
+      expect(result.text).not.toContain('\n\n');
+    });
+
+    it('adds fence with exact newline placement', () => {
+      const state = createState('a\nb', { from: 0, to: 3 });
+      const result = applyCommand(state, toggleCodeBlock);
+      expect(result.text).toBe('```\na\nb\n```\n');
+    });
+
+    it('removes ~~~ fence', () => {
+      const state = createState('~~~\ncode\n~~~', { from: 0, to: 13 });
+      const result = applyCommand(state, toggleCodeBlock);
+      expect(result.text).toContain('code');
+    });
+  });
+
+  describe('7. toggleQuote blank line handling', () => {
+    it('quotes with blank line in middle', () => {
+      const state = createState('a\n\nb', { from: 0, to: 5 });
+      const result = applyCommand(state, toggleQuote);
+      expect(result.text).toBe('> a\n>\n> b');
+    });
+
+    it('unquotes with blank line in middle', () => {
+      const state = createState('> a\n>\n> b', { from: 0, to: 10 });
+      const result = applyCommand(state, toggleQuote);
+      expect(result.text).toBe('a\n\nb');
+    });
+  });
+
+  describe('8. setHeading blank line handling', () => {
+    it('does not add heading to blank lines', () => {
+      const state = createState('a\n\nb', { from: 0, to: 4 });
+      const result = applyCommand(state, (s) => setHeading(s, 2));
+      expect(result.text).toBe('## a\n\n## b');
+      expect(result.text).not.toContain('## \n');
+    });
+  });
+});
