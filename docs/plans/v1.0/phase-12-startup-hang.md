@@ -1,6 +1,7 @@
-# Phase 8: Fix the startup hang, then build the 1.0.0 installer
+# Phase 12: Fix the startup hang, then build the 1.0.0 installer
 
-The last phase. Bilal asked on 2026-09-28 for the hang parked during v0.8 to be fixed before 1.0.
+The last phase (it was Phase 8 until Bilal added Phases 8–11 on 2026-09-28). Bilal asked on
+2026-09-28 for the hang parked during v0.8 to be fixed before 1.0.
 
 ## The issue (from `../v0.8-polish/README.md`, "Known issue")
 
@@ -99,10 +100,11 @@ lives forever. And the next time it happens, there's a record of what happened.
 - [ ] **8. Update the known issue.** In `../v0.8-polish/README.md`, add one line under "Known
   issue" pointing here with the outcome (don't rewrite the section).
 - [ ] **9. Build the installer.** `pnpm tauri build`: expect
-  `src-tauri/target/release/bundle/nsis/Markdown_1.0.0_x64-setup.exe`. Check it contains
-  `resources/guide/Guide.md` (the staged resource under `src-tauri/target/release/`, or list the
-  installer's contents with 7-Zip if installed). **Don't run the installer**: installing over
-  Bilal's app needs his OK (the supervisor asks him).
+  `src-tauri/target/release/bundle/nsis/Markdown_1.0.0_x64-setup.exe`. Since Phase 11 the guide
+  is inside the frontend bundle, not a separate resource, so check instead that the **release exe**
+  (`src-tauri/target/release/markdown-viewer.exe`, run with `--new-window` and its own
+  `WEBVIEW2_USER_DATA_FOLDER`) opens the guide window with F1. **Don't run the installer**:
+  installing over Bilal's app needs his OK (the supervisor asks him).
 
 ## Files
 

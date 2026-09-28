@@ -9,9 +9,14 @@ Five requests from Bilal on 2026-09-28, to take the app from 0.8 to 1.0:
 5. Version 1.0.
 
 Bilal added two more on the same day: license the project under **CC0 1.0** (Phase 6), and fix
-the **startup hang** parked during v0.8 as the last phase (Phase 8).
+the **startup hang** parked during v0.8 as the last phase.
 
-This folder splits them into eight phases. Each phase is done by its own sub-agent, **in order**, on branch `claude/app-v1-feature-plan-d05cb2` (this
+After Phase 7 he asked for four more changes before finishing 1.0 (Phases 8–11): a working
+Heading submenu, an optional full-width Split highlight, Settings in five pages, and the guide in
+its own read-only window. The startup-hang phase moved to the end as **Phase 12** (it was Phase 8
+until then; documents written earlier call it "Phase 8").
+
+This folder splits them into twelve phases (plus 2b). Each phase is done by its own sub-agent, **in order**, on branch `claude/app-v1-feature-plan-d05cb2` (this
 worktree). A phase doesn't start until the one before it is committed and the supervisor has
 checked it. Models, all at Bilal's request: **Sonnet 5** for Phases 1–2, **Haiku** for Phases
 2b–3 (the supervisor rewrote Phase 3's formatting commands after two failed Haiku attempts), and
@@ -27,11 +32,16 @@ checked it. Models, all at Bilal's request: **Sonnet 5** for Phases 1–2, **Hai
 | 5 | Built-in guide | [phase-05-guide.md](phase-05-guide.md) | `Add a built-in guide` |
 | 6 | CC0 licence + README rewrite | [phase-06-readme.md](phase-06-readme.md) | `License the project under CC0 1.0`, then `Rewrite the README for 1.0` |
 | 7 | Version 1.0.0 and regression pass | [phase-07-version-1-0.md](phase-07-version-1-0.md) | `Bump version to 1.0.0` |
-| 8 | Startup hang + installer | [phase-08-startup-hang.md](phase-08-startup-hang.md) | `Make the startup watchdog exit even when the process is stuck` (wording may change with the fix) |
+| 8 | Heading submenu stays open on the way to it | [phase-08-submenu-hover.md](phase-08-submenu-hover.md) | `Keep submenus open while the pointer heads towards them` |
+| 9 | Split highlight: full-width, optional (off by default) | [phase-09-split-highlight.md](phase-09-split-highlight.md) | `Make the Split view cursor highlight full-width and optional` |
+| 10 | Settings in five pages | [phase-10-settings-pages.md](phase-10-settings-pages.md) | `Arrange Settings into five pages` |
+| 11 | Guide in its own read-only window | [phase-11-guide-window.md](phase-11-guide-window.md) | `Show the guide in its own read-only window` |
+| 12 | Startup hang + installer | [phase-12-startup-hang.md](phase-12-startup-hang.md) | `Make the startup watchdog exit even when the process is stuck` (wording may change with the fix) |
 
 Dependencies: 2 needs 1. 4 needs 2 (suggestions) and 3 (commands). 5 documents 1–4. 6 describes
-everything and links the guide. 7 bumps the version. 8 is last and builds the 1.0.0 installer, so
-the installer includes the startup fix.
+everything and links the guide. 7 bumps the version. 9 adds a setting that 10 places in its new
+page; 11 uses 10's About page. 12 is last and builds the 1.0.0 installer, so the installer includes
+every change and the startup fix.
 
 ## Research summary (why the design is what it is)
 
@@ -125,7 +135,7 @@ on it for free.
   and `Cargo.toml` say `CC0-1.0`. Bundled fonts and dependencies keep their own licences, and the
   README says so.
 - **1.0 release check:** Phase 7 runs every fixture in both themes and checks `huge.md` typing
-  speed with spell check on. Phase 8 builds `Markdown_1.0.0_x64-setup.exe` after the startup fix.
+  speed with spell check on. Phase 12 builds `Markdown_1.0.0_x64-setup.exe` after the startup fix.
   **Installing** it over Bilal's installed 0.8 is only done with his OK.
 
 ## Rules for every agent
@@ -207,3 +217,7 @@ screenshots in both themes, and records the outcome in the phase document's "Sup
 | 6 | `73f0032`, `554062f`, `c0b6268` | 675 → 675 | Passed (README fact-checked, images viewed, supervisor) | Sonnet 5. Two README details corrected by the supervisor |
 | 7 | `e52f545` | 675 → 675 | Passed (spot-checks + fixture sweep, light and dark, supervisor) | Sonnet 5. No regressions found; agent's recentFiles claim was false (restored) |
 | 8 | | | | |
+| 9 | | | | |
+| 10 | | | | |
+| 11 | | | | |
+| 12 | | | | |
