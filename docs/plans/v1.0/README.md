@@ -202,7 +202,7 @@ screenshots in both themes, and records the outcome in the phase document's "Sup
 | 2 | `87db9f5`, `bcf7f9d`, `f81f1a5`, `20ee8e5` | 495 → 555 | Passed (light and dark, supervisor) | 3 review rounds: stale replies, Ignore refresh, shared cache, last language, Settings layout, stable order |
 | 2b | `dc26d49`, `892fa61` | 555 → 563 | Passed (light and dark, supervisor) | Haiku. 2 bugs fixed in review; agent stopped Bilal's installed app |
 | 3 | `3994567`, `bc04696`, `8c8b40f`, + Ctrl+Shift+0 removal | 563 → 644 | Passed (real key events, supervisor) | Haiku x2 failed; supervisor rewrote `formatting.ts`; Ctrl+Shift+0 dropped (Bilal) |
-| 4 | | | | |
+| 4 | `347ad3c`, `13449a0` | 644 → 665 | Passed (real events, light and dark, supervisor) | Sonnet 5. Focus after Escape and first Paste fixed (clipboard plugin) |
 | 5 | | | | |
 | 6 | | | | |
 | 7 | | | | |

@@ -342,4 +342,43 @@ started this round (the exe and its Vite server), confirmed by command line befo
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Built by a Sonnet 5 agent in two commits (`347ad3c`, review fixes `13449a0`). The agent couldn't run
+the app for the first commit (the PC was in Modern Standby, the Phase 8 hang).
+
+Diff reviewed: generic `ContextMenu` + pure `buildEditorMenu`; editor wiring on the host element;
+page-level suppression that spares `input`/`textarea`; clipboard only through the `tauri.ts`
+wrappers; capabilities limited to `clipboard-manager:allow-read-text` / `allow-write-text`.
+Re-run: `pnpm test` 665, lint and tsc clean, `cargo test` 54.
+
+In-app, by the supervisor, with **real CDP mouse and key events** (`scratchpad/supervisor/menus.mjs`,
+`paste.mjs`, `selectall.mjs`) and a copy of `fixtures/spelling.md`:
+- First pass (on `347ad3c`), two real bugs found and sent back:
+  - After Escape, focus went to `<body>`, so Shift+F10 straight after didn't work.
+  - In a fresh WebView2 profile, `clipboard-read` is `"prompt"` and the first Paste silently did
+    nothing.
+- After `13449a0`, everything passes:
+  - Spelling: suggestion menu on a misspelled word, the replacement, and one `Ctrl+Z` to restore
+    it; Ignore and Add to dictionary (squiggles gone).
+  - Menu layout: no spelling section on a correct word; Cut/Copy disabled with no selection.
+  - Closing and keyboard: Escape closes the menu and focus returns to `.cm-content`.
+  - Heading submenu: Right opens it, Left closes it, and Enter applies Heading 1.
+  - Formatting: all 11 items by click.
+  - Clipboard: the **first-ever Paste on a brand-new profile** works (312 ms). Cut and Copy reach
+    the system clipboard.
+  - Opening the menu: the Menu key and Shift+F10.
+  - Browser menu blocked: the default menu is suppressed on the title bar, toolbar, status bar and
+    outline, and kept in a Settings input.
+  - Formatted view: the preview menu has Copy (disabled) and Select all, which selects only the
+    preview, in both Formatted and Split view.
+- Screenshots of the editor menu, the Heading submenu and the preview menu, in light and dark (all
+  six hashes differ), checked by eye. Suggestions use `font-weight: 600`.
+
+Bilal's settings (spellWords, recentFiles) and his clipboard text were restored afterwards; the
+agent's fix round had left his clipboard empty (it read it as empty), and the supervisor restored
+it from its own backup.
+
+Follow-ups, not blocking:
+- Right-clicking a misspelled word moves the cursor into it, so the "word being typed" rule hides
+  its squiggle until the cursor leaves.
+- `TabContextMenu` could move onto the shared `ContextMenu`.
+- The menu has 19 rows and shifts up to fit on short windows.
