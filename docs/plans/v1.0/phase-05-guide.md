@@ -231,4 +231,36 @@ completed except the window-mode second-window visual confirmation noted above.
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Built by a Sonnet 5 agent (`d18e1d8`); two small text fixes by the supervisor (`77bbfa0`).
+
+Diff reviewed: `guidePath()` cached; `openGuide()` through `openPath`; the guide kept out of Recent;
+Save → Save as; Save as refuses the guide's own path; button, F1, start-screen link and shortcut
+rows. Re-run: `pnpm test` 675, lint and tsc clean.
+
+Fact check of `Guide.md` against the code: the setting labels and defaults, the Find and outline
+button titles, the "Reload from disk" / "Keep mine" / "Save anyway" wording, the invalid-bytes
+banner, the link extensions (`.md .markdown .mdown .mkd .txt`), local images limited to the
+document's folder and subfolders, the export menu labels, the preset actions (Copy, Rename, Export,
+Import, Delete) and the Appearance light/dark switch all match. One fix: the automatic spelling
+fallback said "English (United States)", now "English".
+
+In-app, by the supervisor, with real CDP events (`scratchpad/supervisor/guide.mjs`, `ctrls.mjs`,
+`savedialog.ps1`, `winmode.mjs`):
+- Tab mode:
+  - The start-screen link opens the guide; it isn't added to recent files (only Bilal's two
+    entries).
+  - F1 from another tab opens it, and F1 again adds no tab.
+  - The Guide button focuses the open guide; its tooltip is "Guide (F1)".
+- Ctrl+S after editing the guide opens the native "Save As" dialog with File name `Guide.md`.
+  Closed with `WM_CLOSE`; the guide file's hash is unchanged.
+- Window mode (the agent couldn't confirm it): with a document open, the Guide button spawns a
+  second process with the guide's path, and its window shows `Guide.md` while the first keeps its
+  document.
+- Screenshots: light/Boulayla (top) and dark/Manuscript (maths and Mermaid); KaTeX ×2, a Mermaid
+  SVG and the HEX swatch render.
+- The dark screenshot showed a structure bug: the cheat sheet's live `# Heading 1` demo made
+  "Keyboard shortcuts", "Settings reference" and "Troubleshooting" children of a fake "Heading 1"
+  in the outline. It's fixed in `77bbfa0` (the demo uses `###`/`####`). The outline now shows 14
+  H2 sections, with the demo headings nested under "Markdown cheat sheet".
+- Bilal's settings and active preset were restored afterwards; switching presets for the
+  screenshots had saved `activePresetId`.
