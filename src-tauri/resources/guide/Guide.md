@@ -100,7 +100,7 @@ Spelling. It runs in the Source editor only (the formatted view isn’t editable
 to check there), and underlines words in red wherever they’re wrong in *every* language you’ve
 ticked — so a note that mixes, say, English and Arabic works correctly. Until you tick anything,
 the app automatically checks the language matching Windows’ current display language (or English
-(United States) if that one isn’t installed).
+if that one isn’t installed).
 
 The language list shows the languages **Windows** has dictionaries for, one entry per language
 (the app picks the right regional variant for you). If a language you want isn’t listed, add it in
@@ -193,13 +193,16 @@ The toolbar’s export button offers:
 
 **Headings**
 
+Start a line with one to six `#` characters: `#` is the largest heading, `######` the smallest.
+(The example uses levels 3 and 4 so it doesn’t add sections to this guide’s outline.)
+
 ```markdown
-# Heading 1
-## Heading 2
+### Heading 3
+#### Heading 4
 ```
 
-# Heading 1
-## Heading 2
+### Heading 3
+#### Heading 4
 
 **Emphasis and strikethrough**
 
