@@ -20,6 +20,7 @@ checked it. Phases 1–2 were built by **Sonnet 5**; from Phase 3 on, at Bilal's
 |---|---|---|---|
 | 1 | Windows spell-check engine (Rust) | [phase-01-spell-engine.md](phase-01-spell-engine.md) | `Add a Windows spell-check engine` |
 | 2 | Squiggles in the editor + Spelling settings | [phase-02-spell-squiggles.md](phase-02-spell-squiggles.md) | `Underline misspelled words in the source editor` |
+| 2b | One spelling entry per language (Bilal, follow-up) | [phase-02b-general-languages.md](phase-02b-general-languages.md) | `Show one spelling entry per language` |
 | 3 | Formatting commands + shortcuts | [phase-03-formatting-commands.md](phase-03-formatting-commands.md) | `Add Markdown formatting commands and shortcuts` |
 | 4 | Right-click menus | [phase-04-context-menus.md](phase-04-context-menus.md) | `Add right-click menus for the editor and preview` |
 | 5 | Built-in guide | [phase-05-guide.md](phase-05-guide.md) | `Add a built-in guide` |
@@ -188,6 +189,7 @@ screenshots in both themes, and records the outcome in the phase document's "Sup
 |---|---|---|---|---|
 | 1 | `c3aedbe`, `81e3edc` | 491 → 495 (Rust 44 → 54) | Passed (CDP invoke checks, supervisor) | Integration test didn't init COM; fixed |
 | 2 | `87db9f5`, `bcf7f9d`, `f81f1a5`, `20ee8e5` | 495 → 555 | Passed (light and dark, supervisor) | 3 review rounds: stale replies, Ignore refresh, shared cache, last language, Settings layout, stable order |
+| 2b | | | | |
 | 3 | | | | |
 | 4 | | | | |
 | 5 | | | | |
