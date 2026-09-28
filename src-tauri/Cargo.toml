@@ -4,6 +4,7 @@ version = "0.8.0"
 description = "A simple, fast Markdown viewer and editor for Windows"
 authors = ["Bilal Abou Dargham"]
 edition = "2021"
+license = "CC0-1.0"
 
 [lib]
 name = "markdown_viewer_lib"
