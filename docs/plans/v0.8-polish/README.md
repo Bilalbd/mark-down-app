@@ -112,5 +112,5 @@ stall was refused by the safety classifier). Parked; not part of the v0.8 phases
 | 3 | `aa40701`, `fd142a2`, `3738fd8` | 384 → 423 | Passed (light and dark, supervisor) | 4 review fixes; apostrophe fixed by supervisor |
 | 4 | `2d13717`, `03e4afa`, `69fa290`, `5f92c7b` | 423 → 437 | Passed (light and dark, supervisor) | Export security bug, leak, flicker fixed; row tint by supervisor; Sonnet re-review fixed a stale cursor after tab switches |
 | 5 | `3e97914` | 437 → 463 | Passed (light and dark, supervisor) | Sonnet 5; swatch inside the code pill (Bilal) |
-| 6 | | | | |
+| 6 | `3bfda84` | 463 → 490 | Passed (Save dialog read by supervisor) | Sonnet 5; agent's dialog check went wrong, redone |
 | 7 | | | | |

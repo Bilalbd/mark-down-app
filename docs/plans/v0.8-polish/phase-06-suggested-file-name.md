@@ -94,4 +94,17 @@ Nothing skipped beyond the dialog screenshot. No scope creep.
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Built by a Sonnet 5 agent. Diff reviewed: `suggestFileName` matches every rule (reserved names are
+checked before `.md` is added, so `CON` → `Untitled.md`); `saveAs` only changes the untitled path.
+`pnpm test` 490 passed, tsc clean.
+
+The agent's manual check went wrong: it reported that no dialog appeared and that `saveAs` wrote
+`C:\Users\bilal\Desktop\Weekly plan Q4 goals and.md` by itself (it then deleted the file). The
+supervisor re-checked: on an untitled note, `saveAs()` opens the native "Save As" dialog (class
+`#32770`, owned by the app) within 0.3 s; its **File name** box (read with `WM_GETTEXT`) shows
+`Weekly plan Q4 goals and.md` for `# Weekly plan: Q4 goals and more words` and
+`Shopping list for the weekend.md` for a note whose first line is `Shopping list for the weekend
+trip` (no heading); closing the dialog with `WM_CLOSE` cancels: `saveAs` resolves `false`, the note
+stays untitled, and no file is written. So the app never saves without the dialog; the agent's run
+must have confirmed the dialog somehow. Nothing opened in the dev app, so recent files are
+untouched.
