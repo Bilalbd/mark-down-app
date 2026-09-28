@@ -131,6 +131,40 @@ describe('GeneralTab', () => {
     expect(useSettingsStore.getState().spellLanguages.sort()).toEqual(['ar-SA', 'en-US']);
   });
 
+  it('disables the sole ticked language so it cannot be unticked, and shows the hint', async () => {
+    mockSpellLanguages.mockResolvedValue(['ar-SA', 'en-US']);
+    await render();
+    const boxes = Array.from(
+      container.querySelectorAll<HTMLInputElement>('.settings__checklist input[type="checkbox"]'),
+    );
+    const ticked = boxes.find((b) => b.checked);
+    const unticked = boxes.find((b) => !b.checked);
+    expect(ticked?.disabled).toBe(true); // the automatic en-US pick is the only ticked one
+    expect(unticked?.disabled).toBe(false);
+
+    const note = Array.from(container.querySelectorAll('.settings__note')).map(
+      (n) => n.textContent,
+    );
+    expect(note.some((t) => t?.includes('To stop checking, turn off Check spelling.'))).toBe(true);
+
+    // Clicking the disabled checkbox does nothing (browsers don't fire change on disabled
+    // inputs, but assert the guard in toggleLanguage too).
+    act(() => {
+      ticked!.click();
+    });
+    expect(useSettingsStore.getState().spellLanguages).toEqual([]);
+  });
+
+  it('does not disable either checkbox once two languages are ticked', async () => {
+    mockSpellLanguages.mockResolvedValue(['ar-SA', 'en-US']);
+    useSettingsStore.setState({ spellLanguages: ['ar-SA', 'en-US'] });
+    await render();
+    const boxes = Array.from(
+      container.querySelectorAll<HTMLInputElement>('.settings__checklist input[type="checkbox"]'),
+    );
+    expect(boxes.every((b) => !b.disabled)).toBe(true);
+  });
+
   it('removes a word from the personal dictionary', async () => {
     useSettingsStore.setState({ spellWords: ['teh', 'wiht'] });
     await render();

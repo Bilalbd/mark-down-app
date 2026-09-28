@@ -47,8 +47,11 @@ Settings → General gets a **Spelling** section after the Editor section:
 - **Languages**: one checkbox per tag from `spellLanguages()`, labelled with
   `new Intl.DisplayNames([navigator.language], { type: 'language' }).of(tag)` (e.g. "English
   (United States)"), sorted by label. With `spellLanguages` empty, the automatic languages show as
-  ticked. The first change writes the explicit list. Unticking the last one is allowed (no
-  squiggles). Disabled while *Check spelling* is off.
+  ticked. The first change writes the explicit list. **The checkbox of the only ticked language is
+  disabled**, so the list can never be emptied from the UI - `spellLanguages: []` always means
+  "automatic" (Supervisor decision, Phase 2 review: this removes the `[]` ambiguity between
+  "never touched" and "explicitly cleared"). A note under the list reads *"To stop checking, turn
+  off Check spelling."* The whole checklist is also disabled while *Check spelling* is off.
 - If Windows has no spelling languages (or Tauri isn't there): a hint instead of the list:
   *"Windows has no spelling dictionaries installed. Add a language in Windows Settings → Time &
   language → Language & region."*
@@ -312,6 +315,75 @@ it with a shallow unit test that wouldn't exercise the real caching path.
   Modern-Standby/idle-disconnect event was logged at the same time). It was killed by its exact
   PID and a retry succeeded normally; every subsequent launch in this session came up within a
   few seconds.
+
+### Review fixes
+
+Supervisor review of `87db9f5` asked for five fixes, addressed in `Fix spell-check refresh and
+caching issues`:
+
+1. **Stale replies after reconfigure.** `SpellCheckPlugin` now has a `destroyed` flag, set in
+   `destroy()` (alongside clearing the pending timer and unsubscribing from the view store) and
+   checked - alongside the existing sequence-number check - right after `await spellCheck(...)`
+   returns and in `redecorate()` before every dispatch. Unit-tested in the new
+   `src/components/Editor/spellcheck.test.ts`: a real `EditorView` with `spellcheckExtension`,
+   a mocked `spellCheck` returning a controllable deferred promise, a `Compartment.reconfigure`
+   that destroys the first plugin instance while its request is still in flight, and an assertion
+   (via `misspellingAt`) that the destroyed instance's later-resolving reply never reaches the
+   view, while the new instance's own reply still applies normally. A second test confirms
+   resolving after the *view itself* (not just the compartment) is destroyed doesn't throw. Both
+   pass; 2 new tests.
+2. **Ignore doesn't refresh.** The fetch/cache/filter pipeline in `run()` is now split: `run()`
+   stores the merged (pre-filter) results in `lastResolved` and calls a new `redecorate()` method,
+   which applies the personal dictionary, the ignore set and the cursor-word exclusion and
+   dispatches - entirely synchronously, no `spellCheck` call. The constructor now also subscribes
+   to `useViewStore` and calls `redecorate()` whenever `spellIgnored` changes (unsubscribed in
+   `destroy()`). Checked in the app: `ignoreWord('mistaks')` on `fixtures/spelling.md` (both
+   occurrences) removed its squiggles in **7.9 ms** (measured with `performance.now()` around the
+   call and two chained `requestAnimationFrame`s) - well under "one frame or so" - with the rest of
+   the flagged words (`sentance`, `seccond`, `بكمم`, …) unaffected.
+3. **Shared cache.** `SpellCache` is now instantiated once at module scope in `spellcheck.ts`
+   (`sharedCache`), and every `SpellCheckPlugin` instance reads and writes it instead of holding
+   its own - safe because the cache key already includes the (sorted) languages, so different
+   language sets or different documents never collide, and a stale entry from a since-changed
+   language set is simply never looked up again rather than needing explicit invalidation.
+   Confirmed with the same `Network.requestWillBeSent`-over-CDP counting used for the huge.md
+   scroll count, isolating each step with its own monitor window: opening a **brand-new**,
+   never-before-seen tab (`tab4.md`) made **2** `spell_check` calls (the real, expected check);
+   adding a personal-dictionary word while a *different*, already-checked tab was active made
+   **0**; switching back to the first tab (content unchanged, previously checked with the same
+   language) made **0**. (Two earlier isolated timing attempts with short, unsynchronised monitor
+   windows returned false zeros for definitely-fresh content - a monitor-connection race, not a
+   cache bug - resolved by using a longer window and confirming the monitor's `READY` line landed
+   before triggering the action; the numbers above are from the corrected runs, cross-checked
+   against the DOM's actual `.cm-misspelled` results.)
+4. **The last language.** `GeneralTab.tsx`'s checklist now disables the checkbox of whichever
+   language is the *only* one ticked (`tickedLanguages.size === 1 && tickedLanguages.has(tag)`),
+   whether that's the automatic pick or an explicit single choice, and `toggleLanguage` itself
+   guards the same case as a second line of defence. A note - *"To stop checking, turn off Check
+   spelling."* - sits under the checklist whenever Windows has at least one dictionary. This
+   resolves the `[]`-ambiguity flagged in the original Report (superseded by this fix):
+   `spellLanguages: []` now always means "automatic," full stop, since the UI makes reaching an
+   explicit-but-empty state impossible. The phase document's Settings section is updated to match.
+   2 new tests (disabled-state + hint text; and that ticking a second language un-disables both).
+5. **Cost on huge.md.** Measured `run()`'s synchronous portion (temporarily, with `performance.now()`
+   around `ensureSyntaxTree`/`doc.toString()`/`proseRanges`/the cache-lookup loop, removed before
+   committing) on the real running app with `fixtures/huge.md` (391,225 chars) open, across a
+   top-to-bottom scroll and an edit: **0.6-2.0 ms total per run()** (`tree`: 0-0.1 ms, `toString`:
+   0.1-0.3 ms, `proseRanges`: 0.4-1.5 ms, the rest: 0.1-0.2 ms), for windows of roughly
+   5,800-10,600 characters. All comfortably under the ~10 ms threshold, so **no windowing change
+   was made** - `proseRanges`' regex exclusions already run over the full document string in
+   well under a millisecond in V8, even at this size (a standalone benchmark parsing and scanning
+   the entire 391 KB file measured `proseRanges` alone at 1.47 ms, including the full-document
+   maths/HEX/front-matter regexes - the dominant cost by far is the markdown *parse*, which the
+   real `run()` doesn't pay for on every check since `ensureSyntaxTree` reuses CodeMirror's
+   incremental tree). Numbers reported as asked either way; no code change needed for this one.
+
+Re-ran after all five fixes: `pnpm test` **553 passed** (38 files, +4 over the 549 after
+`87db9f5`: 2 in the new `spellcheck.test.ts`, 2 in `GeneralTab.test.tsx`). `pnpm lint`: clean.
+`npx tsc --noEmit`: clean. `pnpm format`: no files needed changes. `cargo check`: clean (no Rust
+touched). Settings files: `presets.json` and `.window-state.json` byte-identical to a fresh
+pre-session backup; `settings.json` matches except `recentFiles`, restored to `[]` after the
+session's manual checks.
 
 ## Supervisor check
 

@@ -44,6 +44,11 @@ const spellDecorationsField = StateField.define<DecorationSet>({
 
 const misspelledMark = Decoration.mark({ class: 'cm-misspelled' });
 
+/** Shared across every `SpellCheckPlugin` instance (every tab, every reconfigure), not per
+ * instance: it's already keyed by (languages, text) (see `SpellCache`), so a tab switch or a
+ * personal-dictionary change no longer throws away everything that was already fetched. */
+const sharedCache = new SpellCache();
+
 const WORD_CHAR = /[\p{L}\p{N}']/u;
 
 /** The word touching `pos` (the caret), or `null` if neither the character before nor after it
@@ -68,7 +73,16 @@ interface Segment {
 class SpellCheckPlugin implements PluginValue {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private seq = 0;
-  private readonly cache = new SpellCache();
+  /** Set by `destroy()`; checked before every dispatch, since a reconfigure (a language or
+   * dictionary change, or a tab switch) destroys this plugin but can't cancel an in-flight
+   * `spellCheck` IPC call - without this, that reply could land after the *new* plugin's first
+   * run and overwrite its squiggles with results for the old languages/dictionary. */
+  private destroyed = false;
+  /** The last set of raw (pre-filter) results this instance resolved, keyed by their absolute
+   * start position - kept so `redecorate` can re-apply the personal dictionary/ignore set/cursor
+   * exclusion instantly (no Rust round trip) when only the filter, not the text, changed. */
+  private lastResolved: { from: number; errors: SpellError[] }[] = [];
+  private readonly unsubscribeIgnored: () => void;
 
   constructor(
     private view: EditorView,
@@ -78,6 +92,11 @@ class SpellCheckPlugin implements PluginValue {
     // A freshly mounted or `setState`-loaded document never fired an update for us, so run
     // once right away instead of waiting for the first edit or scroll.
     this.schedule(0);
+    // Ignore (Phase 4) only touches the view store, not settings, so it doesn't go through a
+    // compartment reconfigure - refresh the decorations directly instead.
+    this.unsubscribeIgnored = useViewStore.subscribe((state, prev) => {
+      if (state.spellIgnored !== prev.spellIgnored) this.redecorate();
+    });
   }
 
   update(update: ViewUpdate): void {
@@ -87,7 +106,9 @@ class SpellCheckPlugin implements PluginValue {
   }
 
   destroy(): void {
+    this.destroyed = true;
     if (this.timer !== null) clearTimeout(this.timer);
+    this.unsubscribeIgnored();
   }
 
   private schedule(delay: number): void {
@@ -120,7 +141,7 @@ class SpellCheckPlugin implements PluginValue {
     const toFetch: Segment[] = [];
     const resolved: { from: number; errors: SpellError[] }[] = [];
     for (const seg of segments) {
-      const cached = this.cache.get(this.languages, seg.text);
+      const cached = sharedCache.get(this.languages, seg.text);
       if (cached) resolved.push({ from: seg.from, errors: cached });
       else toFetch.push(seg);
     }
@@ -137,28 +158,42 @@ class SpellCheckPlugin implements PluginValue {
         // the next scheduled check (the next edit or scroll) try again.
         return;
       }
-      if (mySeq !== this.seq) return; // a newer check has since started; drop this reply
+      if (this.destroyed || mySeq !== this.seq) return; // stale: destroyed, or a newer check has since started
       toFetch.forEach((seg, i) => {
-        this.cache.set(this.languages, seg.text, results[i]);
+        sharedCache.set(this.languages, seg.text, results[i]);
         resolved.push({ from: seg.from, errors: results[i] });
       });
-    } else if (mySeq !== this.seq) {
+    } else if (this.destroyed || mySeq !== this.seq) {
       return;
     }
 
+    this.lastResolved = resolved;
+    this.redecorate(text);
+  }
+
+  /** Rebuilds and dispatches decorations from `lastResolved`, applying the *current* personal
+   * dictionary, ignore set and cursor-word exclusion. Synchronous and never calls `spellCheck` -
+   * used both right after a fetch and to refresh instantly when only the filter changed (e.g.
+   * Ignore). `lastResolved`'s positions are relative to the document as of the last real check;
+   * they're only ever read again before the next edit reaches here (any edit reschedules a full
+   * `run()` 400 ms later), so this doesn't need to remap them through intervening changes. */
+  private redecorate(text?: string): void {
+    if (this.destroyed) return;
+    const state = this.view.state;
+    const docText = text ?? state.doc.toString();
     const spellWords = this.spellWords;
     const ignored = useViewStore.getState().spellIgnored;
     const selection = state.selection.main;
-    const cursorWord = selection.empty ? wordAt(text, selection.head) : null;
+    const cursorWord = selection.empty ? wordAt(docText, selection.head) : null;
 
     const marks: { from: number; to: number }[] = [];
-    for (const seg of resolved) {
+    for (const seg of this.lastResolved) {
       for (const e of seg.errors) {
         const from2 = seg.from + e.start;
         const to2 = from2 + e.length;
-        if (to2 <= from2) continue;
+        if (to2 <= from2 || to2 > docText.length) continue;
         if (cursorWord && from2 < cursorWord.to && to2 > cursorWord.from) continue;
-        const word = text.slice(from2, to2);
+        const word = docText.slice(from2, to2);
         if (isKnownWord(word, spellWords, ignored)) continue;
         marks.push({ from: from2, to: to2 });
       }

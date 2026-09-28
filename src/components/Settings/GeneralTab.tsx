@@ -62,6 +62,10 @@ export function GeneralTab() {
 
   const toggleLanguage = (tag: string) => {
     const current = spellLanguagesSetting.length > 0 ? spellLanguagesSetting : [...tickedLanguages];
+    // The checkbox for the sole ticked language is disabled in the UI (so `[]` always means
+    // "automatic", never "explicitly nothing" - see the phase 2 review), but guard here too in
+    // case this is ever called some other way.
+    if (current.includes(tag) && current.length === 1) return;
     const next = current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag];
     set('spellLanguages', next);
   };
@@ -160,21 +164,27 @@ export function GeneralTab() {
               Time &amp; language → Language &amp; region.
             </p>
           ) : (
-            <ul className="settings__checklist">
-              {languageRows.map(({ tag, label }) => (
-                <li key={tag}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={tickedLanguages.has(tag)}
-                      disabled={!spellCheck}
-                      onChange={() => toggleLanguage(tag)}
-                    />
-                    {label}
-                  </label>
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="settings__checklist">
+                {languageRows.map(({ tag, label }) => {
+                  const isOnlyTicked = tickedLanguages.size === 1 && tickedLanguages.has(tag);
+                  return (
+                    <li key={tag}>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={tickedLanguages.has(tag)}
+                          disabled={!spellCheck || isOnlyTicked}
+                          onChange={() => toggleLanguage(tag)}
+                        />
+                        {label}
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="settings__note">To stop checking, turn off Check spelling.</p>
+            </>
           )}
         </Row>
         <Row label="Personal dictionary" asLabel={false}>
