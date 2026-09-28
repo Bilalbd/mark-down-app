@@ -89,4 +89,8 @@ confirmed no `markdown-viewer` process and no listeners on 1420/9222 remained.
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Built by a Sonnet 5 agent. Diff reviewed: the three version fields and the one `Cargo.lock` line;
+`getAppVersion()` guarded by `isTauri()` with a `.catch`; the version line loads once and renders
+only when known; `core:app:allow-version` already comes with `core:default`, so capabilities are
+unchanged. The agent's light and dark screenshots are different images; the dark one shows
+`Version 0.8.0` in muted text under the Shortcuts table. Nothing was opened in the dev app.
