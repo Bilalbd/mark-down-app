@@ -202,4 +202,20 @@ or done for this fix, per the supervisor's instruction.
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Built by a Sonnet 5 agent. Diff reviewed against this document: worker thread, lazy factory,
+per-language checker cache, intersection merge, interleaved suggestions, size limit, no
+`unwrap()` on COM results, `windows 0.61.3` only (`cargo tree -i windows@0.61.3`), no capability
+changes. One review round: the integration test didn't initialise COM and treated a
+`get_languages` failure as "skip", so it could pass without checking anything; fixed in
+`81e3edc` (the agent showed it failing with a broken assertion, then passing).
+
+Re-run by the supervisor: `cargo test` 54 passed, `pnpm test` 495 passed, lint and tsc clean.
+
+In-app check by the supervisor (debug exe launched directly with `--new-window`, its own
+`WEBVIEW2_USER_DATA_FOLDER` and remote debugging; Vite started separately): 20 languages including
+`en-US` and `ar-SA`; `Ths is a tset` → (0,3) and (9,4); `the the cat` → `repeated` at (4,3);
+a correct Arabic sentence → none, the same sentence with one misspelled word → (9,6);
+`hello مرحبا` → none with `en-US` + `ar-SA`, the Arabic word (6,5) with `en-US` only; an
+unknown tag or no languages → none; `spell_suggest("tset")` → `test, stet, set`, and a correct
+word → none; 500,001 units → refused with the limit message. A screen-sized batch (60 lines, two
+languages) took 38 ms. Settings files byte-identical afterwards.

@@ -148,6 +148,12 @@ save-recent-polish rules too. They all apply here. In particular:
 - **Never stop processes by path pattern or name** (that would close Bilal's installed app). Stop
   only process IDs you started. Never edit or delete files you didn't create (including the
   supervisor's scratchpad scripts).
+- `--new-window` can't be passed through `pnpm tauri dev --` (cargo rejects it). Launch the dev
+  app like this instead: `cargo build` in `src-tauri`, start Vite with `pnpm dev` (background),
+  then start `src-tauri\target\debug\markdown-viewer.exe --new-window` with
+  `WEBVIEW2_USER_DATA_FOLDER` set to a folder in your scratchpad and
+  `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222`. Stop the exe and Vite by
+  the PIDs/task you started.
 - Open **copies** of fixtures from your scratchpad, never the repo files.
 - Backslashes (Windows paths, regexes, TeX) only through the Write/Edit tools. Non-ASCII
   characters (`’`, `…`, `←`, Arabic) also through Write/Edit, and check them afterwards with
@@ -179,7 +185,7 @@ screenshots in both themes, and records the outcome in the phase document's "Sup
 
 | Phase | Commit | Tests before → after | Manual check | Notes |
 |---|---|---|---|---|
-| 1 | | | | |
+| 1 | `c3aedbe`, `81e3edc` | 491 → 495 (Rust 44 → 54) | Passed (CDP invoke checks, supervisor) | Integration test didn't init COM; fixed |
 | 2 | | | | |
 | 3 | | | | |
 | 4 | | | | |
