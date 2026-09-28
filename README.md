@@ -23,6 +23,8 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
   toggle in the toolbar that fits the document to the window, and it's remembered.
 - **Editing** in Source mode with markdown syntax highlighting, `Ctrl+S` to save and `Ctrl+Shift+S`
   to save as, a dirty indicator in the title bar and a Save / Don't save / Cancel guard on close.
+  Saving a new, untitled note for the first time suggests a file name from its first heading (or
+  first line, if it has none).
 - Reads and preserves UTF-8 (with or without BOM) and UTF-16 (LE/BE) files, and CRLF/LF line
   endings, round-tripping each on save; a file with invalid-UTF-8 bytes asks before saving
   over them.

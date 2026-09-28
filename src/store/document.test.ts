@@ -234,6 +234,40 @@ describe('document store', () => {
     expect(useDocumentStore.getState().path).toBe(originalPath);
   });
 
+  it('saveAs suggests a name from the first heading for an untitled document', async () => {
+    const mockDialogModule = vi.mocked(await import('@tauri-apps/plugin-dialog'), {
+      partial: true,
+    });
+    mockDialogModule.save.mockResolvedValue(null); // cancel; we only care what it was called with
+
+    useDocumentStore.setState({
+      ...RESET_STATE,
+      hasDocument: true,
+      content: '# Meeting notes for Monday\n\nSome body text.',
+    });
+
+    await useDocumentStore.getState().saveAs();
+
+    expect(mockDialogModule.save).toHaveBeenCalledWith(
+      expect.objectContaining({ defaultPath: 'Meeting notes for Monday.md' }),
+    );
+  });
+
+  it('saveAs still proposes the current path for a document that has one', async () => {
+    mockReadFile.mockResolvedValue({ content: 'a', mtime: 1, encoding: 'utf8', lossy: false });
+    const mockDialogModule = vi.mocked(await import('@tauri-apps/plugin-dialog'), {
+      partial: true,
+    });
+    mockDialogModule.save.mockResolvedValue(null);
+
+    await useDocumentStore.getState().open('C:\\docs\\old.md');
+    await useDocumentStore.getState().saveAs();
+
+    expect(mockDialogModule.save).toHaveBeenCalledWith(
+      expect.objectContaining({ defaultPath: 'C:\\docs\\old.md' }),
+    );
+  });
+
   it('reload sets error message with filename when read fails', async () => {
     mockReadFile.mockResolvedValueOnce({
       content: 'initial',

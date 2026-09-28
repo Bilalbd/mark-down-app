@@ -3,6 +3,8 @@ import { open as openDialog, save as saveDialog } from '@tauri-apps/plugin-dialo
 import { askSaveChanges, useDialogStore } from '@/components/Dialog/ConfirmDialog';
 import { useSettingsStore } from '@/store/settings';
 import { applyEol, normalizeEol, type Eol } from '@/lib/eol';
+import { suggestFileName } from '@/lib/fileName';
+import { extractHeadings } from '@/markdown/render';
 import {
   basename,
   dirname,
@@ -252,8 +254,12 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   saveAs: async () => {
     if (!isTauri()) return false;
     if (get().lossy && !(await confirmLossySave())) return false;
+    const { path: currentPath, content: currentContent } = get();
+    const defaultPath =
+      currentPath ??
+      suggestFileName(currentContent, extractHeadings(currentContent)[0]?.text ?? null);
     const target = await saveDialog({
-      defaultPath: get().path ?? 'Untitled.md',
+      defaultPath,
       filters: [
         { name: 'Markdown', extensions: ['md'] },
         { name: 'All files', extensions: ['*'] },
