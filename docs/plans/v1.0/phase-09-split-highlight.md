@@ -130,4 +130,18 @@ phase had left there; they were only backups, and my real backup for this phase 
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Built by a Sonnet 5 agent (`c815c8f`). Re-run: `pnpm test` 707, lint and tsc clean.
+
+In-app, supervisor (`scratchpad/supervisor/band.js`, copy of `gfm.md`, Split view):
+- Off by default: nothing marked.
+- Turned on:
+  - The paragraph on line 7 gets a square band (radius 0 px) from the divider to the pane's
+    scrollbar, matching the editor's active line (dark screenshot).
+  - The table row on line 32 ("Tasks") gets the same edge-to-edge band through the table (light
+    screenshot).
+  - No horizontal overflow.
+- Bilal's settings are unchanged (`splitCursorMirror` false, his two `recentFiles` entries).
+
+Process note: the agent's first backup overwrote the backup files in `scratchpad/supervisor/backup/`
+(old backups only, and the supervisor takes fresh ones before each check), although that folder was
+off-limits.
