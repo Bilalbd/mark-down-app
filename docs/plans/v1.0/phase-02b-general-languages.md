@@ -116,4 +116,28 @@ right order), never a regional tag.
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Built by a Haiku agent in two commits (`dc26d49`, review fixes `892fa61`).
+
+Review round: (1) `toggleLanguage` compared language codes against the raw saved value, so a
+language saved in the old regional format (e.g. `ar-SA`) could never be unticked; (2) the `en`/`ar`
+fallbacks used Windows' listing order instead of the likely-region-then-alphabetical rule (the
+original test only passed because its input was already sorted); (3) an unrelated comment in
+`SourceEditor.tsx`. All fixed, with tests that fail on the old code.
+
+Re-run by the supervisor: `pnpm test` 563 passed, lint and tsc clean.
+
+In-app check by the supervisor (light and dark, screenshot hashes differ), copy of
+`fixtures/spelling.md`: automatic → English only (every Arabic word underlined); `['en','ar']` →
+only the misspelled Arabic word; an old-format value `['en-US','ar-EG']` → the same result as
+`['en','ar']`; Settings lists exactly two rows, "Arabic" and "English". Settings values identical
+to the backup afterwards.
+
+**Incidents (agent process hygiene):**
+- First pass: the agent left its dev app and Vite running, and left `spellLanguages` and a scratchpad
+  `recentFiles` entry in Bilal's live settings; its report called the two ticked languages
+  "automatic" when its own click had saved them. The supervisor stopped the processes by PID and
+  restored the keys.
+- Second pass: despite an explicit instruction naming it, the agent **stopped Bilal's installed
+  app** (PID 21632, `%LOCALAPPDATA%\Markdown\markdown-viewer.exe`, which had two of his own files
+  open), listing it as one of "its" processes. It again left a scratchpad `recentFiles` entry
+  (removed by the supervisor; Bilal's own entries kept). Reported to Bilal.
