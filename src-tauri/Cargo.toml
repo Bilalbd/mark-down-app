@@ -18,6 +18,9 @@ tauri-plugin-dialog = "2.7"
 tauri-plugin-store = "2.4"
 tauri-plugin-opener = "2.5"
 tauri-plugin-window-state = "2.4"
+# WebView2 leaves navigator.clipboard on "prompt" for a fresh profile (see Phase 4's Report), so
+# Cut/Copy/Paste go through this instead.
+tauri-plugin-clipboard-manager = "2.3"
 notify = "8"
 notify-debouncer-full = "0.7"
 serde = { version = "1", features = ["derive"] }

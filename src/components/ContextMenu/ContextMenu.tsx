@@ -48,12 +48,18 @@ export function findMenuItem(items: readonly MenuEntry[], id: string): MenuItemD
   return undefined;
 }
 
+/** Why the menu closed - `onClose` gets this so a caller can decide whether to reclaim focus.
+ * `'escape'` is the only case that should move focus back to whatever opened the menu: for
+ * `'outside'` the pointer (or focus) already went somewhere else, and for `'action'` the item's
+ * own handler is responsible for where focus ends up. */
+export type MenuCloseReason = 'escape' | 'outside' | 'action';
+
 export interface ContextMenuProps {
   x: number;
   y: number;
   items: MenuEntry[];
   onAction: (id: string) => void;
-  onClose: () => void;
+  onClose: (reason: MenuCloseReason) => void;
   ariaLabel?: string;
 }
 
@@ -101,22 +107,24 @@ export function ContextMenu({ x, y, items, onAction, onClose, ariaLabel }: Conte
     setSubmenuPos({ left, top });
   }, [openSubmenu]);
 
-  // Outside mousedown, window blur, scroll or resize all close the whole menu.
+  // Outside mousedown, window blur, scroll or resize all close the whole menu. None of these
+  // steal focus back - the pointer (or focus) already went wherever it's going.
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       const target = e.target as Node;
       if (menuRef.current?.contains(target) || submenuRef.current?.contains(target)) return;
-      onClose();
+      onClose('outside');
     };
+    const onWindowClose = () => onClose('outside');
     window.addEventListener('mousedown', onDown);
-    window.addEventListener('blur', onClose);
-    window.addEventListener('scroll', onClose, true);
-    window.addEventListener('resize', onClose);
+    window.addEventListener('blur', onWindowClose);
+    window.addEventListener('scroll', onWindowClose, true);
+    window.addEventListener('resize', onWindowClose);
     return () => {
       window.removeEventListener('mousedown', onDown);
-      window.removeEventListener('blur', onClose);
-      window.removeEventListener('scroll', onClose, true);
-      window.removeEventListener('resize', onClose);
+      window.removeEventListener('blur', onWindowClose);
+      window.removeEventListener('scroll', onWindowClose, true);
+      window.removeEventListener('resize', onWindowClose);
     };
   }, [onClose]);
 
@@ -147,7 +155,7 @@ export function ContextMenu({ x, y, items, onAction, onClose, ariaLabel }: Conte
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
+        onClose('escape');
         return;
       }
 
@@ -178,7 +186,7 @@ export function ContextMenu({ x, y, items, onAction, onClose, ariaLabel }: Conte
           const id = (document.activeElement as HTMLElement)?.dataset.itemId;
           if (id) {
             onAction(id);
-            onClose();
+            onClose('action');
           }
         }
         return;
@@ -203,7 +211,7 @@ export function ContextMenu({ x, y, items, onAction, onClose, ariaLabel }: Conte
           setTimeout(() => focusEdge(submenuRef.current, 'first'), 0);
         } else if (e.key !== 'ArrowRight') {
           onAction(item.id);
-          onClose();
+          onClose('action');
         }
       } else if (e.key === 'End') {
         e.preventDefault();
@@ -243,7 +251,7 @@ export function ContextMenu({ x, y, items, onAction, onClose, ariaLabel }: Conte
             return;
           }
           onAction(entry.id);
-          onClose();
+          onClose('action');
         }}
       >
         {Icon && <Icon {...MENU_ICON} />}

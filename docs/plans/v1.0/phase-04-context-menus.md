@@ -100,9 +100,9 @@ menu. The tab strip keeps its own menu.
 
 ## Tasks
 
-- [ ] **0.** Step 0 above. **Left for the supervisor** - the dev app hung before rendering (see
-  Report), on both the new code and the unmodified pre-Phase-4 code, so the native menu couldn't
-  be observed live this session.
+- [ ] **0.** Step 0 above. **Left for the supervisor** - the dev app hung before rendering in the
+  agent's first pass (see Report); the supervisor's own review session ran the app successfully
+  but its notes don't record the native menu's contents, so this is still open.
 - [x] **1.** `ContextMenu` component and tests (renders items, disabled items skipped by arrows,
   Enter activates, submenu opens with Right and closes with Left, Escape calls `onClose`, outside
   mousedown closes, position clamped).
@@ -113,27 +113,32 @@ menu. The tab strip keeps its own menu.
 
 ## Verify
 
-- [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format` (clipboard plugin wasn't needed -
-  see Report).
+- [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`, plus `cargo check`/`cargo test`
+  once the clipboard plugin was added in the review-fix round (see Report and Review fixes).
 - [ ] Dev app with a copy of `fixtures/spelling.md`, **light and dark** screenshots of: the editor
-  menu on a misspelled word, the Heading submenu open, the formatted-view menu. **Left for the
-  supervisor** - blocked by the startup hang (see Report).
-- [ ] Choose a suggestion → word replaced; `Ctrl+Z` restores it. *Add to dictionary* → squiggle
+  menu on a misspelled word, the Heading submenu open, the formatted-view menu. Not recorded as
+  done in the supervisor's review-fix request either - still open.
+- [x] Choose a suggestion → word replaced; `Ctrl+Z` restores it. *Add to dictionary* → squiggle
   gone in every tab and the word listed in Settings. *Ignore* → squiggle gone until restart.
-  **Left for the supervisor** - blocked by the startup hang.
-- [ ] Each formatting item once, through the menu (click and keyboard), checking the text. **Left
-  for the supervisor** - blocked by the startup hang.
-- [ ] Cut, Copy, Paste and Select all against the real clipboard (write a known string with
-  PowerShell `Set-Clipboard` first; read it back with `Get-Clipboard`). **Left for the
-  supervisor** - blocked by the startup hang.
-- [ ] Menu key and Shift+F10 open the menu at the cursor. **Left for the supervisor** - blocked by
-  the startup hang.
-- [ ] Right-click on the title bar, toolbar, outline and status bar: no native menu. A Settings text
-  field: native editing menu still there. Tab: tab menu unchanged. **Left for the supervisor** -
-  blocked by the startup hang.
-- [ ] Split view: each pane shows its own menu. **Left for the supervisor** - blocked by the
-  startup hang.
+  Confirmed by the supervisor's check of `347ad3c`.
+- [x] Each formatting item once, through the menu (click and keyboard), checking the text.
+  Confirmed by the supervisor's check (all 11 by click; the Heading submenu by keyboard).
+- [x] Cut, Copy, Paste and Select all against the real clipboard (write a known string with
+  PowerShell `Set-Clipboard` first; read it back with `Get-Clipboard`). Cut confirmed by the
+  supervisor before the fix; Copy, Paste (first-ever paste on a brand-new profile) and Cut
+  reconfirmed against the clipboard-manager plugin this round - see Review fixes. Select all
+  wasn't re-tested (it's a plain selection call, not clipboard-touching, and the preview's
+  version was already confirmed by the supervisor).
+- [x] Menu key and Shift+F10 open the menu at the cursor. Menu key confirmed by the supervisor;
+  Shift+F10 (specifically right after an Escape close, the bug being fixed) confirmed this round.
+- [x] Right-click on the title bar, toolbar, outline and status bar: no native menu. A Settings text
+  field: native editing menu still there. Tab: tab menu unchanged. Confirmed by the supervisor
+  (chrome suppression and the Settings input both checked); the tab menu wasn't touched by either
+  phase, so it stands on `TabContextMenu`'s own existing coverage.
+- [ ] Split view: each pane shows its own menu. Not mentioned in the supervisor's check - still
+  open.
 - [x] Commit: `Add right-click menus for the editor and preview`.
+- [x] Review fix commit: `Fix editor menu focus and use the clipboard plugin`.
 
 ## Report
 
@@ -266,6 +271,74 @@ nothing needed restoring. `recentFiles` (2 entries) and `spellWords` (`[]`) are 
   if it does, swap Cut/Copy/Paste to `@tauri-apps/plugin-clipboard-manager` with only
   `clipboard-manager:allow-read-text`/`allow-write-text` in `capabilities/default.json`, per the
   doc.
+
+## Review fixes
+
+The PC was awake for the supervisor's check of `347ad3c`, which found two problems. Both are fixed
+in commit `Fix editor menu focus and use the clipboard plugin` (Sonnet, not amended onto the
+original).
+
+**1. Focus wasn't returned to the editor on Escape/outside-close.** `ContextMenu`'s `onClose` now
+takes a `reason: 'escape' | 'outside' | 'action'` (`src/components/ContextMenu/ContextMenu.tsx`):
+Escape passes `'escape'`, outside `mousedown`/blur/scroll/resize pass `'outside'`, and an item
+activation (click or Enter/Space) passes `'action'`. `SourceEditor`'s `onClose` handler calls
+`viewRef.current?.focus()` only for `'escape'` - outside clicks are left alone so focus goes
+wherever the pointer landed, and actions already return focus themselves via `handleMenuAction`'s
+`finish()`. Added a unit test (`ContextMenu.test.tsx`, "Escape calls onClose with reason
+'escape'") plus two more for the other reasons (outside mousedown → `'outside'`, clicking a plain
+item → `'action'`) so the whole contract is covered at the component level, not just the one case
+asked for. I didn't add a `SourceEditor`-level test: doing so would mean mounting a real
+CodeMirror instance and asserting on `document.activeElement` after a synthetic `contextmenu` →
+Escape sequence, which is what I *did* do manually in the dev app (below) - the `onClose` handler
+itself is a one-line `if (reason === 'escape') view.focus()` with no logic of its own to unit-test
+once `ContextMenu`'s reason-passing is covered.
+
+**2. Clipboard now goes through `@tauri-apps/plugin-clipboard-manager`.** Added
+`@tauri-apps/plugin-clipboard-manager@2.4.0` (npm) and `tauri-plugin-clipboard-manager = "2.3"`
+(the crate that version resolved to; `cargo add tauri-plugin-clipboard-manager@2` picked 2.3.3,
+one minor behind the npm package, both major 2 like every other plugin here), registered in
+`lib.rs` with `.plugin(tauri_plugin_clipboard_manager::init())`, and exactly
+`clipboard-manager:allow-read-text`/`clipboard-manager:allow-write-text` in
+`capabilities/default.json` - nothing broader. `src/lib/tauri.ts` gained `readClipboardText`/
+`writeClipboardText`, following the same `isTauri()` dynamic-import-with-fallback shape as
+`openExternal`/`revealInExplorer` right above them: the plugin inside Tauri, plain
+`navigator.clipboard` outside it (tests, plain Vite dev). `SourceEditor`'s Cut/Copy/Paste and
+`Preview`'s Copy now call only these wrappers. Added `tauri.test.ts` coverage for the non-Tauri
+fallback (`writeClipboardText`/`readClipboardText` call through to a stubbed
+`navigator.clipboard`, same stubbing pattern `TabStrip.test.tsx` already uses).
+`cargo check`/`cargo test` pass (54 Rust tests, unchanged); `pnpm test` 662 → 665 (3 new: 2
+clipboard-wrapper tests, 1 extra `ContextMenu` reason test beyond the two the Escape/outside cases
+already needed).
+
+**Verified in the dev app** (`cargo build`, `pnpm dev`, `markdown-viewer.exe --new-window` with a
+**brand-new** `WEBVIEW2_USER_DATA_FOLDER` for the Paste check specifically, plus my own
+`--remote-debugging-port=9222`; the PC was awake this time and the app started on the first try -
+no hang). Drove it with `cdp.mjs eval-file` scripts dispatching synthetic `KeyboardEvent`s
+(`'ContextMenu'`, `Shift+F10`, `Escape`) on the editor host / `window`, and real `.click()` on the
+menu's own buttons. This is deliberately different from CDP-level real input: the whole point of
+switching to the plugin is that its `readText`/`writeText` calls cross into Rust and read the OS
+clipboard directly, with no WebView2 permission or user-activation gate to satisfy, so a
+synthetic-but-untrusted DOM event exercises the exact same code path a real click would. Results:
+  - `Set-Clipboard "PLUGIN-OK"`, opened the menu with the Menu key, clicked Paste: the document's
+    first 20 characters became `PLUGIN-OK---\ntitle: ` (fixture content shifted right) - the very
+    first Paste on a completely fresh profile worked immediately, no permission prompt, no retry.
+  - Selected the fixture's "sentance" typo, clicked Copy: `Get-Clipboard` returned `sentance`.
+  - Selected the fixture's "seccond" typo, clicked Cut: the word was gone from the document
+    (`view.state.doc` no longer contains it) and `Get-Clipboard` returned `seccond`.
+  - Opened the menu (Menu key) → `document.querySelector('.context-menu')` present. Pressed
+    Escape → menu gone, and `document.activeElement.className` was `"cm-content cm-lineWrapping"`
+    (i.e. the editor, not `<body>`). Immediately pressed Shift+F10 on the editor host → the menu
+    opened again (this only succeeds if the host's `keydown` listener is in the event's
+    propagation path, which only happens if the focused element - proven above to be
+    `.cm-content` - is inside `.source-editor`; a real end-to-end confirmation of the fix, not
+    just an isolated assertion).
+
+**Housekeeping:** backed up `settings.json`/`presets.json` and Bilal's clipboard contents (empty)
+before touching anything. Only `recentFiles` changed (gained the fixture's path from opening it
+for the checks); restored it to exactly Bilal's original two entries via the app's own settings
+store (`set('recentFiles', [...])`), then confirmed on disk. `spellWords` was never touched this
+round (still `[]`, unchanged). Clipboard restored to empty afterwards. Stopped only the two PIDs I
+started this round (the exe and its Vite server), confirmed by command line before stopping either.
 
 ## Supervisor check
 

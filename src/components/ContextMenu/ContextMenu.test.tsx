@@ -80,12 +80,13 @@ describe('ContextMenu', () => {
     expect(document.activeElement?.textContent).toContain('One');
   });
 
-  it('Escape calls onClose', () => {
+  it('Escape calls onClose with reason "escape"', () => {
     render();
     act(() => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     });
     expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledWith('escape');
   });
 
   it('ArrowDown skips the disabled item', () => {
@@ -97,13 +98,14 @@ describe('ContextMenu', () => {
     expect(document.activeElement?.textContent).toContain('More');
   });
 
-  it('Enter activates a plain item and closes the menu', () => {
+  it('Enter activates a plain item and closes the menu with reason "action"', () => {
     render();
     act(() => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     });
     expect(onAction).toHaveBeenCalledWith('one');
     expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledWith('action');
   });
 
   it('ArrowRight opens the submenu and focuses its first item, Left closes it', async () => {
@@ -130,12 +132,25 @@ describe('ContextMenu', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('outside mousedown closes the menu', () => {
+  it('outside mousedown closes the menu with reason "outside"', () => {
     render();
     act(() => {
       document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     });
     expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledWith('outside');
+  });
+
+  it('clicking a plain item closes the menu with reason "action"', () => {
+    render();
+    const button = Array.from(document.body.querySelectorAll('[role="menuitem"]')).find((el) =>
+      el.textContent?.includes('One'),
+    ) as HTMLButtonElement;
+    act(() => {
+      button.click();
+    });
+    expect(onAction).toHaveBeenCalledWith('one');
+    expect(onClose).toHaveBeenCalledWith('action');
   });
 
   it('clamps a negative position to stay inside the viewport', () => {

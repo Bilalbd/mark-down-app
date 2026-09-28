@@ -177,6 +177,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         // VISIBLE isn't restored; the window stays cloaked until reveal() uncloaks it.
         .plugin(
             tauri_plugin_window_state::Builder::default()

@@ -5,7 +5,14 @@ import { renderMermaidBlocks } from '@/markdown/mermaid';
 import { retryBrokenLocalImages } from '@/lib/brokenImages';
 import { useResolvedTheme } from '@/lib/useAppTheme';
 import { classifyLink } from '@/lib/links';
-import { dirname, isTauri, toAssetUrl, openExternal, revealInExplorer } from '@/lib/tauri';
+import {
+  dirname,
+  isTauri,
+  toAssetUrl,
+  openExternal,
+  revealInExplorer,
+  writeClipboardText,
+} from '@/lib/tauri';
 import { useDocumentStore } from '@/store/document';
 import { useSettingsStore, isPreviewFullWidth, zoomPreviewBy } from '@/store/settings';
 import { useViewStore } from '@/store/view';
@@ -212,7 +219,7 @@ export function Preview() {
     setMenu(null);
     if (id === 'copy') {
       const text = window.getSelection()?.toString() ?? '';
-      if (text) void navigator.clipboard.writeText(text).catch(() => undefined);
+      if (text) void writeClipboardText(text).catch(() => undefined);
       return;
     }
     if (id === 'select-all') {

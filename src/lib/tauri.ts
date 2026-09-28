@@ -130,6 +130,23 @@ export async function revealInExplorer(path: string): Promise<void> {
   await revealItemInDir(path);
 }
 
+/** Reads plain text from the system clipboard, through the clipboard-manager plugin. Falls back
+ * to `navigator.clipboard` outside Tauri (tests, plain Vite dev). Inside Tauri this isn't just a
+ * style choice: a fresh WebView2 profile leaves `navigator.clipboard.readText` on the
+ * "clipboard-read" permission's "prompt" state indefinitely (nothing ever resolves it without a
+ * click landing on WebView2's own prompt), so Paste from the editor menu would silently do
+ * nothing on a first run - see Phase 4's Report. */
+export function readClipboardText(): Promise<string> {
+  if (!isTauri()) return navigator.clipboard.readText();
+  return import('@tauri-apps/plugin-clipboard-manager').then(({ readText }) => readText());
+}
+
+/** Writes plain text to the system clipboard - see `readClipboardText`. */
+export function writeClipboardText(text: string): Promise<void> {
+  if (!isTauri()) return navigator.clipboard.writeText(text);
+  return import('@tauri-apps/plugin-clipboard-manager').then(({ writeText }) => writeText(text));
+}
+
 /** The app's version from `tauri.conf.json`, or `null` outside Tauri or if the
  * call fails (a missing version only hides the line in Settings). */
 export function getAppVersion(): Promise<string | null> {

@@ -45,7 +45,12 @@ import {
 import { buildEditorMenu } from '@/lib/editorMenu';
 import { ContextMenu, findMenuItem, type MenuEntry } from '@/components/ContextMenu/ContextMenu';
 import { effectiveSpellLanguages } from '@/lib/spell';
-import { spellLanguages as fetchSpellLanguages, spellSuggest } from '@/lib/tauri';
+import {
+  readClipboardText,
+  spellLanguages as fetchSpellLanguages,
+  spellSuggest,
+  writeClipboardText,
+} from '@/lib/tauri';
 import { editorHighlighting, editorTheme } from './editorTheme';
 import { misspellingAt, spellcheckExtension } from './spellcheck';
 import './SourceEditor.css';
@@ -481,8 +486,7 @@ export function SourceEditor() {
           return;
         }
         const text = view.state.sliceDoc(sel.from, sel.to);
-        navigator.clipboard
-          .writeText(text)
+        writeClipboardText(text)
           .then(() => view.dispatch({ changes: { from: sel.from, to: sel.to, insert: '' } }))
           .catch(() => undefined) // clipboard write failed - leave the text in place
           .finally(finish);
@@ -495,15 +499,13 @@ export function SourceEditor() {
           return;
         }
         const text = view.state.sliceDoc(sel.from, sel.to);
-        navigator.clipboard
-          .writeText(text)
+        writeClipboardText(text)
           .catch(() => undefined)
           .finally(finish);
         return;
       }
       case 'paste': {
-        navigator.clipboard
-          .readText()
+        readClipboardText()
           .then((text) => {
             if (text) view.dispatch(view.state.replaceSelection(text));
           })
@@ -572,7 +574,14 @@ export function SourceEditor() {
           items={menu.items}
           ariaLabel="Formatting"
           onAction={handleMenuAction}
-          onClose={() => setMenu(null)}
+          onClose={(reason) => {
+            setMenu(null);
+            // Escape has nowhere else to send focus, so send it back to the editor. An outside
+            // click already sent focus wherever the pointer landed - reclaiming it here would
+            // fight that. An action's own handler (`handleMenuAction`'s `finish()`) already
+            // focuses the editor once the action itself is done.
+            if (reason === 'escape') viewRef.current?.focus();
+          }}
         />
       )}
     </>
