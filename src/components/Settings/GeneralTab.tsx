@@ -1,12 +1,15 @@
+import { useEffect, useState } from 'react';
 import {
   useSettingsStore,
   type AppTheme,
   type OpenFilesIn,
   type SplitSide,
 } from '@/store/settings';
+import { getAppVersion } from '@/lib/tauri';
 import { NumberInput, Row, Section, Select, Toggle } from './controls';
 
 export function GeneralTab() {
+  const [version, setVersion] = useState<string | null>(null);
   const openFilesIn = useSettingsStore((s) => s.openFilesIn);
   const appTheme = useSettingsStore((s) => s.appTheme);
   const splitEditorSide = useSettingsStore((s) => s.splitEditorSide);
@@ -18,6 +21,10 @@ export function GeneralTab() {
   const editorFontSize = useSettingsStore((s) => s.editorFontSize);
   const selfContainedExport = useSettingsStore((s) => s.selfContainedExport);
   const set = useSettingsStore((s) => s.set);
+
+  useEffect(() => {
+    void getAppVersion().then(setVersion);
+  }, []);
 
   return (
     <>
@@ -132,6 +139,8 @@ export function GeneralTab() {
           </tbody>
         </table>
       </Section>
+
+      {version && <p className="settings__version">Version {version}</p>}
     </>
   );
 }

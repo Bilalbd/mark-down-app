@@ -1,5 +1,6 @@
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { emit } from '@tauri-apps/api/event';
+import { getVersion } from '@tauri-apps/api/app';
 
 export const isTauri = (): boolean => '__TAURI_INTERNALS__' in window;
 
@@ -127,4 +128,11 @@ export async function revealInExplorer(path: string): Promise<void> {
   if (!isTauri()) return;
   const { revealItemInDir } = await import('@tauri-apps/plugin-opener');
   await revealItemInDir(path);
+}
+
+/** The app's version from `tauri.conf.json`, or `null` outside Tauri or if the
+ * call fails (a missing version only hides the line in Settings). */
+export function getAppVersion(): Promise<string | null> {
+  if (!isTauri()) return Promise.resolve(null);
+  return getVersion().catch(() => null);
 }
