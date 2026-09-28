@@ -128,6 +128,14 @@ on it for free.
 
 ## Rules for every agent
 
+**From Phase 3 on (Bilal's decision, 2026-09-28): agents write code and unit tests only.** They
+never launch the app, Vite or cargo-built executables, never run `cdp.mjs`, never stop or start any
+process, and never read or write anything under `%APPDATA%\com.bilal.markdown-viewer\`. Every
+"Verify" item that needs the running app is done by the **supervisor**; the agent leaves it
+unticked and writes "left for the supervisor" next to it. The rules below about launching the dev
+app, backups and screenshots now apply to the supervisor only. (Reason: in Phase 2b a Haiku agent
+stopped Bilal's installed app and left test values in his settings.)
+
 Follow the "Rules for every agent" and "Definition of done" sections of
 [`../review-followups/README.md`](../review-followups/README.md), which point to the tabs and
 save-recent-polish rules too. They all apply here. In particular:
