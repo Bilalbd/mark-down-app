@@ -25,6 +25,9 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
   to save as, a dirty indicator in the title bar and a Save / Don't save / Cancel guard on close.
   Saving a new, untitled note for the first time suggests a file name from its first heading (or
   first line, if it has none).
+- **Spell check** in Source mode, using the languages installed in Windows (red wavy
+  underlines) — code, URLs, HTML, maths and front matter are skipped. On by default; pick the
+  languages and manage a personal dictionary in Settings → General → Spelling.
 - Reads and preserves UTF-8 (with or without BOM) and UTF-16 (LE/BE) files, and CRLF/LF line
   endings, round-tripping each on save; a file with invalid-UTF-8 bytes asks before saving
   over them.

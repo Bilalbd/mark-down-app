@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { EditorState, Compartment, Transaction, type Extension } from '@codemirror/state';
 import {
   EditorView,
@@ -22,10 +22,25 @@ import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import { cacheEditorState, cachedEditorState } from '@/lib/editorCache';
 import { countWords } from '@/lib/textStats';
+import { effectiveSpellLanguages } from '@/lib/spell';
+import { spellLanguages as fetchSpellLanguages } from '@/lib/tauri';
 import { editorHighlighting, editorTheme } from './editorTheme';
+import { spellcheckExtension } from './spellcheck';
 import './SourceEditor.css';
 
 const gutterCompartment = new Compartment();
+const spellCompartment = new Compartment();
+
+/** The current spell-check extension for the compartment above: `[]` when it's off or has no
+ * effective language (unticking every language means "no squiggles", not "check nothing"). */
+function currentSpellExtension(): Extension {
+  const spellOn = useSettingsStore.getState().spellCheck;
+  if (!spellOn) return [];
+  const { spellLanguages, spellWords } = useSettingsStore.getState();
+  const supported = useViewStore.getState().spellSupportedLanguages;
+  const effectiveLanguages = effectiveSpellLanguages(spellLanguages, supported, navigator.language);
+  return effectiveLanguages.length > 0 ? spellcheckExtension(effectiveLanguages, spellWords) : [];
+}
 
 let lastEmitted: string | null = null;
 let pendingCursorUpdate: number | null = null;
@@ -93,6 +108,7 @@ function buildExtensions(): Extension[] {
     markdown({ base: markdownLanguage, codeLanguages: languages }),
     editorTheme,
     editorHighlighting,
+    spellCompartment.of(currentSpellExtension()),
     EditorView.updateListener.of((u) => {
       if (u.docChanged) {
         const str = u.state.doc.toString();
@@ -134,6 +150,11 @@ export function SourceEditor() {
   const path = useDocumentStore((s) => s.path);
   const lineNumbersOn = useSettingsStore((s) => s.editorLineNumbers);
   const fontSize = useSettingsStore((s) => s.editorFontSize);
+  const spellCheckOn = useSettingsStore((s) => s.spellCheck);
+  const spellLanguagesSetting = useSettingsStore((s) => s.spellLanguages);
+  const spellWords = useSettingsStore((s) => s.spellWords);
+  const supportedLanguages = useViewStore((s) => s.spellSupportedLanguages);
+  const setSpellSupportedLanguages = useViewStore((s) => s.setSpellSupportedLanguages);
   const setEditorView = useViewStore((s) => s.setEditorView);
   const pendingScrollLine = useViewStore((s) => s.pendingScrollLine);
   const clearPendingScroll = useViewStore((s) => s.clearPendingScroll);
@@ -208,6 +229,13 @@ export function SourceEditor() {
     // past the end of the incoming document (status bar, and Split view's cursor mirror).
     updateCursorState(view);
 
+    // A restored cached state carries whatever spellCompartment content was live the last time
+    // this tab was active, which can be stale (spellCheck, the languages or the personal
+    // dictionary may have changed while this tab was in the background - see currentSpellExtension).
+    // Reconfigure against the current settings unconditionally so a background tab's squiggles
+    // are correct the moment it's switched back to, not just on its next settings change.
+    view.dispatch({ effects: spellCompartment.reconfigure(currentSpellExtension()) });
+
     prevPathRef.current = path;
   }, [loadId, path]);
 
@@ -232,6 +260,36 @@ export function SourceEditor() {
       ),
     });
   }, [lineNumbersOn]);
+
+  // Windows' installed spelling dictionaries, fetched once and shared with Settings. Failure
+  // just means "no automatic language yet" - spell check is a hint, not an error to surface.
+  useEffect(() => {
+    let cancelled = false;
+    void fetchSpellLanguages()
+      .then((langs) => {
+        if (!cancelled) setSpellSupportedLanguages(langs);
+      })
+      .catch(() => undefined); // spell check is a hint - failure just means no automatic pick yet
+    return () => {
+      cancelled = true;
+    };
+  }, [setSpellSupportedLanguages]);
+
+  const effectiveSpellLangs = useMemo(
+    () =>
+      spellCheckOn
+        ? effectiveSpellLanguages(spellLanguagesSetting, supportedLanguages, navigator.language)
+        : [],
+    [spellCheckOn, spellLanguagesSetting, supportedLanguages],
+  );
+
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: spellCompartment.reconfigure(
+        effectiveSpellLangs.length > 0 ? spellcheckExtension(effectiveSpellLangs, spellWords) : [],
+      ),
+    });
+  }, [effectiveSpellLangs, spellWords]);
 
   // Outline click / cross-view scroll request.
   useEffect(() => {

@@ -2,15 +2,33 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 
+// GeneralTab imports the toolbar's shared icon props (for the personal dictionary's remove
+// button), which pulls in the theme hook; jsdom has no matchMedia, so provide it before that
+// module loads.
+vi.hoisted(() => {
+  window.matchMedia = (query: string) =>
+    ({
+      matches: false,
+      media: query,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }) as unknown as MediaQueryList;
+});
+
+const mockSpellLanguages = vi.fn<() => Promise<string[]>>().mockResolvedValue([]);
+
 vi.mock('@/lib/tauri', () => ({
   getAppVersion: vi.fn().mockResolvedValue('0.8.0'),
+  spellLanguages: () => mockSpellLanguages(),
 }));
 
 import { GeneralTab } from './GeneralTab';
+import { useSettingsStore } from '@/store/settings';
+import { useViewStore } from '@/store/view';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
-describe('GeneralTab version line', () => {
+describe('GeneralTab', () => {
   let container: HTMLElement;
   let root: ReturnType<typeof createRoot>;
 
@@ -18,6 +36,10 @@ describe('GeneralTab version line', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
+    mockSpellLanguages.mockReset();
+    mockSpellLanguages.mockResolvedValue([]);
+    useSettingsStore.setState({ spellCheck: true, spellLanguages: [], spellWords: [] });
+    useViewStore.setState({ spellSupportedLanguages: [] });
   });
 
   afterEach(() => {
@@ -27,12 +49,108 @@ describe('GeneralTab version line', () => {
     document.body.removeChild(container);
   });
 
-  it('shows the app version once it loads', async () => {
+  const render = async () => {
     await act(async () => {
       root.render(<GeneralTab />);
       await Promise.resolve();
+      await Promise.resolve();
     });
+  };
 
+  it('shows the app version once it loads', async () => {
+    await render();
     expect(container.querySelector('.settings__version')?.textContent).toBe('Version 0.8.0');
+  });
+
+  it('shows a hint when Windows has no spelling dictionaries', async () => {
+    await render();
+    const note = Array.from(container.querySelectorAll('.settings__note')).map(
+      (n) => n.textContent,
+    );
+    expect(note.some((t) => t?.includes('Windows has no spelling dictionaries installed'))).toBe(
+      true,
+    );
+  });
+
+  it('shows "No words added yet" for an empty personal dictionary', async () => {
+    await render();
+    const note = Array.from(container.querySelectorAll('.settings__note')).map(
+      (n) => n.textContent,
+    );
+    expect(note.some((t) => t?.includes('No words added yet.'))).toBe(true);
+  });
+
+  it('lists one checkbox per supported language', async () => {
+    mockSpellLanguages.mockResolvedValue(['ar-SA', 'en-US']);
+    await render();
+    const boxes = container.querySelectorAll('.settings__checklist input[type="checkbox"]');
+    expect(boxes.length).toBe(2);
+  });
+
+  it('ticks the automatic language when spellLanguages is empty', async () => {
+    // jsdom's default navigator.language is "en-US".
+    mockSpellLanguages.mockResolvedValue(['ar-SA', 'en-US']);
+    await render();
+    const boxes = Array.from(
+      container.querySelectorAll<HTMLInputElement>('.settings__checklist input[type="checkbox"]'),
+    );
+    expect(boxes.filter((b) => b.checked)).toHaveLength(1);
+  });
+
+  it('ticks exactly the saved languages once the user has chosen explicitly', async () => {
+    mockSpellLanguages.mockResolvedValue(['ar-SA', 'en-US', 'fr-FR']);
+    useSettingsStore.setState({ spellLanguages: ['ar-SA', 'fr-FR'] });
+    await render();
+    const boxes = container.querySelectorAll<HTMLInputElement>(
+      '.settings__checklist input[type="checkbox"]',
+    );
+    expect(Array.from(boxes).filter((b) => b.checked)).toHaveLength(2);
+  });
+
+  it('disables the language checklist while spell check is off', async () => {
+    mockSpellLanguages.mockResolvedValue(['en-US']);
+    useSettingsStore.setState({ spellCheck: false });
+    await render();
+    const box = container.querySelector<HTMLInputElement>(
+      '.settings__checklist input[type="checkbox"]',
+    );
+    expect(box?.disabled).toBe(true);
+  });
+
+  it('writes the explicit list on the first tick, starting from the automatic set', async () => {
+    mockSpellLanguages.mockResolvedValue(['ar-SA', 'en-US']);
+    await render();
+    const arCheckbox = Array.from(
+      container.querySelectorAll<HTMLInputElement>('.settings__checklist input[type="checkbox"]'),
+    ).find((b) => !b.checked); // ar-SA isn't the automatic pick, so it starts unticked
+    expect(arCheckbox).toBeDefined();
+    act(() => {
+      arCheckbox!.click();
+    });
+    // Ticking ar-SA alongside the automatically-ticked en-US writes both explicitly.
+    expect(useSettingsStore.getState().spellLanguages.sort()).toEqual(['ar-SA', 'en-US']);
+  });
+
+  it('removes a word from the personal dictionary', async () => {
+    useSettingsStore.setState({ spellWords: ['teh', 'wiht'] });
+    await render();
+    const removeButton = container.querySelector<HTMLButtonElement>('[aria-label="Remove teh"]');
+    expect(removeButton).not.toBeNull();
+    act(() => {
+      removeButton!.click();
+    });
+    expect(useSettingsStore.getState().spellWords).toEqual(['wiht']);
+  });
+
+  it('toggles the Check spelling setting', async () => {
+    await render();
+    const rows = Array.from(container.querySelectorAll('.settings__row'));
+    const spellRow = rows.find((r) => r.textContent?.includes('Check spelling'));
+    const toggle = spellRow?.querySelector<HTMLInputElement>('input[type="checkbox"]');
+    expect(toggle?.checked).toBe(true);
+    act(() => {
+      toggle!.click();
+    });
+    expect(useSettingsStore.getState().spellCheck).toBe(false);
   });
 });

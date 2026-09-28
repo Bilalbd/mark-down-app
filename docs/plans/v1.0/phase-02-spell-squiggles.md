@@ -93,41 +93,225 @@ Reuse the existing Settings controls (`controls.tsx`) and CSS classes; add only 
 
 ## Tasks
 
-- [ ] **1.** `proseRanges.ts` + tests: parse with `markdownLanguage.parser.parse(text)` (the same
+- [x] **1.** `proseRanges.ts` + tests: parse with `markdownLanguage.parser.parse(text)` (the same
   GFM parser the editor uses) and assert the ranges for each excluded construct and a few
   included ones (heading text, link label, table cell, list item).
-- [ ] **2.** `spell.ts` + tests: automatic language choice (exact, primary-language match,
+- [x] **2.** `spell.ts` + tests: automatic language choice (exact, primary-language match,
   `en-US` fallback, none), labels, `isKnownWord` (case-insensitive, both sources), cache
   (hit, miss, cap, clear on language change).
-- [ ] **3.** Settings keys + tests (defaults, persistence like the other array keys).
-- [ ] **4.** The CodeMirror extension and its wiring in `SourceEditor.tsx`.
-- [ ] **5.** Spelling section in Settings, with tests (toggle, checklist from a mocked
+- [x] **3.** Settings keys + tests (defaults, persistence like the other array keys).
+- [x] **4.** The CodeMirror extension and its wiring in `SourceEditor.tsx`.
+- [x] **5.** Spelling section in Settings, with tests (toggle, checklist from a mocked
   `spellLanguages`, automatic ticks, empty-list hint, removing a personal word).
-- [ ] **6.** `fixtures/spelling.md`, README bullet.
+- [x] **6.** `fixtures/spelling.md`, README bullet.
 
 ## Verify
 
-- [ ] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`, `cargo check` (no Rust changes
+- [x] `pnpm test`, `pnpm lint`, `npx tsc --noEmit`, `pnpm format`, `cargo check` (no Rust changes
   expected).
-- [ ] Dev app, a copy of `fixtures/spelling.md`, Source view, **light and dark** screenshots: the
+- [x] Dev app, a copy of `fixtures/spelling.md`, Source view, **light and dark** screenshots: the
   English and Arabic mistakes are underlined; nothing in the "must not" examples is; the mixed line
   is clean when both languages are ticked and the Arabic word is underlined with English only.
-- [ ] Split view: squiggles in the editor pane only.
-- [ ] Settings: toggle off removes all squiggles at once; toggling back restores them. Ticking and
+- [x] Split view: squiggles in the editor pane only.
+- [x] Settings: toggle off removes all squiggles at once; toggling back restores them. Ticking and
   unticking languages updates the squiggles without reopening the file.
-- [ ] Add a word to `spellWords` through the store (`{ persist: false }`); its squiggles disappear
+- [x] Add a word to `spellWords` through the store (`{ persist: false }`); its squiggles disappear
   in every open tab.
-- [ ] Typing: type a misspelled word; no squiggle while the cursor is on it; it appears after the
+- [x] Typing: type a misspelled word; no squiggle while the cursor is on it; it appears after the
   cursor moves on and 400 ms pass.
-- [ ] `fixtures/huge.md` (copy): type 30 characters at the end and in the middle, and scroll from
+- [x] `fixtures/huge.md` (copy): type 30 characters at the end and in the middle, and scroll from
   top to bottom, with spell check on and off. Report keystroke-to-paint timings (a
   `performance.now()` measurement around dispatch + `requestAnimationFrame`) and the number of
   `spell_check` calls made while scrolling.
-- [ ] Commit: `Underline misspelled words in the source editor`.
+- [x] Commit: `Underline misspelled words in the source editor`.
 
 ## Report
 
-_(agent fills in)_
+**What was built.**
+
+- `src/lib/proseRanges.ts` (new): `proseRanges(tree, doc, from, to)` walks the real GFM syntax tree
+  (`markdownLanguage.parser.parse`, the same parser `SourceEditor` uses) and subtracts the ranges
+  of `FencedCode`, `CodeBlock`, `InlineCode`, `URL` (covers link/image destinations, reference
+  definitions' destinations, and bare/explicit autolinks alike - confirmed by printing the real
+  tree, not assumed), `Autolink`, `LinkReference`, `HTMLTag`, `HTMLBlock`, `Comment` and
+  `CommentBlock`, plus three regexes for what the parser doesn't represent as nodes: a YAML front
+  matter block at doc start, `$…$`/`$$…$$` maths (matching `@mdit/plugin-katex`'s `dollars`
+  delimiters and `allowInlineWithSpace: false`), and 6-digit HEX colours. Also exports
+  `splitRangesByLine`, which chops the result at line boundaries so the cache (below) hits reliably
+  across overlapping scroll windows. 25 tests, including probing the actual parser's node names
+  for every construct in the phase document plus a few of the "must stay checked" ones (heading
+  text, table cells, list items, quotes, emphasis).
+- `src/lib/spell.ts` (new): `effectiveSpellLanguages(saved, supported, navLang)` (exact tag → same
+  primary language, preferring `en-US` among ties → `en-US` → first supported → none),
+  `languageLabel(tag, uiLang)` (`Intl.DisplayNames`, falls back to the tag), `isKnownWord` (personal
+  dictionary + ignore set, case-insensitive), and `SpellCache` (keyed on sorted languages + exact
+  text, clears itself outright past 5,000 entries). 17 tests.
+- `src/components/Editor/spellcheck.ts` (new): `spellcheckExtension(languages, spellWords)` -  a
+  `StateField<DecorationSet>` (mapped through `tr.changes` so squiggles don't jump mid-edit) plus a
+  `ViewPlugin` that debounces 400 ms after any doc change, viewport change or selection change,
+  then checks the viewport ±50 lines. It runs once from the constructor too (not just `update`),
+  since `EditorView.setState` recreates view plugins from scratch but never fires an `update`, so a
+  freshly loaded/switched-to document is covered without waiting for an edit or scroll. Each check:
+  builds per-line segments via `proseRanges` + `splitRangesByLine`, looks each up in the plugin's
+  own `SpellCache`, sends every cache miss to `spellCheck` in **one batched IPC call**, then filters
+  the combined (cached + fetched) results by the personal dictionary/ignore set and by the word
+  currently touching the caret (computed fresh at filter time, so "isn't flagged until the cursor
+  leaves it" falls out naturally rather than needing separate instant-reveal logic). A response
+  whose request sequence number is stale is dropped; a rejected `spellCheck` call just skips that
+  pass (comment explains why: spell check is a hint, not a document operation). `misspellingAt`
+  reads the field for Phase 4.
+- `src/components/Editor/SourceEditor.tsx`: a `spellCompartment`, computed by a shared
+  `currentSpellExtension()` helper (off, or no effective language → `[]`; otherwise
+  `spellcheckExtension(...)`). It's used for the *initial* per-mount/per-load extension (reading
+  the store synchronously, so a freshly created editor state is never stale) **and** is
+  unconditionally re-dispatched right after every `loadId` change (see "Bug found and fixed"
+  below), in addition to the existing reactive `useEffect` on `[spellCheck, effective languages,
+  spellWords]` that reconfigures the live, currently-mounted editor. Supported languages are
+  fetched once (`spellLanguages()`) into a new `view` store field and combined with
+  `settings.spellLanguages` via `effectiveSpellLanguages`.
+- `src/components/Editor/editorTheme.ts`: `.cm-misspelled` rule (`text-decoration: underline wavy
+  var(--spell-error)`, `text-decoration-skip-ink: none`, `text-underline-offset: 3px`).
+- `src/styles/app-theme.css`: `--spell-error` token, `#c42b1c` (light) / `#ff6859` (dark) - a clear
+  red confirmed legible on both editor backgrounds in the screenshots below.
+- `src/store/settings.ts`: `spellCheck` (`true`), `spellLanguages` (`[]`), `spellWords` (`[]`),
+  added to `Settings`/`DEFAULTS` (not `EPHEMERAL_KEYS`, so they persist). Tests for defaults, `set`,
+  and disk persistence of the two array keys (mirroring the existing `recentFiles` pattern).
+- `src/store/view.ts`: `spellSupportedLanguages: string[]` (+ setter) and `spellIgnored:
+  ReadonlySet<string>` (+ `ignoreWord`, lower-cases on insert) - both transient, never saved.
+- `src/components/Settings/GeneralTab.tsx`: a **Spelling** section after **Source editor** - a
+  toggle, a sorted checklist of `spellLanguages()`'s result (ticked from `spellLanguages` once
+  non-empty, else from `effectiveSpellLanguages([], …)`; the whole checklist disabled while the
+  toggle is off; a hint paragraph when Windows has no dictionaries), and the personal dictionary as
+  a list with an `aria-label="Remove <word>"` button using the shared Toolbar `ICON` props (as
+  `TabStrip.tsx` already does). 10 tests (up from 1), covering the hint states, automatic vs.
+  explicit ticking, the disabled state, writing the explicit list on first tick, and removing a
+  word.
+- `src/components/Settings/SettingsPanel.css`: `.settings__checklist` and `.settings__word-list`
+  rules, following the existing token/BEM conventions.
+- `fixtures/spelling.md` (new): front matter with a typo, an English paragraph with three typos, an
+  Arabic paragraph with one deliberately-misspelled word, a mixed English/Arabic paragraph using a
+  *correctly* spelled Arabic word (to exercise the intersection: flagged with English only, clean
+  with both), and every excluded construct from the phase document, each hiding a `wiht` - fenced
+  and inline code, a bare URL, an HTML tag (in an attribute, so the visible text next to it stays
+  checked), inline and block maths, a HEX colour, and a reference definition - plus a link and an
+  image whose *destination* is misspelled but whose label/alt text is also misspelled, to show
+  the destination is skipped while the text isn't. Verified programmatically against the real
+  `proseRanges` output before ever loading it in the app.
+- `README.md`: one bullet under Features.
+
+**Bug found and fixed during verification (not in the original diff).** The cross-tab check in the
+phase document ("its squiggles disappear in every open tab") turned up a real gap: `SourceEditor`
+caches each tab's whole `EditorState` (`lib/editorCache.ts`) so switching tabs is instant, and
+`view.setState(restored)` puts that cached state back verbatim - compartment contents included.
+If `spellWords` (or the languages, or the toggle) changed while a *different* tab was active, the
+reactivated tab's `spellCompartment` still held whatever was live the last time *it* was active,
+because the reactive `useEffect` that reconfigures it only fires when its own dependencies change,
+not on a tab switch. Fixed by unconditionally re-dispatching
+`spellCompartment.reconfigure(currentSpellExtension())` right after the `loadId` effect's
+restore-or-create branch, in `src/components/Editor/SourceEditor.tsx`, so every tab switch
+reconciles the compartment against the *current* settings regardless of what was cached. Verified
+before and after (see the CDP transcript below) - reproduced with two tabs, `spellWords` changed
+while tab 2 was active, then confirmed tab 1 still showed the stale squiggle before the fix and
+didn't after. No test file covers `SourceEditor.tsx` directly (none existed before this phase
+either - it's DOM/CodeMirror-heavy and the codebase verifies it live per CLAUDE.md), so this is
+only guarded by the manual check below; flagging that as a possible gap rather than papering over
+it with a shallow unit test that wouldn't exercise the real caching path.
+
+**Differences from the phase document.**
+
+- The supervisor's mid-task note applies: `@lezer/common`/`@lezer/markdown` are never imported
+  directly. `proseRanges.ts` types its `tree` parameter as `ReturnType<typeof syntaxTree>` (`import
+  type { syntaxTree } from '@codemirror/language'`), and `spellcheck.ts` uses `ensureSyntaxTree`/
+  `syntaxTree` from the same package. `package.json` is unchanged - no new dependency.
+- Caching granularity: the document says "cached per (languages, prose segment text)"; segments are
+  chopped to **line** granularity (`splitRangesByLine`) before caching, because a "prose segment"
+  from `proseRanges` over a shifting `viewport ± 50 lines` window doesn't have stable boundaries
+  between two scroll positions, while a line's boundaries are stable - this is what actually makes
+  "scrolling back... doesn't ask Rust again" true in practice (confirmed by the call count below).
+- `spellLanguages: []` doubles as both "automatic" and "the user explicitly wants zero languages"
+  in the settings schema as specified (3 keys, no 4th). Unticking the sole automatically-ticked
+  language *is* allowed (Verified: `GeneralTab.test.tsx`'s "writes the explicit list..." test, and
+  it produces no squiggles for the rest of that session), but since the schema can't distinguish
+  "never touched" from "explicitly cleared," restarting the app (or a fresh `refreshAll()`, e.g. on
+  window focus - see below) will re-derive an automatic pick from the same `[]` on disk. This only
+  matters for the specific sequence "untick the only automatically-ticked box as your very first
+  interaction"; ticking any language explicitly (the far more common path) makes the array
+  non-empty and unambiguous from then on. Flagging this rather than adding an undocumented 4th
+  settings key to work around it.
+- Unrelated existing behaviour that affected *testing*, not the feature: `App.tsx` refreshes
+  settings from disk on window focus (`refreshAll()`), which silently reset in-memory
+  `{ persist: false }` test values (e.g. `spellLanguages`) between separate CDP calls whenever the
+  WebView2 window's focus changed. Worked around by doing multi-step checks in one script instead
+  of several, and by re-asserting the setting right before anything that depended on it.
+
+**Verify.**
+
+- `pnpm test`: **549 passed** (37 files), up from the documented **495** baseline after Phase 1
+  (+54: 25 `proseRanges.test.ts`, 17 `spell.test.ts`, 9 `GeneralTab.test.tsx` (1 → 10), 2
+  `settings.test.ts`, 1 `settings.persist.test.ts`). `pnpm lint`: clean. `npx tsc --noEmit`: clean.
+  `pnpm format`: no files needed reformatting. `cargo check` / `cargo test`: clean, **54 passed**
+  (unchanged - no Rust files touched).
+- Dev app (debug exe launched directly with `--new-window`, its own `WEBVIEW2_USER_DATA_FOLDER`,
+  remote debugging on 9222; Vite started separately), a copy of `fixtures/spelling.md`, Source
+  view, both themes (screenshots opened and read, not just captured):
+  - **Dark**: the front matter's `wiht` is clean; `sentance`/`mistaks`/`seccond` are underlined;
+    the Arabic paragraph's `بكمم` is underlined and the rest isn't; the mixed line's two `مرحبا`
+    are clean with English+Arabic both ticked. Squiggle colour is a clear red, distinct from the
+    Shiki code-text colour.
+  - **Light**: same document, same behaviour, `--spell-error: #c42b1c` clearly legible on the
+    white editor background - confirmed genuinely different chrome (toolbar/background/theme
+    icon), not a byte-identical screenshot.
+  - Scrolled further: the fenced/inline code, bare URL, HTML tag's attribute, inline/block maths,
+    HEX colour and reference definition (including its title) are all clean; the link's label
+    (`linnk labl wiht mistaks`) and the image's alt text (`alt txt wiht mistak`) are underlined
+    while their destinations aren't.
+  - With only `en-US` ticked (the automatic pick on this PC, since `navigator.language` is
+    `en-US`), the Arabic words are (correctly) all flagged, and two incidental British-spelling
+    words in my own fixture prose (`maths`, `colour`) are flagged too - an expected false positive
+    against the `en-US`-only dictionary, not a bug.
+- Split view: squiggles appeared only in the source pane; the formatted pane (same content,
+  rendered) had none.
+- Settings: `spellCheck` off → 17 → 0 `.cm-misspelled` elements immediately; back on → 17 again.
+  Setting `spellLanguages` from `[]` (automatic, `en-US` only) to `['en-US', 'ar-SA']` dropped the
+  count from 17 to 11 (the three correctly-spelled Arabic words and the mixed line's two `مرحبا`
+  no longer intersect) without reopening the file.
+- `spellWords`: adding `['wiht', 'mistaks']` (`{ persist: false }`) dropped both from the flagged
+  set; clearing it brought them back. **Cross-tab** (see "Bug found and fixed"): with two tabs open
+  and `spellWords` changed while tab 2 was active, tab 1 - restored from its editor-state cache -
+  now shows the update immediately on switching back, with no reopen.
+- Typing: inserted `helllo` at the cursor and waited 900 ms with the caret still inside it - **no**
+  squiggle. Moved the caret to the end of the line and waited another 900 ms - `helllo` **was**
+  flagged. (`whileTyping`/`afterCursorMoved` arrays quoted in the session transcript; `helllo` is
+  absent from the first and present in the second, everything else unchanged.)
+- `fixtures/huge.md` (copy, 6,002 lines), spell check off vs. on (`en-US`), 30 characters typed at
+  the end and in the middle, `performance.now()` around `dispatch` + the next
+  `requestAnimationFrame`:
+
+  | | off, end | off, middle | on, end | on, middle |
+  |---|---|---|---|---|
+  | avg ms/keystroke | 8.65 | 8.30 | 8.34 | 8.51 |
+  | max ms | 23.7 | 14.8 | 15.6 | 16.0 |
+
+  Essentially identical - the 400 ms debounce means no spell-check work ever runs synchronously on
+  the typing path. Scrolling from top to bottom in 10 steps (plus the initial view), with spell
+  check on: **13 `spell_check` IPC calls total** (confirmed by watching
+  `Network.requestWillBeSent` over CDP for `http://ipc.localhost/spell_check`, since
+  `window.__TAURI_INTERNALS__.invoke` itself isn't writable and can't be monkey-patched) - i.e.
+  roughly one batched call per debounce window, not one per scroll event, and most of
+  `huge.md`'s repeated "Lorem ipsum" text is genuinely unrecognised by any installed dictionary so
+  nearly every visible word is flagged (expected, matches Phase 1's own timing note about this
+  fixture).
+- Settings files: `presets.json` and `.window-state.json` byte-identical to the pre-session backup
+  throughout. `settings.json` differs from the backup only by the three new keys at their defaults
+  and `recentFiles`, which was restored to `[]` after every session (via
+  `clearRecentFiles()`) once the manual checks were done.
+- Dev app and Vite processes were stopped by the exact PIDs this session started; no process was
+  ever stopped by name or path pattern. One dev-exe launch (mid-session) hung during WebView2
+  initialisation with no browser child process appearing for over 20 seconds - matching the
+  known, unrelated "startup hang" Phase 8 is scheduled to fix (a Windows session
+  Modern-Standby/idle-disconnect event was logged at the same time). It was killed by its exact
+  PID and a retry succeeded normally; every subsequent launch in this session came up within a
+  few seconds.
 
 ## Supervisor check
 

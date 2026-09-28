@@ -29,6 +29,13 @@ export interface Settings {
   selfContainedExport: boolean;
   /** Whether the status bar is visible. */
   statusBarVisible: boolean;
+  /** Underlines misspelled words in the source editor. */
+  spellCheck: boolean;
+  /** Ticked spelling languages (BCP-47 tags). `[]` means "automatic" - see
+   * `effectiveSpellLanguages` in `lib/spell.ts`. */
+  spellLanguages: string[];
+  /** The personal dictionary: words never underlined regardless of language. */
+  spellWords: string[];
 }
 
 const MAX_RECENT_FILES = 5;
@@ -56,6 +63,9 @@ const DEFAULTS: Settings = {
   previewFullWidth: false,
   selfContainedExport: true,
   statusBarVisible: true,
+  spellCheck: true,
+  spellLanguages: [],
+  spellWords: [],
 };
 
 interface SettingsState extends Settings {

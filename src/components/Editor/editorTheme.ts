@@ -58,6 +58,11 @@ export const editorTheme = EditorView.theme({
   '.cm-searchMatch.cm-searchMatch-selected': {
     backgroundColor: 'color-mix(in srgb, #ff8c00 60%, transparent)',
   },
+  '.cm-misspelled': {
+    textDecoration: 'underline wavy var(--spell-error)',
+    textDecorationSkipInk: 'none',
+    textUnderlineOffset: '3px',
+  },
   '.cm-panels': { border: 'none', background: 'transparent' },
   '.cm-panel input, .cm-panel button': {
     font: 'inherit',

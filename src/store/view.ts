@@ -24,6 +24,12 @@ interface ViewState {
   cursor: { line: number; col: number } | null;
   /** Number of words in the current selection. null if selection is empty. */
   selectionWords: number | null;
+  /** Windows' installed spelling dictionaries (BCP-47 tags), fetched once and shared by the
+   * editor (automatic-language fallback) and Settings (the language checklist). */
+  spellSupportedLanguages: string[];
+  /** Words marked "Ignore" from the spelling right-click menu, lower-cased. Lasts until the app
+   * closes (every tab in the window); never saved. */
+  spellIgnored: ReadonlySet<string>;
 
   setHeadings: (h: HeadingInfo[]) => void;
   setActiveHeadingId: (id: string | null) => void;
@@ -37,6 +43,9 @@ interface ViewState {
   bumpPreviewVersion: () => void;
   setCursor: (c: { line: number; col: number } | null) => void;
   setSelectionWords: (w: number | null) => void;
+  setSpellSupportedLanguages: (langs: string[]) => void;
+  /** Adds `word` (lower-cased) to the session's ignore list. */
+  ignoreWord: (word: string) => void;
 }
 
 export const useViewStore = create<ViewState>((set) => ({
@@ -51,6 +60,8 @@ export const useViewStore = create<ViewState>((set) => ({
   previewVersion: 0,
   cursor: null,
   selectionWords: null,
+  spellSupportedLanguages: [],
+  spellIgnored: new Set(),
 
   setHeadings: (headings) => set({ headings }),
   setActiveHeadingId: (activeHeadingId) => set({ activeHeadingId }),
@@ -64,4 +75,7 @@ export const useViewStore = create<ViewState>((set) => ({
   bumpPreviewVersion: () => set((s) => ({ previewVersion: s.previewVersion + 1 })),
   setCursor: (cursor) => set({ cursor }),
   setSelectionWords: (selectionWords) => set({ selectionWords }),
+  setSpellSupportedLanguages: (spellSupportedLanguages) => set({ spellSupportedLanguages }),
+  ignoreWord: (word) =>
+    set((s) => ({ spellIgnored: new Set(s.spellIgnored).add(word.toLocaleLowerCase()) })),
 }));

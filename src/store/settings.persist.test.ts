@@ -115,6 +115,20 @@ describe('settings persistence across windows', () => {
     expect(useSettingsStore.getState()).toBe(before);
   });
 
+  it('persists the spelling array keys like other array keys (e.g. recentFiles)', async () => {
+    useSettingsStore.getState().set('spellLanguages', ['en-US', 'ar-SA']);
+    useSettingsStore.getState().set('spellWords', ['teh']);
+    await whenSettingsWritten();
+
+    expect(testState.sharedDisk.get('spellLanguages')).toEqual(['en-US', 'ar-SA']);
+    expect(testState.sharedDisk.get('spellWords')).toEqual(['teh']);
+
+    // Reset for other tests.
+    useSettingsStore.getState().set('spellLanguages', []);
+    useSettingsStore.getState().set('spellWords', []);
+    await whenSettingsWritten();
+  });
+
   it('a change made while a refresh is queued is neither reverted nor blocked', async () => {
     // `load` reads the cached store's memory, so sync state with the fake disk via a refresh.
     testState.sharedDisk.set('outlineWidth', 240);

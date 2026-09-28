@@ -6,6 +6,28 @@ import {
   resetPreviewZoom,
 } from '@/store/settings';
 
+describe('useSettingsStore spelling defaults', () => {
+  it('is on by default, with automatic languages and an empty personal dictionary', () => {
+    const state = useSettingsStore.getState();
+    expect(state.spellCheck).toBe(true);
+    expect(state.spellLanguages).toEqual([]);
+    expect(state.spellWords).toEqual([]);
+  });
+
+  it('set updates each key in memory', () => {
+    useSettingsStore.getState().set('spellCheck', false, { persist: false });
+    useSettingsStore.getState().set('spellLanguages', ['en-US'], { persist: false });
+    useSettingsStore.getState().set('spellWords', ['teh'], { persist: false });
+
+    expect(useSettingsStore.getState().spellCheck).toBe(false);
+    expect(useSettingsStore.getState().spellLanguages).toEqual(['en-US']);
+    expect(useSettingsStore.getState().spellWords).toEqual(['teh']);
+
+    // Reset for other tests.
+    useSettingsStore.setState({ spellCheck: true, spellLanguages: [], spellWords: [] });
+  });
+});
+
 // No Tauri in this environment, so the store falls back to memory-only persistence.
 describe('useSettingsStore recent files', () => {
   beforeEach(() => {

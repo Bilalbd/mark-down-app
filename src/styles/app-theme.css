@@ -20,6 +20,7 @@
   --content-bg: #ffffff;
   --content-fg: #1f1f1f;
   --accent: #0067c0;
+  --spell-error: #c42b1c;
 }
 
 :root[data-theme='dark'] {
@@ -35,4 +36,5 @@
   --content-bg: #1e1e1e;
   --content-fg: #d4d4d4;
   --accent: #4cc2ff;
+  --spell-error: #ff6859;
 }

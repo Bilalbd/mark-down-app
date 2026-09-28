@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { X } from 'lucide-react';
 import {
   useSettingsStore,
   type AppTheme,
   type OpenFilesIn,
   type SplitSide,
 } from '@/store/settings';
-import { getAppVersion } from '@/lib/tauri';
+import { useViewStore } from '@/store/view';
+import { getAppVersion, spellLanguages as fetchSpellLanguages } from '@/lib/tauri';
+import { effectiveSpellLanguages, languageLabel } from '@/lib/spell';
+import { ICON } from '@/components/Toolbar/Toolbar';
 import { NumberInput, Row, Section, Select, Toggle } from './controls';
 
 export function GeneralTab() {
@@ -20,11 +24,54 @@ export function GeneralTab() {
   const editorLineNumbers = useSettingsStore((s) => s.editorLineNumbers);
   const editorFontSize = useSettingsStore((s) => s.editorFontSize);
   const selfContainedExport = useSettingsStore((s) => s.selfContainedExport);
+  const spellCheck = useSettingsStore((s) => s.spellCheck);
+  const spellLanguagesSetting = useSettingsStore((s) => s.spellLanguages);
+  const spellWords = useSettingsStore((s) => s.spellWords);
   const set = useSettingsStore((s) => s.set);
+
+  const supportedLanguages = useViewStore((s) => s.spellSupportedLanguages);
+  const setSpellSupportedLanguages = useViewStore((s) => s.setSpellSupportedLanguages);
 
   useEffect(() => {
     void getAppVersion().then(setVersion);
   }, []);
+
+  useEffect(() => {
+    void fetchSpellLanguages()
+      .then(setSpellSupportedLanguages)
+      .catch(() => undefined); // spell check is a hint - failure just leaves the checklist empty
+  }, [setSpellSupportedLanguages]);
+
+  const uiLang = navigator.language;
+  const tickedLanguages = useMemo(
+    () =>
+      new Set(
+        spellLanguagesSetting.length > 0
+          ? spellLanguagesSetting
+          : effectiveSpellLanguages([], supportedLanguages, uiLang),
+      ),
+    [spellLanguagesSetting, supportedLanguages, uiLang],
+  );
+  const languageRows = useMemo(
+    () =>
+      supportedLanguages
+        .map((tag) => ({ tag, label: languageLabel(tag, uiLang) }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    [supportedLanguages, uiLang],
+  );
+
+  const toggleLanguage = (tag: string) => {
+    const current = spellLanguagesSetting.length > 0 ? spellLanguagesSetting : [...tickedLanguages];
+    const next = current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag];
+    set('spellLanguages', next);
+  };
+
+  const removeWord = (word: string) => {
+    set(
+      'spellWords',
+      spellWords.filter((w) => w !== word),
+    );
+  };
 
   return (
     <>
@@ -99,6 +146,56 @@ export function GeneralTab() {
             unit="px"
             onChange={(v) => set('editorFontSize', v)}
           />
+        </Row>
+      </Section>
+
+      <Section title="Spelling">
+        <Row label="Check spelling">
+          <Toggle value={spellCheck} onChange={(v) => set('spellCheck', v)} />
+        </Row>
+        <Row label="Languages" asLabel={false}>
+          {supportedLanguages.length === 0 ? (
+            <p className="settings__note">
+              Windows has no spelling dictionaries installed. Add a language in Windows Settings →
+              Time &amp; language → Language &amp; region.
+            </p>
+          ) : (
+            <ul className="settings__checklist">
+              {languageRows.map(({ tag, label }) => (
+                <li key={tag}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={tickedLanguages.has(tag)}
+                      disabled={!spellCheck}
+                      onChange={() => toggleLanguage(tag)}
+                    />
+                    {label}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Row>
+        <Row label="Personal dictionary" asLabel={false}>
+          {spellWords.length === 0 ? (
+            <p className="settings__note">No words added yet.</p>
+          ) : (
+            <ul className="settings__word-list">
+              {spellWords.map((word) => (
+                <li key={word}>
+                  <span>{word}</span>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${word}`}
+                    onClick={() => removeWord(word)}
+                  >
+                    <X {...ICON} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </Row>
       </Section>
 
