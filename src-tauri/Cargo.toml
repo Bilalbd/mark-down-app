@@ -1,6 +1,6 @@
 [package]
 name = "markdown-viewer"
-version = "0.8.0"
+version = "1.0.0"
 description = "A simple, fast Markdown viewer and editor for Windows"
 authors = ["Bilal Abou Dargham"]
 edition = "2021"
