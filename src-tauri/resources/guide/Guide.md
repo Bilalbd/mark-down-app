@@ -59,8 +59,9 @@ the start screen, or with whatever file it was launched with.
 - **Source** is a plain-text editor with Markdown syntax highlighting.
 - **Split** shows both side by side. The **swap panes** toolbar button flips which side the source
   editor is on (also set persistently in Settings → General → *Split layout*). Scrolling either
-  pane scrolls the other to match, and the block containing your cursor is highlighted in the
-  formatted pane as you type or move around.
+  pane scrolls the other to match. An optional highlight, off by default, tints the formatted block
+  that holds your cursor as a band across the whole pane, like the editor’s current line; turn it
+  on with *Highlight the cursor’s block in Split view* in Settings → General.
 
 **Zoom** (**Ctrl+=**, **Ctrl+−**, **Ctrl+0**, or **Ctrl** + mouse wheel over the formatted view)
 changes the size of the *rendered* document only; it doesn’t affect the Source editor, which has
@@ -368,6 +369,7 @@ Open Settings with **Ctrl+,** or the toolbar button.
 | Open files in | New tab, or a new window per file | New tab |
 | Theme | The app’s own light / dark / Follow Windows theme | Dark |
 | Split layout | Which side the Source editor sits on in Split view | Source left, formatted right |
+| Highlight the cursor’s block in Split view | Tints the formatted block that holds the Source cursor, across the whole pane | Off |
 | Show outline | Shows or hides the outline sidebar | On |
 | Show status bar | Shows or hides the status bar | On |
 | Preview zoom | The formatted view’s zoom level | 100% |

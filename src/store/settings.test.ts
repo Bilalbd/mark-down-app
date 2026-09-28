@@ -6,6 +6,18 @@ import {
   resetPreviewZoom,
 } from '@/store/settings';
 
+describe('useSettingsStore splitCursorMirror', () => {
+  it('is off by default', () => {
+    expect(useSettingsStore.getState().splitCursorMirror).toBe(false);
+  });
+
+  it('set updates it in memory', () => {
+    useSettingsStore.getState().set('splitCursorMirror', true, { persist: false });
+    expect(useSettingsStore.getState().splitCursorMirror).toBe(true);
+    useSettingsStore.setState({ splitCursorMirror: false });
+  });
+});
+
 describe('useSettingsStore spelling defaults', () => {
   it('is on by default, with automatic languages and an empty personal dictionary', () => {
     const state = useSettingsStore.getState();

@@ -115,6 +115,17 @@ describe('settings persistence across windows', () => {
     expect(useSettingsStore.getState()).toBe(before);
   });
 
+  it('persists splitCursorMirror like the other booleans', async () => {
+    useSettingsStore.getState().set('splitCursorMirror', true);
+    await whenSettingsWritten();
+    expect(testState.sharedDisk.get('splitCursorMirror')).toBe(true);
+
+    // Reset for other tests.
+    useSettingsStore.getState().set('splitCursorMirror', false);
+    await whenSettingsWritten();
+    expect(testState.sharedDisk.get('splitCursorMirror')).toBe(false);
+  });
+
   it('persists the spelling array keys like other array keys (e.g. recentFiles)', async () => {
     useSettingsStore.getState().set('spellLanguages', ['en-US', 'ar-SA']);
     useSettingsStore.getState().set('spellWords', ['teh']);

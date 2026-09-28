@@ -17,6 +17,8 @@ export interface Settings {
   splitRatio: number;
   /** Which side the source editor sits on in Split view. */
   splitEditorSide: SplitSide;
+  /** Tints the formatted block that holds the source cursor in Split view. */
+  splitCursorMirror: boolean;
   /** Absolute paths of the most recently opened files, newest first. */
   recentFiles: string[];
   /** Strips remote (http/https) image sources from the preview instead of loading them. */
@@ -58,6 +60,7 @@ const DEFAULTS: Settings = {
   editorFontSize: 14,
   splitRatio: 0.5,
   splitEditorSide: 'left',
+  splitCursorMirror: false,
   recentFiles: [],
   blockRemoteImages: false,
   openFilesIn: 'tab',

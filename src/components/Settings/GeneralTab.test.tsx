@@ -80,6 +80,20 @@ describe('GeneralTab', () => {
     expect(note.some((t) => t?.includes('No words added yet.'))).toBe(true);
   });
 
+  it('has a Split cursor highlight toggle, off by default, that turns the setting on', async () => {
+    useSettingsStore.setState({ splitCursorMirror: false });
+    await render();
+    const row = Array.from(container.querySelectorAll('.settings__row')).find((r) =>
+      r.textContent?.includes("Highlight the cursor's block in Split view"),
+    );
+    expect(row?.textContent).toContain("Tints the formatted block you're editing");
+    const box = row!.querySelector<HTMLElement>('[role="switch"], input[type="checkbox"]')!;
+    expect(box).toBeTruthy();
+    act(() => box.click());
+    expect(useSettingsStore.getState().splitCursorMirror).toBe(true);
+    useSettingsStore.setState({ splitCursorMirror: false });
+  });
+
   it('lists one checkbox per language (not per region)', async () => {
     // With 4 regional variants, should show only 2 checkboxes (one per language)
     mockSpellLanguages.mockResolvedValue(['ar-EG', 'ar-SA', 'en-CA', 'en-US']);

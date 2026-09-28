@@ -255,5 +255,13 @@ button:focus-visible {
   .preview .is-cursor-block {
     background: none !important;
     box-shadow: none !important;
+    clip-path: none !important;
+  }
+  .preview tr.is-cursor-block > :first-child::before,
+  .preview tr.is-cursor-block > :last-child::after {
+    content: none !important;
+  }
+  .preview table.is-cursor-table {
+    overflow: auto !important;
   }
 }

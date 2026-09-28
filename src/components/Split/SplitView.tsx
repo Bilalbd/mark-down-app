@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { EditorView } from '@codemirror/view';
 import { SourceEditor } from '@/components/Editor/SourceEditor';
 import { Preview } from '@/components/Preview/Preview';
@@ -158,8 +158,12 @@ function editorOffsetFor(view: EditorView, line: number): number {
   return block.top + block.height * f;
 }
 
-/** Applies `is-cursor-block` class to the block containing the editor cursor in split view. */
-function useCursorMirror() {
+/**
+ * Applies the `is-cursor-block` class to the block containing the editor cursor in split view.
+ * Does nothing (no DOM reads or writes) unless the Split cursor highlight setting is on.
+ */
+export function useCursorMirror() {
+  const enabled = useSettingsStore((s) => s.splitCursorMirror);
   const cursor = useViewStore((s) => s.cursor);
   const previewVersion = useViewStore((s) => s.previewVersion);
   const previewEl = useViewStore((s) => s.previewScrollEl);
@@ -170,13 +174,20 @@ function useCursorMirror() {
     elements: HTMLElement[];
   } | null>(null);
   const prevElementRef = useRef<HTMLElement | null>(null);
+  const prevTableRef = useRef<HTMLElement | null>(null);
+
+  /** Removes the tint (and the table's clip override) from wherever it was last applied. */
+  const clearMarks = useCallback(() => {
+    prevElementRef.current?.classList.remove('is-cursor-block');
+    prevTableRef.current?.classList.remove('is-cursor-table');
+    prevElementRef.current = null;
+    prevTableRef.current = null;
+  }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     if (!previewEl || !cursor) {
-      if (prevElementRef.current) {
-        prevElementRef.current.classList.remove('is-cursor-block');
-        prevElementRef.current = null;
-      }
+      clearMarks();
       return;
     }
 
@@ -206,30 +217,36 @@ function useCursorMirror() {
         newElement = cached.elements[blockIdx];
       }
 
-      // Only remove the class from the previous element if it differs from the new one.
-      if (prevElementRef.current && prevElementRef.current !== newElement) {
-        prevElementRef.current.classList.remove('is-cursor-block');
+      // A table row's band only reaches the pane's edges if its (scrolling) table may paint
+      // outside itself, which is only safe when the table has nothing to scroll.
+      const table = newElement?.closest<HTMLElement>('table') ?? null;
+      const newTable = table && table.scrollWidth <= table.clientWidth ? table : null;
+
+      // Only remove the classes from the previous elements if they differ from the new ones.
+      if (prevElementRef.current !== newElement) {
+        prevElementRef.current?.classList.remove('is-cursor-block');
+      }
+      if (prevTableRef.current !== newTable) {
+        prevTableRef.current?.classList.remove('is-cursor-table');
       }
 
-      // Apply to the new block.
-      if (newElement) {
-        newElement.classList.add('is-cursor-block');
-      }
+      newElement?.classList.add('is-cursor-block');
+      newTable?.classList.add('is-cursor-table');
 
       prevElementRef.current = newElement;
+      prevTableRef.current = newTable;
     });
 
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [cursor, previewVersion, previewEl]);
+  }, [enabled, cursor, previewVersion, previewEl, clearMarks]);
 
-  // Separate effect to clean up on unmount only.
+  // Turning the setting off clears the tint straight away.
   useEffect(() => {
-    return () => {
-      if (prevElementRef.current) {
-        prevElementRef.current.classList.remove('is-cursor-block');
-      }
-    };
-  }, []);
+    if (!enabled) clearMarks();
+  }, [enabled, clearMarks]);
+
+  // Clean up when leaving Split view.
+  useEffect(() => clearMarks, [clearMarks]);
 }

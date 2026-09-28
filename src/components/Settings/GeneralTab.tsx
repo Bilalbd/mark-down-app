@@ -22,6 +22,7 @@ export function GeneralTab() {
   const openFilesIn = useSettingsStore((s) => s.openFilesIn);
   const appTheme = useSettingsStore((s) => s.appTheme);
   const splitEditorSide = useSettingsStore((s) => s.splitEditorSide);
+  const splitCursorMirror = useSettingsStore((s) => s.splitCursorMirror);
   const outlineVisible = useSettingsStore((s) => s.outlineVisible);
   const statusBarVisible = useSettingsStore((s) => s.statusBarVisible);
   const previewZoom = useSettingsStore((s) => s.previewZoom);
@@ -152,6 +153,12 @@ export function GeneralTab() {
               { value: 'right', label: 'Formatted left, source right' },
             ]}
           />
+        </Row>
+        <Row
+          label="Highlight the cursor's block in Split view"
+          hint="Tints the formatted block you're editing"
+        >
+          <Toggle value={splitCursorMirror} onChange={(v) => set('splitCursorMirror', v)} />
         </Row>
         <Row label="Show outline">
           <Toggle value={outlineVisible} onChange={(v) => set('outlineVisible', v)} />

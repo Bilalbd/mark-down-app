@@ -301,16 +301,51 @@
   font-size: 1.1em;
 }
 
-/* Cursor position indicator in split view */
+/* Cursor position indicator in split view (off unless the Split highlight setting is on): a
+   band across the whole formatted pane with square corners, like the editor's active line. The
+   spread shadow reaches both edges of the scroll container (which clips it) without changing
+   the block's size; clip-path stops it spilling above and below the block. */
 .preview .is-cursor-block {
   background: var(--md-cursor-block);
-  border-radius: 4px;
-  box-shadow: 0 0 0 4px var(--md-cursor-block);
+  box-shadow: 0 0 0 100vmax var(--md-cursor-block);
+  clip-path: inset(0 -100vmax);
 }
-/* A table row outranks the stripe rule above, and has no ring: around a row it reads as a frame. */
+/* A table row outranks the stripe rule above. The row's own shadow doesn't paint, so the first
+   and last cell grow the band's left and right halves from a zero-width pseudo-element with a
+   shadow (a real box there would widen the pane's scrollable area). The table scrolls
+   (overflow: auto), which would clip them, so a table that fits its column is set to
+   overflow-clip-margin instead: the hook adds is-cursor-table to it, and only when nothing needs
+   scrolling. */
 .preview tr.is-cursor-block {
   background: var(--md-cursor-block);
   box-shadow: none;
+  clip-path: none;
+}
+.preview table.is-cursor-table {
+  overflow: clip;
+  overflow-clip-margin: 100vmax;
+}
+.preview tr.is-cursor-block > :first-child,
+.preview tr.is-cursor-block > :last-child {
+  position: relative;
+}
+.preview tr.is-cursor-block > :first-child::before,
+.preview tr.is-cursor-block > :last-child::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  width: 0;
+  clip-path: inset(0 -100vmax);
+  pointer-events: none;
+}
+.preview tr.is-cursor-block > :first-child::before {
+  right: 100%;
+  box-shadow: -50vmax 0 0 50vmax var(--md-cursor-block);
+}
+.preview tr.is-cursor-block > :last-child::after {
+  left: 100%;
+  box-shadow: 50vmax 0 0 50vmax var(--md-cursor-block);
 }
 
 /* Colour swatch after a HEX code (text and inline code, formatted view only). The outline

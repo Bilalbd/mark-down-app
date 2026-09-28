@@ -25,7 +25,8 @@ The installer isn't code-signed, so Windows SmartScreen may warn when you first 
 **Reading**
 
 - Formatted, Source and Split views (`Ctrl+E`, `Ctrl+Shift+E`), with the source line kept in
-  place when you switch and bidirectional scroll sync in Split.
+  place when you switch and bidirectional scroll sync in Split. An optional, off-by-default
+  highlight (Settings → General) tints the formatted block that holds the source cursor.
 - A full-width toggle in Formatted view fits the document to the window instead of the preset's
   usual content width; it's remembered.
 - GFM tables, task lists, footnotes and autolinks; fenced code with Shiki syntax highlighting;
