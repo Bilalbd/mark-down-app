@@ -188,10 +188,12 @@ describe('insertLink', () => {
     expect(result.text).toBe('[](mailto:test@example.com)');
   });
 
-  it('inserts [](url) with cursor inside [] when empty', () => {
-    const state = createState('text here', { from: 5, to: 5 });
+  it('inserts [](url) with cursor inside [] when there is no word at the cursor', () => {
+    // Between two spaces, so there's no word to wrap.
+    const state = createState('text  here', { from: 5, to: 5 });
     const result = applyCommand(state, insertLink);
-    expect(result.text).toContain('[](url)');
+    expect(result.text).toBe('text [](url) here');
+    expect(result.selection).toEqual({ from: 6, to: 6 });
   });
 });
 
@@ -223,12 +225,10 @@ describe('toggleQuote', () => {
     expect(result.text).toBe('quote text');
   });
 
-  it('skips blank lines', () => {
+  it('gives blank lines a bare > so the quote stays one block', () => {
     const state = createState('text\n\nmore', { from: 0, to: 10 });
     const result = applyCommand(state, toggleQuote);
-    expect(result.text).toContain('> text');
-    expect(result.text).toContain('\n\n');
-    expect(result.text).toContain('> more');
+    expect(result.text).toBe('> text\n>\n> more');
   });
 
   it('handles multiple lines', () => {
@@ -277,16 +277,24 @@ describe('toggleList', () => {
 });
 
 describe('insertHorizontalRule', () => {
-  it('inserts --- with blank lines', () => {
+  it('inserts --- after the line with a blank line before it', () => {
     const state = createState('text', { from: 0, to: 0 });
     const result = applyCommand(state, insertHorizontalRule);
-    expect(result.text).toContain('---');
+    expect(result.text).toBe('text\n\n---\n');
+    expect(result.selection).toEqual({ from: 9, to: 9 });
   });
 
-  it('preserves existing blank lines', () => {
+  it('uses the blank line the cursor is on, adding blank lines around the rule', () => {
     const state = createState('text\n\nmore', { from: 5, to: 5 });
     const result = applyCommand(state, insertHorizontalRule);
-    expect(result.text).toBeDefined();
+    expect(result.text).toBe('text\n\n---\n\nmore');
+    expect(result.selection).toEqual({ from: 9, to: 9 });
+  });
+
+  it('never leaves the rule right under a paragraph (which would make a setext heading)', () => {
+    const state = createState('para\nnext', { from: 2, to: 2 });
+    const result = applyCommand(state, insertHorizontalRule);
+    expect(result.text).toBe('para\n\n---\n\nnext');
   });
 });
 
@@ -351,7 +359,7 @@ describe('bug fixes', () => {
     it('selects url when wrapping text', () => {
       const state = createState('text here', { from: 0, to: 4 });
       const result = applyCommand(state, insertLink);
-      expect(result.text).toBe('[text](url)');
+      expect(result.text).toBe('[text](url) here');
       expect(result.selection?.from).toBe(7);
       expect(result.selection?.to).toBe(10);
     });
@@ -455,13 +463,12 @@ describe('bug fixes', () => {
     it('inserts rule after current line', () => {
       const state = createState('hello', { from: 3, to: 3 });
       const result = applyCommand(state, insertHorizontalRule);
-      expect(result.text).toContain('hello');
-      expect(result.text).toContain('---');
-      expect(result.text.indexOf('hello') < result.text.indexOf('---')).toBe(true);
+      expect(result.text).toBe('hello\n\n---\n');
     });
 
     it('keeps existing blank lines', () => {
-      const state = createState('a\n\nb', { from: 3, to: 3 });
+      // Cursor on the blank line between the paragraphs.
+      const state = createState('a\n\nb', { from: 2, to: 2 });
       const result = applyCommand(state, insertHorizontalRule);
       expect(result.text).toBe('a\n\n---\n\nb');
     });
@@ -469,36 +476,139 @@ describe('bug fixes', () => {
 
   describe('6. toggleCodeBlock fence handling', () => {
     it('removes fences without leaving blank line', () => {
-      const state = createState('```\ncode\n```', { from: 0, to: 13 });
+      const state = createState('```\ncode\n```', { from: 0, to: 12 });
       const result = applyCommand(state, toggleCodeBlock);
       expect(result.text).toBe('code');
-      expect(result.text).not.toContain('\n\n');
+    });
+
+    it('removes fences when the cursor is inside the block', () => {
+      const state = createState('before\n```js\nlet a;\n```\nafter', { from: 15, to: 15 });
+      const result = applyCommand(state, toggleCodeBlock);
+      expect(result.text).toBe('before\nlet a;\nafter');
+      expect(result.selection).toEqual({ from: 9, to: 9 });
     });
 
     it('adds fence with exact newline placement', () => {
       const state = createState('a\nb', { from: 0, to: 3 });
       const result = applyCommand(state, toggleCodeBlock);
-      expect(result.text).toBe('```\na\nb\n```\n');
+      expect(result.text).toBe('```\na\nb\n```');
+      expect(result.selection).toEqual({ from: 3, to: 3 });
+    });
+
+    it('adds an empty block on an empty line, cursor after the opening fence', () => {
+      const state = createState('a\n\nb', { from: 2, to: 2 });
+      const result = applyCommand(state, toggleCodeBlock);
+      expect(result.text).toBe('a\n```\n\n```\nb');
+      expect(result.selection).toEqual({ from: 5, to: 5 });
     });
 
     it('removes ~~~ fence', () => {
-      const state = createState('~~~\ncode\n~~~', { from: 0, to: 13 });
+      const state = createState('~~~\ncode\n~~~', { from: 0, to: 12 });
       const result = applyCommand(state, toggleCodeBlock);
-      expect(result.text).toContain('code');
+      expect(result.text).toBe('code');
     });
   });
 
   describe('7. toggleQuote blank line handling', () => {
     it('quotes with blank line in middle', () => {
-      const state = createState('a\n\nb', { from: 0, to: 5 });
+      const state = createState('a\n\nb', { from: 0, to: 4 });
       const result = applyCommand(state, toggleQuote);
       expect(result.text).toBe('> a\n>\n> b');
     });
 
     it('unquotes with blank line in middle', () => {
-      const state = createState('> a\n>\n> b', { from: 0, to: 10 });
+      const state = createState('> a\n>\n> b', { from: 0, to: 9 });
       const result = applyCommand(state, toggleQuote);
       expect(result.text).toBe('a\n\nb');
+    });
+  });
+
+  describe('supervisor additions', () => {
+    const multi = (doc: string, ranges: [number, number][]) =>
+      EditorState.create({
+        doc,
+        selection: EditorSelection.create(ranges.map(([f, t]) => EditorSelection.range(f, t))),
+        extensions: [
+          markdown({ base: markdownLanguage }),
+          EditorState.allowMultipleSelections.of(true),
+        ],
+      });
+
+    it('bolds every selection range in one transaction', () => {
+      const state = multi('one two', [
+        [0, 3],
+        [4, 7],
+      ]);
+      const next = state.update(toggleBold(state)!).state;
+      expect(next.doc.toString()).toBe('**one** **two**');
+      expect(next.selection.ranges.map((r) => [r.from, r.to])).toEqual([
+        [2, 5],
+        [10, 13],
+      ]);
+    });
+
+    it('keeps the cursor where it was inside the word', () => {
+      const result = applyCommand(createState('hello world', { from: 8, to: 8 }), toggleBold);
+      expect(result.text).toBe('hello **world**');
+      expect(result.selection).toEqual({ from: 10, to: 10 });
+    });
+
+    it('keeps the cursor inside the word when it sat at the word end', () => {
+      const result = applyCommand(createState('word', { from: 4, to: 4 }), toggleBold);
+      expect(result.selection).toEqual({ from: 6, to: 6 });
+    });
+
+    it('unbolds the word under the cursor', () => {
+      const result = applyCommand(createState('a **word** b', { from: 6, to: 6 }), toggleBold);
+      expect(result.text).toBe('a word b');
+      expect(result.selection).toEqual({ from: 4, to: 4 });
+    });
+
+    it('italic inside bold adds a star on each side', () => {
+      const result = applyCommand(createState('**word**', { from: 2, to: 6 }), toggleItalic);
+      expect(result.text).toBe('***word***');
+      expect(result.selection).toEqual({ from: 3, to: 7 });
+    });
+
+    it('keeps an apostrophe inside a word', () => {
+      const result = applyCommand(createState("Bilal's app", { from: 3, to: 3 }), toggleItalic);
+      expect(result.text).toBe("*Bilal's* app");
+    });
+
+    it('unwraps inline code with padding spaces', () => {
+      const result = applyCommand(createState('`` `x ``', { from: 0, to: 8 }), toggleInlineCode);
+      expect(result.text).toBe('`x');
+    });
+
+    it('does not add # to a setext heading', () => {
+      expect(setHeading(createState('Title\n=====', { from: 0, to: 11 }), 1)).toBeNull();
+    });
+
+    it('changes a heading level in place, keeping list markers', () => {
+      const result = applyCommand(createState('- ## Item', { from: 5, to: 5 }), (s) =>
+        setHeading(s, 3),
+      );
+      expect(result.text).toBe('- ### Item');
+      expect(result.selection).toEqual({ from: 6, to: 6 });
+    });
+
+    it('does not include the line a whole-line selection ends on', () => {
+      const result = applyCommand(createState('a\nb\nc', { from: 0, to: 4 }), (s) =>
+        toggleList(s, 'bullet'),
+      );
+      expect(result.text).toBe('- a\n- b\nc');
+    });
+
+    it('keeps quote markers in front of a new list marker', () => {
+      const result = applyCommand(createState('> a', { from: 2, to: 2 }), (s) =>
+        toggleList(s, 'ordered'),
+      );
+      expect(result.text).toBe('> 1. a');
+    });
+
+    it('removes one level from a nested quote', () => {
+      const result = applyCommand(createState('> > a', { from: 0, to: 5 }), toggleQuote);
+      expect(result.text).toBe('> a');
     });
   });
 

@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { EditorState, Compartment, Transaction, type Extension } from '@codemirror/state';
+import {
+  EditorState,
+  Compartment,
+  Prec,
+  Transaction,
+  type Extension,
+  type TransactionSpec,
+} from '@codemirror/state';
 import {
   EditorView,
   keymap,
@@ -11,9 +18,9 @@ import {
   rectangularSelection,
   crosshairCursor,
   highlightSpecialChars,
+  type KeyBinding,
 } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
-import { Prec } from '@codemirror/state';
 import { bracketMatching, indentOnInput } from '@codemirror/language';
 import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
@@ -23,11 +30,11 @@ import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import { cacheEditorState, cachedEditorState } from '@/lib/editorCache';
 import { countWords } from '@/lib/textStats';
+import { insertLink, setHeading, toggleBold, toggleItalic } from '@/lib/formatting';
 import { effectiveSpellLanguages } from '@/lib/spell';
 import { spellLanguages as fetchSpellLanguages } from '@/lib/tauri';
 import { editorHighlighting, editorTheme } from './editorTheme';
 import { spellcheckExtension } from './spellcheck';
-import { setHeading, toggleBold, toggleItalic, insertLink } from '@/lib/formatting';
 import './SourceEditor.css';
 
 const gutterCompartment = new Compartment();
@@ -82,6 +89,29 @@ export function needsExternalSync(
   return readDoc() !== content;
 }
 
+/** Runs a formatting command from `lib/formatting` as a key binding. */
+function formatCommand(command: (state: EditorState) => TransactionSpec | null) {
+  return (view: EditorView): boolean => {
+    const spec = command(view.state);
+    if (!spec) return false;
+    view.dispatch(spec);
+    return true;
+  };
+}
+
+/** Formatting shortcuts, above the default keymap (Ctrl+I replaces "select parent syntax").
+ * Headings use Ctrl+Shift+digit, not Ctrl+Alt+digit: on Windows Ctrl+Alt is AltGr, which many
+ * keyboard layouts need for typing `{ [ ] }`. Ctrl+digit is taken by tab switching and zoom. */
+const formattingKeymap: KeyBinding[] = [
+  { key: 'Mod-b', run: formatCommand(toggleBold) },
+  { key: 'Mod-i', run: formatCommand(toggleItalic) },
+  { key: 'Mod-k', run: formatCommand(insertLink) },
+  ...([0, 1, 2, 3, 4, 5, 6] as const).map((level) => ({
+    key: `Mod-Shift-${level}`,
+    run: formatCommand((state) => setHeading(state, level)),
+  })),
+];
+
 function buildExtensions(): Extension[] {
   const lineNumbersOn = useSettingsStore.getState().editorLineNumbers;
   return [
@@ -101,100 +131,7 @@ function buildExtensions(): Extension[] {
     // open, so register an invisible one that FindBar opens/closes.
     search({ top: true, createPanel: () => ({ dom: hiddenPanel(), top: true }) }),
     EditorView.lineWrapping,
-    Prec.high(
-      keymap.of([
-        {
-          key: 'Mod-b',
-          run: (view) => {
-            const spec = toggleBold(view.state);
-            if (!spec) return false;
-            view.dispatch(spec);
-            return true;
-          },
-        },
-        {
-          key: 'Mod-i',
-          run: (view) => {
-            const spec = toggleItalic(view.state);
-            if (!spec) return false;
-            view.dispatch(spec);
-            return true;
-          },
-        },
-        {
-          key: 'Mod-k',
-          run: (view) => {
-            const spec = insertLink(view.state);
-            if (!spec) return false;
-            view.dispatch(spec);
-            return true;
-          },
-        },
-        {
-          key: 'Mod-Shift-1',
-          run: (view) => {
-            const spec = setHeading(view.state, 1);
-            if (!spec) return false;
-            view.dispatch(spec);
-            return true;
-          },
-        },
-        {
-          key: 'Mod-Shift-2',
-          run: (view) => {
-            const spec = setHeading(view.state, 2);
-            if (!spec) return false;
-            view.dispatch(spec);
-            return true;
-          },
-        },
-        {
-          key: 'Mod-Shift-3',
-          run: (view) => {
-            const spec = setHeading(view.state, 3);
-            if (!spec) return false;
-            view.dispatch(spec);
-            return true;
-          },
-        },
-        {
-          key: 'Mod-Shift-4',
-          run: (view) => {
-            const spec = setHeading(view.state, 4);
-            if (!spec) return false;
-            view.dispatch(spec);
-            return true;
-          },
-        },
-        {
-          key: 'Mod-Shift-5',
-          run: (view) => {
-            const spec = setHeading(view.state, 5);
-            if (!spec) return false;
-            view.dispatch(spec);
-            return true;
-          },
-        },
-        {
-          key: 'Mod-Shift-6',
-          run: (view) => {
-            const spec = setHeading(view.state, 6);
-            if (!spec) return false;
-            view.dispatch(spec);
-            return true;
-          },
-        },
-        {
-          key: 'Mod-Shift-0',
-          run: (view) => {
-            const spec = setHeading(view.state, 0);
-            if (!spec) return false;
-            view.dispatch(spec);
-            return true;
-          },
-        },
-      ]),
-    ),
+    Prec.high(keymap.of(formattingKeymap)),
     keymap.of([
       ...defaultKeymap,
       ...historyKeymap,
