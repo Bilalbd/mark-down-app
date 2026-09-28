@@ -436,35 +436,54 @@ mod interleave_suggestions_tests {
 mod windows_integration_tests {
     use super::*;
 
-    /// Exercises the real Windows Spell Checking API. Skips itself (rather than failing) on a
+    /// Exercises the real Windows Spell Checking API. Only skips the actual assertions on a
     /// machine with no English dictionary installed, since that's outside this project's
-    /// control.
+    /// control; a `get_languages` failure is a real failure (the API is present on every
+    /// supported Windows version), not something to skip past silently.
     #[cfg(windows)]
     #[test]
     fn flags_known_typos_and_suggests_a_fix_in_english() {
-        let mut factory: Option<ISpellCheckerFactory> = None;
-        let languages = match get_languages(&mut factory) {
-            Ok(langs) => langs,
-            Err(_) => return, // No Windows Spell Checking API available in this environment.
-        };
-        if !languages.iter().any(|l| l.eq_ignore_ascii_case("en-US")) {
-            return; // This machine has no English dictionary installed.
+        // SAFETY: called once, before any COM object is created on this thread. The test
+        // harness runs each test on a plain thread with no COM apartment of its own, so
+        // CoCreateInstance below needs one initialised here (unlike the real worker thread,
+        // which is set up once in `worker_loop`). Paired with CoUninitialize at the end, after
+        // every COM object created below has been dropped (they're scoped to the block below).
+        unsafe {
+            let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
         }
 
-        let mut checkers = HashMap::new();
-        let en = vec!["en-US".to_string()];
+        {
+            let mut factory: Option<ISpellCheckerFactory> = None;
+            let languages = get_languages(&mut factory)
+                .expect("the Spell Checking API is present on every supported Windows version");
 
-        let results = do_check(&mut factory, &mut checkers, &["Ths is a tset".to_string()], &en)
-            .expect("spell_check should succeed once en-US is confirmed supported");
-        let errors = &results[0];
-        assert!(errors.iter().any(|e| e.start == 0 && e.length == 3), "{errors:?}");
-        assert!(errors.iter().any(|e| e.start == 9 && e.length == 4), "{errors:?}");
+            if languages.iter().any(|l| l.eq_ignore_ascii_case("en-US")) {
+                let mut checkers = HashMap::new();
+                let en = vec!["en-US".to_string()];
 
-        let suggestions = do_suggest(&mut factory, &mut checkers, "tset", &en)
-            .expect("spell_suggest should succeed once en-US is confirmed supported");
-        assert!(
-            suggestions.iter().any(|s| s.eq_ignore_ascii_case("test")),
-            "{suggestions:?}"
-        );
+                let results =
+                    do_check(&mut factory, &mut checkers, &["Ths is a tset".to_string()], &en)
+                        .expect("spell_check should succeed once en-US is confirmed supported");
+                let errors = &results[0];
+                assert!(errors.iter().any(|e| e.start == 0 && e.length == 3), "{errors:?}");
+                assert!(errors.iter().any(|e| e.start == 9 && e.length == 4), "{errors:?}");
+
+                let suggestions = do_suggest(&mut factory, &mut checkers, "tset", &en)
+                    .expect("spell_suggest should succeed once en-US is confirmed supported");
+                assert!(
+                    suggestions.iter().any(|s| s.eq_ignore_ascii_case("test")),
+                    "{suggestions:?}"
+                );
+            }
+            // else: this machine has no English dictionary installed - nothing to check here.
+            // `factory` and `checkers` are dropped at the end of this block, before
+            // CoUninitialize runs below.
+        }
+
+        // SAFETY: pairs with the CoInitializeEx above; every COM object created in this test
+        // was scoped to the block above and has already been dropped.
+        unsafe {
+            CoUninitialize();
+        }
     }
 }

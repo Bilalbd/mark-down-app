@@ -172,6 +172,34 @@ stopped by that exact PID once done.
 - Everything else matches the design as written; no permission widening, no extra dependencies
   beyond the one named `windows` crate.
 
+**Review fix.** The supervisor pointed out that `flags_known_typos_and_suggests_a_fix_in_english`
+ran on the test-harness thread without ever calling `CoInitializeEx`, and that treating a
+`get_languages` error as "skip" meant `CO_E_NOTINITIALIZED` on an uninitialised thread could make
+the test silently pass without checking anything. Fixed: the test now calls
+`CoInitializeEx(None, COINIT_MULTITHREADED)` itself at the start (with a SAFETY comment explaining
+why - the test thread has no COM apartment of its own, unlike the real worker thread) and
+`CoUninitialize` at the end, with the `factory`/`checkers`/results scoped to an inner block so
+every COM object is dropped before `CoUninitialize` runs. `get_languages` failing is now a real
+`.expect()` failure, not a skip; only "no `en-US` dictionary on this machine" still skips the
+assertions (via an `if`, not an early `return`, so `CoUninitialize` still runs either way).
+
+Proved the test can actually fail: changed the first assertion's expected start from `0` to `1`
+and ran `cargo test flags_known -- --nocapture`:
+```
+thread 'spell::windows_integration_tests::flags_known_typos_and_suggests_a_fix_in_english' (20988) panicked at src\spell.rs:468:17:
+[SpellError { start: 0, length: 3, kind: Misspelled }, SpellError { start: 9, length: 4, kind: Misspelled }]
+test spell::windows_integration_tests::flags_known_typos_and_suggests_a_fix_in_english ... FAILED
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.24s
+```
+Reverted the change and re-ran the same command:
+```
+test spell::windows_integration_tests::flags_known_typos_and_suggests_a_fix_in_english ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 53 filtered out; finished in 0.26s
+```
+Re-ran the full suites afterwards: `cargo check` clean; `cargo test` **54 passed, 0 failed**;
+`pnpm test` **495 passed** (unchanged - this fix only touches Rust). No dev-app check was needed
+or done for this fix, per the supervisor's instruction.
+
 ## Supervisor check
 
 _(supervisor fills in)_
