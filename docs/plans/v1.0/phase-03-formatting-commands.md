@@ -98,9 +98,21 @@ Written by the supervisor: the Haiku agent didn't fill this in.
 
 ## Supervisor check
 
-Unit-level: done (above). In the app: **not yet done**. The supervisor's script
-(`scratchpad/supervisor/keys.mjs`, real `Input.dispatchKeyEvent` key presses for every shortcut,
-undo, and Split view with focus in the preview) couldn't run: the PC was in Modern Standby from
-12:07:59, and three dev launches in that state hung with no WebView2 browser (see Phase 8). To do
-when the PC is awake, before Phase 4 starts: run the script, and check `Ctrl+Shift+0` with a real
-keyboard (Windows may reserve it for input-language switching, which CDP key events bypass).
+Unit-level: done (above).
+
+In the app (supervisor, 15:25 after the PC woke; the first attempt at 12:12 hung because the PC was
+in Modern Standby, see Phase 8): `scratchpad/supervisor/keys.mjs` sent CDP `Input.dispatchKeyEvent`
+presses. **16/16 passed**:
+- `Ctrl+B` on and off, `Ctrl+I` on a selection, and `Ctrl+K` replacing the word with `url`
+  selected.
+- `Ctrl+Shift+1…6`, and pressing `Ctrl+Shift+2` again on an H2 turns it back into a paragraph.
+- `Ctrl+Z` undoes a format in one step.
+- In Split view the shortcuts work in the editor pane, and do nothing with focus in the preview.
+
+`Ctrl+Shift+0` through the real Windows input path (`keybd_event`, only after confirming the dev
+window was in front): a real `Ctrl+Shift+2` right before it worked, but after the real
+`Ctrl+Shift+0` the page stopped answering CDP, while the app and its WebView2 browser stayed
+alive. This PC registers Ctrl+Shift+0 as an input-method hotkey (`HKCU\Control Panel\Input
+Method\Hot Keys\00000104`, target a Japanese IME that isn't installed). **Bilal's decision: drop
+`Ctrl+Shift+0`.** It's gone from the keymap, the Settings table and the README; the heading rows
+now say "press again for a paragraph", and Phase 4's menu shows Paragraph without a shortcut.

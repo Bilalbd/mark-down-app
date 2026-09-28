@@ -86,7 +86,8 @@ on it for free.
 
 ## Supervisor decisions (small; Bilal can veto)
 
-- **Heading shortcuts are `Ctrl+Shift+1…6`, and `Ctrl+Shift+0` for Paragraph**, not `Ctrl+Alt+1…6`
+- **Heading shortcuts are `Ctrl+Shift+1…6`** (pressing a heading's own shortcut again gives a
+  paragraph; `Ctrl+Shift+0` was dropped by Bilal after a real press froze the page), not `Ctrl+Alt+1…6`
   as first suggested. On Windows `Ctrl+Alt` *is* `AltGr`, and German, French, Polish and many
   other layouts type `{ [ ] } @ ² ³` with `AltGr+digit`; binding those would stop people typing
   braces. `Ctrl+1…9` are tab switching and `Ctrl+0` is zoom reset, so plain `Ctrl+digit` is taken.
@@ -200,7 +201,7 @@ screenshots in both themes, and records the outcome in the phase document's "Sup
 | 1 | `c3aedbe`, `81e3edc` | 491 → 495 (Rust 44 → 54) | Passed (CDP invoke checks, supervisor) | Integration test didn't init COM; fixed |
 | 2 | `87db9f5`, `bcf7f9d`, `f81f1a5`, `20ee8e5` | 495 → 555 | Passed (light and dark, supervisor) | 3 review rounds: stale replies, Ignore refresh, shared cache, last language, Settings layout, stable order |
 | 2b | `dc26d49`, `892fa61` | 555 → 563 | Passed (light and dark, supervisor) | Haiku. 2 bugs fixed in review; agent stopped Bilal's installed app |
-| 3 | `3994567`, `bc04696`, `8c8b40f` | 563 → 644 | **Pending** (PC in Modern Standby) | Haiku x2 failed; supervisor rewrote `formatting.ts` |
+| 3 | `3994567`, `bc04696`, `8c8b40f`, + Ctrl+Shift+0 removal | 563 → 644 | Passed (real key events, supervisor) | Haiku x2 failed; supervisor rewrote `formatting.ts`; Ctrl+Shift+0 dropped (Bilal) |
 | 4 | | | | |
 | 5 | | | | |
 | 6 | | | | |

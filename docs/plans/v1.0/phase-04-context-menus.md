@@ -27,7 +27,7 @@ Copy                    Ctrl+C      ← disabled with no selection
 Paste                   Ctrl+V
 Select all              Ctrl+A
 ──────────
-Heading              ▸  Heading 1 … Heading 6 (Ctrl+Shift+1…6), Paragraph (Ctrl+Shift+0)
+Heading              ▸  Heading 1 … Heading 6 (Ctrl+Shift+1…6), Paragraph (no shortcut)
 Bold                    Ctrl+B
 Italic                  Ctrl+I
 Strikethrough
@@ -42,7 +42,8 @@ Task list
 Horizontal rule
 ```
 
-Leave out Paragraph's shortcut text if Phase 3 dropped `Ctrl+Shift+0`. Icons from `lucide-react`
+Phase 3 dropped `Ctrl+Shift+0` (Bilal's decision: a real press froze the page), so Paragraph has
+no shortcut text. Icons from `lucide-react`
 with the shared `ICON` props at 14 px (as `TabContextMenu` does): `Heading`, `Bold`, `Italic`,
 `Strikethrough`, `Code`, `Link`, `SquareCode`, `TextQuote`, `List`, `ListOrdered`, `ListTodo`,
 `Minus`, `Scissors`, `Copy`, `ClipboardPaste`, `BookPlus` (Add to dictionary), `EyeOff` (Ignore).
