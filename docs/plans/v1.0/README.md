@@ -186,7 +186,7 @@ screenshots in both themes, and records the outcome in the phase document's "Sup
 | Phase | Commit | Tests before → after | Manual check | Notes |
 |---|---|---|---|---|
 | 1 | `c3aedbe`, `81e3edc` | 491 → 495 (Rust 44 → 54) | Passed (CDP invoke checks, supervisor) | Integration test didn't init COM; fixed |
-| 2 | | | | |
+| 2 | `87db9f5`, `bcf7f9d`, `f81f1a5`, `20ee8e5` | 495 → 555 | Passed (light and dark, supervisor) | 3 review rounds: stale replies, Ignore refresh, shared cache, last language, Settings layout, stable order |
 | 3 | | | | |
 | 4 | | | | |
 | 5 | | | | |

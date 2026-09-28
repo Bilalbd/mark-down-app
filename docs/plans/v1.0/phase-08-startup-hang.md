@@ -29,6 +29,15 @@ ignoring the result, and then calls `std::process::exit(1)`.
    created, the environment/controller completion handler may never be called, so wry's creation
    waits forever. The GPU driver reset probably killed the browser (GPU process crash).
 
+**New clue (v1.0 Phase 2, 2026-09-28):** one dev-exe launch hung in WebView2 initialisation with
+**no `msedgewebview2.exe` child appearing at all** for over 20 s, while Windows logged a Modern
+Standby / idle session-disconnect event at the same moment (see the Phase 2 Report). So the browser
+may never start, not only start and exit, and a power or session transition can trigger it. The
+15 s watchdog didn't relaunch that process either before the agent killed it at 20+ s, which fits
+cause 1 or 2. When reproducing (task 7), also try launching just as the session locks or resumes,
+and check the System event log (Kernel-Power, Power-Troubleshooter) for the time of any hang you
+see.
+
 ## Goal
 
 Whatever WebView2 does, a launch **always** ends in one of: the window shows, a relaunched instance

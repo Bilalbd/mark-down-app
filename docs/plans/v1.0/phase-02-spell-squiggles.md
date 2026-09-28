@@ -482,4 +482,36 @@ Re-ran after this fix: `pnpm test` **555 passed** (+1). `pnpm lint`, `npx tsc --
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Built by a Sonnet 5 agent over four commits (`87db9f5`, then review fixes `bcf7f9d`, `f81f1a5`,
+`20ee8e5`). The run was interrupted twice by API limits and resumed with its context intact.
+
+Review rounds:
+1. Stale replies from a destroyed plugin could overwrite new squiggles; *Ignore* didn't refresh;
+   the cache was per plugin (lost on every reconfigure and tab switch); `[]` was ambiguous when the
+   last language was unticked (supervisor decision: the only ticked language can't be unticked);
+   the cost of each check on `huge.md` was unmeasured (0.6–2 ms per run, so no windowing needed).
+2. The Spelling section was cramped: the checklist sat beside its note in a row flexbox, the labels
+   wrapped, and the row label was centred against a 20-language list. Now there's a full-width,
+   scrolling, bordered list with ticked languages first.
+3. The ticked-first sort re-sorted on every click, so rows jumped under the pointer. The order is
+   now frozen while Settings is open.
+
+Re-run by the supervisor: `pnpm test` 555 passed, lint, tsc and Prettier clean.
+
+In-app checks by the supervisor (debug exe, `--new-window`, own WebView2 folder), with a copy of
+`fixtures/spelling.md`:
+- Automatic language (`en-US`): 17 squiggles, including every Arabic word. With `en-US` + `ar-SA`,
+  only the misspelled Arabic word is left and the mixed line is clean. Front matter, code, links
+  and maths are not underlined. Light and dark screenshots checked.
+- `ignoreWord('mistaks')` removed both squiggles within 10 ms; adding `seccond` to `spellWords`
+  removed it; *Check spelling* off → 0 squiggles, on → restored.
+- Split view: squiggles in the editor only, none in the preview.
+- Settings (dark and light screenshots): full-width scrolling list, ticked first, note underneath,
+  labels top-aligned. Ticking `ar-EG` with Settings open left the order unchanged; reopening moved
+  it to the top.
+- Settings files byte-identical or restored to the same values afterwards.
+
+Noted for Bilal: this PC has no English (United Kingdom) dictionary, so British spellings
+("colour", "maths") are underlined until he adds that language in Windows. Pre-existing and out
+of scope: YAML front matter renders as a rule and a heading in the preview and outline (offered
+as a separate task).
