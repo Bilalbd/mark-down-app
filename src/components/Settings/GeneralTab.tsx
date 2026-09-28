@@ -52,12 +52,18 @@ export function GeneralTab() {
       ),
     [spellLanguagesSetting, supportedLanguages, uiLang],
   );
+  // Ticked languages first (so the ones in use are visible without scrolling a long list),
+  // each group then sorted by label.
   const languageRows = useMemo(
     () =>
       supportedLanguages
         .map((tag) => ({ tag, label: languageLabel(tag, uiLang) }))
-        .sort((a, b) => a.label.localeCompare(b.label)),
-    [supportedLanguages, uiLang],
+        .sort((a, b) => {
+          const tickedDiff =
+            Number(tickedLanguages.has(b.tag)) - Number(tickedLanguages.has(a.tag));
+          return tickedDiff !== 0 ? tickedDiff : a.label.localeCompare(b.label);
+        }),
+    [supportedLanguages, uiLang, tickedLanguages],
   );
 
   const toggleLanguage = (tag: string) => {
@@ -164,12 +170,12 @@ export function GeneralTab() {
               Time &amp; language → Language &amp; region.
             </p>
           ) : (
-            <>
+            <div className="settings__stack">
               <ul className="settings__checklist">
                 {languageRows.map(({ tag, label }) => {
                   const isOnlyTicked = tickedLanguages.size === 1 && tickedLanguages.has(tag);
                   return (
-                    <li key={tag}>
+                    <li key={tag} data-tag={tag}>
                       <label>
                         <input
                           type="checkbox"
@@ -184,7 +190,7 @@ export function GeneralTab() {
                 })}
               </ul>
               <p className="settings__note">To stop checking, turn off Check spelling.</p>
-            </>
+            </div>
           )}
         </Row>
         <Row label="Personal dictionary" asLabel={false}>

@@ -385,6 +385,61 @@ touched). Settings files: `presets.json` and `.window-state.json` byte-identical
 pre-session backup; `settings.json` matches except `recentFiles`, restored to `[]` after the
 session's manual checks.
 
+### Settings layout fix
+
+Supervisor's dark-theme, 20-language screenshot (16 of them Arabic variants) showed the
+Languages control squeezed into a narrow column with wrapped two-line labels, the note beside
+the list instead of under it, and the "Languages"/"Personal dictionary" row labels vertically
+centred against their tall lists. Root cause: `GeneralTab.tsx` rendered the checklist and the
+note as two siblings inside `<>...</>`, and `.settings__control` (their parent, from `Row` in
+`controls.tsx`) is a row flexbox - so the two siblings sat side by side instead of stacking, and
+centred against each other's height. Fixed entirely in `GeneralTab.tsx` (no `controls.tsx`
+change) and `SettingsPanel.css`:
+
+- Wrapped the checklist and the note in a single `<div className="settings__stack">` (flex
+  column, full width) so `.settings__control` only ever sees one child there and they stack
+  correctly, and the checklist gets the full control-column width instead of half a row.
+- `.settings__row:has(.settings__checklist), .settings__row:has(.settings__word-list)` now sets
+  `align-items: flex-start`, top-aligning the "Languages" and "Personal dictionary" labels with
+  their lists (`:has()` is supported by the Edge/Chromium WebView2 runtime this app ships with,
+  so no JS or extra prop on `Row` was needed).
+- `.settings__checklist` gained `max-height: 264px` (~12 rows) with `overflow-y: auto` and a
+  `border: 1px solid var(--chrome-border)` + `border-radius`, so 20+ languages scroll inside a
+  bounded box instead of stretching Settings.
+- `languageRows` now sorts ticked languages first (each group then by label, via a small
+  comparator in the existing `useMemo`), so the languages in use are visible without scrolling.
+  Removing the earlier attempt at forcing `white-space: nowrap` on the checklist labels: once the
+  list has its full column width, normal short-label wrapping no longer happens in practice (see
+  screenshots), and `nowrap` risked clipping the longest real labels (e.g. "Arabic (United Arab
+  Emirates)") in the sidebar's fixed 380 px width - not worth it for a "no wrapping at normal
+  widths" requirement.
+
+New test in `GeneralTab.test.tsx`: ticks `fr-FR`/`zh-CN` among four languages and asserts the
+rendered `<li data-tag>` order matches ticked-first-then-alphabetical, computed from the *actual*
+`Intl.DisplayNames` labels (not hardcoded English strings) so it doesn't depend on a specific
+ICU wording, with a sanity check that the assertion isn't vacuously satisfied.
+
+Checked in the running app (debug exe, `--new-window`, this session's own WebView2 folder;
+Vite separate) with 20 real Windows languages, 2 ticked (`en-US`, `ar-SA`) and 3 personal-
+dictionary words, screenshots opened and read:
+
+- **Dark, ~1114 px window**: `en-US` and `ar-SA` lead the list, both on one line each
+  ("Arabic (Saudi Arabia)", "English (United States)"), followed by the rest alphabetically
+  ("Arabic (Algeria)", "(Bahrain)", "(Egypt)", …), all one line, inside a bordered, scrollable
+  ~12-row box; the "To stop checking…" note sits directly under it; "Languages" and "Personal
+  dictionary" are top-aligned with their lists, not centred.
+- **Light, same window**: identical layout, `--chrome-border` renders as a visible light-grey
+  border against the white panel, scrollbar and text fully legible.
+- **Narrow, native window resized to 800×900 via `SetWindowPos`** (not a viewport emulation - an
+  actual OS-level resize, since the settings sidebar is a fixed 380 px column regardless of the
+  app window's width): identical, correct layout - confirms the fix isn't dependent on window
+  width, since the sidebar itself doesn't reflow with it.
+
+Re-ran after this fix: `pnpm test` **554 passed** (+1, the new ordering test). `pnpm lint`,
+`npx tsc --noEmit`: clean. `pnpm format`: no files needed changes. Settings files:
+`presets.json`/`.window-state.json` byte-identical to a fresh backup; `settings.json` matched the
+backup exactly this time (`recentFiles` was never touched - no document was opened this round).
+
 ## Supervisor check
 
 _(supervisor fills in)_

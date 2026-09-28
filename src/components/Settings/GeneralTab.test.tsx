@@ -107,6 +107,29 @@ describe('GeneralTab', () => {
     expect(Array.from(boxes).filter((b) => b.checked)).toHaveLength(2);
   });
 
+  it('lists ticked languages first, each group then sorted by label', async () => {
+    const tags = ['ar-SA', 'en-US', 'fr-FR', 'zh-CN'];
+    const ticked = ['fr-FR', 'zh-CN'];
+    mockSpellLanguages.mockResolvedValue(tags);
+    useSettingsStore.setState({ spellLanguages: ticked });
+    await render();
+
+    // Expected order: ticked tags first, then the rest - each group sorted by its own display
+    // label (not hardcoded, since the exact wording is ICU's and varies by platform/Node version
+    // - see the `languageLabel` tests).
+    const label = (tag: string) => new Intl.DisplayNames(['en-US'], { type: 'language' }).of(tag)!;
+    const byGroupThenLabel = (a: string, b: string) => {
+      const groupDiff = Number(ticked.includes(b)) - Number(ticked.includes(a));
+      return groupDiff !== 0 ? groupDiff : label(a).localeCompare(label(b));
+    };
+    const expectedOrder = [...tags].sort(byGroupThenLabel);
+
+    const items = container.querySelectorAll<HTMLLIElement>('.settings__checklist li');
+    expect(Array.from(items).map((li) => li.dataset.tag)).toEqual(expectedOrder);
+    // Sanity check this isn't a vacuous pass: the ticked ones must lead.
+    expect(expectedOrder.slice(0, 2).sort()).toEqual([...ticked].sort());
+  });
+
   it('disables the language checklist while spell check is off', async () => {
     mockSpellLanguages.mockResolvedValue(['en-US']);
     useSettingsStore.setState({ spellCheck: false });

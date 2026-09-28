@@ -313,14 +313,35 @@
   background: var(--chrome-inset);
 }
 
+/* A row whose control is a tall, scrolling list (the language checklist, the personal
+   dictionary) top-aligns its label instead of centering it against the list's full height. */
+.settings__row:has(.settings__checklist),
+.settings__row:has(.settings__word-list) {
+  align-items: flex-start;
+}
+
+/* Stacks a checklist above its note vertically - `.settings__control` is a row flexbox, so two
+   direct children (the list and the note) would otherwise sit side by side. */
+.settings__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
 .settings__checklist {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 6px 8px;
   display: flex;
   flex-direction: column;
   gap: 4px;
   width: 100%;
+  max-height: 264px; /* ~12 rows, so 20+ languages don't make Settings very long */
+  overflow-y: auto;
+  border: 1px solid var(--chrome-border);
+  border-radius: 4px;
 }
 .settings__checklist label {
   display: flex;
@@ -329,6 +350,7 @@
 }
 .settings__checklist input[type='checkbox'] {
   accent-color: var(--accent);
+  flex-shrink: 0;
 }
 
 .settings__word-list {
