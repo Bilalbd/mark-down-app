@@ -24,15 +24,17 @@ export function spellLanguageGroups(
 
   const result: { code: string; tag: string }[] = [];
   for (const [code, tags] of groups) {
-    let preferred: string;
+    let preferred: string | undefined;
+
+    // Check for language-specific preferences first
     if (code === 'en') {
-      // Bilal's choice: en-US
-      preferred = tags.find((t) => t.toLocaleLowerCase() === 'en-us') ?? tags[0];
+      preferred = tags.find((t) => t.toLocaleLowerCase() === 'en-us');
     } else if (code === 'ar') {
-      // Bilal's choice: ar-SA
-      preferred = tags.find((t) => t.toLocaleLowerCase() === 'ar-sa') ?? tags[0];
-    } else {
-      // Use the tag whose region matches the language's likely region
+      preferred = tags.find((t) => t.toLocaleLowerCase() === 'ar-sa');
+    }
+
+    // If no preference found, use likely region or first alphabetically
+    if (!preferred) {
       const likelyRegion = new Intl.Locale(code).maximize().region;
       preferred =
         (likelyRegion &&
@@ -41,6 +43,7 @@ export function spellLanguageGroups(
           )) ||
         [...tags].sort()[0];
     }
+
     result.push({ code, tag: preferred });
   }
 

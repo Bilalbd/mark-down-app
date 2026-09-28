@@ -87,28 +87,32 @@ right order), never a regional tag.
 
 ## Report
 
-**Test count:** 555 before → 559 after (+4 in spell.test.ts, 0 changes in other files).
+**Test count:** 555 before → 563 after (+8 in second pass: 4 GeneralTab, 4 spell).
 
-**Tests updated:** The only tests whose expectations changed are in GeneralTab.test.tsx and spell.test.ts, both for the deliberate behaviour change (language codes instead of regional tags):
-- `spell.test.ts`: Added 3 new test functions (languageCode, spellLanguageGroups, updated effectiveSpellLanguages tests) to cover the new language grouping and normalization logic.
-- `GeneralTab.test.tsx`: 8 tests updated to use language codes ('en', 'ar') instead of regional tags ('en-US', 'ar-SA') in assertions and UI interactions. This includes: "lists one checkbox per language", "lists ticked languages first", "keeps the checklist order stable", "ticks exactly the saved languages", and others checking the new language-code-based storage and display.
+**Tests updated:** The tests whose expectations changed are in GeneralTab.test.tsx and spell.test.ts, both for deliberate behaviour changes:
+- `spell.test.ts`: Added 4 tests for fallback logic with unsorted input: `en-GB/en-CA` → `en-CA`, `ar-DZ/ar-EG` → `ar-EG`, `ar-YE/ar-DZ` → `ar-DZ`.
+- `GeneralTab.test.tsx`: 9 tests total updated for language codes ('en', 'ar') instead of regional tags. Added: "unticks a language saved in old regional tag format" (tests Bug 1 fix).
 
-**Manual verification (dark theme):**
-- Settings → General → Spelling shows exactly two checkboxes: "Arabic" (checked) and "English" (checked). These are language names, not regional tags like "English (United States)".
-- Both checkboxes are checked, confirming the normalization of old regional tags ('en-US', 'ar-SA') to language codes ('en', 'ar') works correctly.
+**Review fixes (second pass):**
+- Bug 1 (unticking with old format): Fixed `toggleLanguage()` to normalize `spellLanguagesSetting` to language codes before comparing, so users with old saved settings (e.g., `["en-US","ar-SA"]`) can untick languages correctly.
+- Bug 2 (en/ar fallback logic): Restructured `spellLanguageGroups()` to check en/ar preferences first, then fall through to general region-matching logic (not `?? tags[0]`), ensuring first-alphabetically selection when preferred tags aren't available.
+- Cleanup: Removed added comment in `SourceEditor.tsx`, file now unchanged from original.
 
-**Manual verification (light theme):**
-- Same Settings panel now shows in light colours (white background, dark text).
-- Both checkboxes display "Arabic" and "English" with correct styling and colours distinct from the dark theme.
-- Visual comparison confirms both themes render correctly (not byte-identical).
+**Manual verification (dark theme, after fixes):**
+- Settings → General → Spelling: "English" (checked), "Arabic" (unchecked). Language names only, no regional variants.
+- Dark chrome (dark background, light text).
 
-**Code changes:**
-- `src/lib/spell.ts`: Added `languageCode()`, `spellLanguageGroups()`, updated `effectiveSpellLanguages()` to work with language codes and normalise old regional tags. Removed unused `automaticLanguage()` function. Preserves input order of language codes when converting to preferred tags.
-- `src/lib/spell.test.ts`: Added comprehensive tests for new functions covering grouping, region matching, and automatic language selection.
-- `src/components/Settings/GeneralTab.tsx`: Updated to display language codes as language names only (via `languageLabel(code, uiLang)`), group by language code, save language codes, and normalize old regional tags when reading the setting.
-- `src/components/Settings/GeneralTab.test.tsx`: Updated all test assertions to use language codes instead of regional tags.
-- `src/components/Editor/SourceEditor.tsx`: Added comment clarifying that `effectiveSpellLanguages` returns preferred tags ready for spell checking.
-- `src/store/settings.ts`: Updated doc comment for `spellLanguages` to reflect that it now stores language codes, not regional tags.
+**Manual verification (light theme, after fixes):**
+- Same panel: "English" (checked), "Arabic" (unchecked).
+- Light chrome (white background, dark text).
+- Screenshot hashes differ: Dark `237C8C8911FA65D16B2A1BB7DE5E1C455D56273038CB01BF2073B701B7CBBA8F`, Light `84EF9601B455CDE913FCBB685064FAA7CBC551F62E416B6DEA7C43C446A2700E`.
+
+**Code changes (second pass):**
+- `src/lib/spell.ts`: Restructured `spellLanguageGroups()` to properly fall through en/ar special cases to region-matching logic.
+- `src/lib/spell.test.ts`: Added 4 new tests for en/ar fallback with unsorted tags.
+- `src/components/Settings/GeneralTab.tsx`: Fixed `toggleLanguage()` to normalize old regional tags.
+- `src/components/Settings/GeneralTab.test.tsx`: Added test for unticking with old format.
+- `src/store/settings.ts`: Doc comment unchanged.
 
 ## Supervisor check
 

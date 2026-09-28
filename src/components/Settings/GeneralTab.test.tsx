@@ -243,4 +243,27 @@ describe('GeneralTab', () => {
     });
     expect(useSettingsStore.getState().spellCheck).toBe(false);
   });
+
+  it('unticks a language saved in the old regional tag format', async () => {
+    // Existing users have regional tags like ["en-US", "ar-SA"] in their settings.
+    // Clicking a checkbox should untick the language code correctly.
+    mockSpellLanguages.mockResolvedValue(['ar-SA', 'en-US']);
+    useSettingsStore.setState({ spellLanguages: ['en-US', 'ar-SA'] }); // Old format
+    await render();
+
+    // The Arabic checkbox starts ticked (from the old tag "ar-SA")
+    const arCheckbox = container.querySelector<HTMLInputElement>(
+      '.settings__checklist li[data-tag="ar"] input[type="checkbox"]',
+    )!;
+    expect(arCheckbox.checked).toBe(true);
+
+    // Click to untick it
+    act(() => {
+      arCheckbox.click();
+    });
+
+    // Should now be saved as ["en"] (the only ticked language, in new format)
+    expect(useSettingsStore.getState().spellLanguages).toEqual(['en']);
+    expect(arCheckbox.checked).toBe(false);
+  });
 });

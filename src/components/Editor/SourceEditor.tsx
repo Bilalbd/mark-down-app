@@ -39,7 +39,6 @@ function currentSpellExtension(): Extension {
   const { spellLanguages, spellWords } = useSettingsStore.getState();
   const supported = useViewStore.getState().spellSupportedLanguages;
   const effectiveLanguages = effectiveSpellLanguages(spellLanguages, supported, navigator.language);
-  // effectiveSpellLanguages already returns preferred tags
   return effectiveLanguages.length > 0 ? spellcheckExtension(effectiveLanguages, spellWords) : [];
 }
 

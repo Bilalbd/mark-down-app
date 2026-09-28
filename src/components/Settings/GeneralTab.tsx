@@ -83,13 +83,25 @@ export function GeneralTab() {
   }));
 
   const toggleLanguage = (code: string) => {
-    const current =
-      spellLanguagesSetting.length > 0 ? spellLanguagesSetting : [...tickedLanguageCodes];
+    // Normalise saved setting to language codes, deduplicating old regional tags
+    const seenCodes = new Set<string>();
+    const normalizedCurrent: string[] = [];
+    for (const v of spellLanguagesSetting.length > 0
+      ? spellLanguagesSetting
+      : [...tickedLanguageCodes]) {
+      const normalized = languageCode(v);
+      if (!seenCodes.has(normalized)) {
+        seenCodes.add(normalized);
+        normalizedCurrent.push(normalized);
+      }
+    }
     // The checkbox for the sole ticked language is disabled in the UI (so `[]` always means
     // "automatic", never "explicitly nothing" - see the phase 2 review), but guard here too in
     // case this is ever called some other way.
-    if (current.includes(code) && current.length === 1) return;
-    const next = current.includes(code) ? current.filter((c) => c !== code) : [...current, code];
+    if (normalizedCurrent.includes(code) && normalizedCurrent.length === 1) return;
+    const next = normalizedCurrent.includes(code)
+      ? normalizedCurrent.filter((c) => c !== code)
+      : [...normalizedCurrent, code];
     set('spellLanguages', next);
   };
 

@@ -48,6 +48,29 @@ describe('spellLanguageGroups', () => {
     // Arabic should come before English and French alphabetically
     expect(labels[0]).toContain('Arabic');
   });
+
+  it('picks en-CA over en-GB when en-US is not available (alphabetically first)', () => {
+    const supported = ['en-GB', 'en-CA']; // Not in alphabetical order
+    const groups = spellLanguageGroups(supported, 'en-US');
+    const enGroup = groups.find((g) => g.code === 'en');
+    expect(enGroup?.tag).toBe('en-CA'); // Alphabetically first, not en-GB
+  });
+
+  it('picks ar-EG when it matches the likely region, even if not first', () => {
+    const supported = ['ar-DZ', 'ar-EG']; // DZ comes first alphabetically
+    const groups = spellLanguageGroups(supported, 'en-US');
+    const arGroup = groups.find((g) => g.code === 'ar');
+    // The likely region for ar is EG (Egypt), so ar-EG is picked
+    expect(arGroup?.tag).toBe('ar-EG');
+  });
+
+  it('picks ar-DZ alphabetically when the likely region is not available', () => {
+    const supported = ['ar-YE', 'ar-DZ']; // YE comes first, but DZ is alphabetically first
+    const groups = spellLanguageGroups(supported, 'en-US');
+    const arGroup = groups.find((g) => g.code === 'ar');
+    // ar-SA (preferred) is not available, ar-EG (likely region) is not available, so ar-DZ (first alphabetically)
+    expect(arGroup?.tag).toBe('ar-DZ');
+  });
 });
 
 describe('effectiveSpellLanguages', () => {
