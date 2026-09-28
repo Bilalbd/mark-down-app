@@ -80,8 +80,9 @@ describe('GeneralTab', () => {
     expect(note.some((t) => t?.includes('No words added yet.'))).toBe(true);
   });
 
-  it('lists one checkbox per supported language', async () => {
-    mockSpellLanguages.mockResolvedValue(['ar-SA', 'en-US']);
+  it('lists one checkbox per language (not per region)', async () => {
+    // With 4 regional variants, should show only 2 checkboxes (one per language)
+    mockSpellLanguages.mockResolvedValue(['ar-EG', 'ar-SA', 'en-CA', 'en-US']);
     await render();
     const boxes = container.querySelectorAll('.settings__checklist input[type="checkbox"]');
     expect(boxes.length).toBe(2);
@@ -99,7 +100,7 @@ describe('GeneralTab', () => {
 
   it('ticks exactly the saved languages once the user has chosen explicitly', async () => {
     mockSpellLanguages.mockResolvedValue(['ar-SA', 'en-US', 'fr-FR']);
-    useSettingsStore.setState({ spellLanguages: ['ar-SA', 'fr-FR'] });
+    useSettingsStore.setState({ spellLanguages: ['ar', 'fr'] });
     await render();
     const boxes = container.querySelectorAll<HTMLInputElement>(
       '.settings__checklist input[type="checkbox"]',
@@ -109,32 +110,31 @@ describe('GeneralTab', () => {
 
   it('lists ticked languages first, each group then sorted by label', async () => {
     const tags = ['ar-SA', 'en-US', 'fr-FR', 'zh-CN'];
-    const ticked = ['fr-FR', 'zh-CN'];
+    const tickedCodes = ['fr', 'zh']; // Now using language codes
     mockSpellLanguages.mockResolvedValue(tags);
-    useSettingsStore.setState({ spellLanguages: ticked });
+    useSettingsStore.setState({ spellLanguages: tickedCodes });
     await render();
 
-    // Expected order: ticked tags first, then the rest - each group sorted by its own display
-    // label (not hardcoded, since the exact wording is ICU's and varies by platform/Node version
-    // - see the `languageLabel` tests).
-    const label = (tag: string) => new Intl.DisplayNames(['en-US'], { type: 'language' }).of(tag)!;
+    // Expected order: ticked language codes first, then the rest - each sorted by label
+    const label = (code: string) =>
+      new Intl.DisplayNames(['en-US'], { type: 'language' }).of(code)!;
     const byGroupThenLabel = (a: string, b: string) => {
-      const groupDiff = Number(ticked.includes(b)) - Number(ticked.includes(a));
+      const groupDiff = Number(tickedCodes.includes(b)) - Number(tickedCodes.includes(a));
       return groupDiff !== 0 ? groupDiff : label(a).localeCompare(label(b));
     };
-    const expectedOrder = [...tags].sort(byGroupThenLabel);
+    const allCodes = ['ar', 'en', 'fr', 'zh'];
+    const expectedOrder = [...allCodes].sort(byGroupThenLabel);
 
     const items = container.querySelectorAll<HTMLLIElement>('.settings__checklist li');
     expect(Array.from(items).map((li) => li.dataset.tag)).toEqual(expectedOrder);
     // Sanity check this isn't a vacuous pass: the ticked ones must lead.
-    expect(expectedOrder.slice(0, 2).sort()).toEqual([...ticked].sort());
+    expect(expectedOrder.slice(0, 2).sort()).toEqual([...tickedCodes].sort());
   });
 
   it('keeps the checklist order stable when a checkbox is ticked', async () => {
-    // Only en-US ticked to start, so ar-SA (further down, alphabetically after en-US within the
-    // untouched group) is a safe row to tick without hitting the disabled "only ticked" box.
+    // Only en ticked to start, so ar (further down, alphabetically after en) is a safe row to tick
     mockSpellLanguages.mockResolvedValue(['ar-SA', 'en-US', 'fr-FR']);
-    useSettingsStore.setState({ spellLanguages: ['en-US'] });
+    useSettingsStore.setState({ spellLanguages: ['en'] });
     await render();
 
     const orderBefore = Array.from(
@@ -142,23 +142,23 @@ describe('GeneralTab', () => {
     ).map((li) => li.dataset.tag);
 
     const arCheckbox = container.querySelector<HTMLInputElement>(
-      '.settings__checklist li[data-tag="ar-SA"] input[type="checkbox"]',
+      '.settings__checklist li[data-tag="ar"] input[type="checkbox"]',
     )!;
     expect(arCheckbox.checked).toBe(false);
     act(() => {
       arCheckbox.click();
     });
 
-    // The setting changed (ar-SA is now ticked)...
-    expect(useSettingsStore.getState().spellLanguages.includes('ar-SA')).toBe(true);
-    // ...but the row order - and in particular ar-SA's position - did not.
+    // The setting changed (ar is now ticked)...
+    expect(useSettingsStore.getState().spellLanguages.includes('ar')).toBe(true);
+    // ...but the row order - and in particular ar's position - did not.
     const orderAfter = Array.from(
       container.querySelectorAll<HTMLLIElement>('.settings__checklist li'),
     ).map((li) => li.dataset.tag);
     expect(orderAfter).toEqual(orderBefore);
     expect(
       container.querySelector<HTMLInputElement>(
-        '.settings__checklist li[data-tag="ar-SA"] input[type="checkbox"]',
+        '.settings__checklist li[data-tag="ar"] input[type="checkbox"]',
       )?.checked,
     ).toBe(true);
   });
@@ -178,13 +178,13 @@ describe('GeneralTab', () => {
     await render();
     const arCheckbox = Array.from(
       container.querySelectorAll<HTMLInputElement>('.settings__checklist input[type="checkbox"]'),
-    ).find((b) => !b.checked); // ar-SA isn't the automatic pick, so it starts unticked
+    ).find((b) => !b.checked); // ar isn't the automatic pick, so it starts unticked
     expect(arCheckbox).toBeDefined();
     act(() => {
       arCheckbox!.click();
     });
-    // Ticking ar-SA alongside the automatically-ticked en-US writes both explicitly.
-    expect(useSettingsStore.getState().spellLanguages.sort()).toEqual(['ar-SA', 'en-US']);
+    // Ticking ar alongside the automatically-ticked en writes both explicitly (as language codes).
+    expect(useSettingsStore.getState().spellLanguages.sort()).toEqual(['ar', 'en']);
   });
 
   it('disables the sole ticked language so it cannot be unticked, and shows the hint', async () => {
@@ -195,7 +195,7 @@ describe('GeneralTab', () => {
     );
     const ticked = boxes.find((b) => b.checked);
     const unticked = boxes.find((b) => !b.checked);
-    expect(ticked?.disabled).toBe(true); // the automatic en-US pick is the only ticked one
+    expect(ticked?.disabled).toBe(true); // the automatic en pick is the only ticked one
     expect(unticked?.disabled).toBe(false);
 
     const note = Array.from(container.querySelectorAll('.settings__note')).map(
@@ -213,7 +213,7 @@ describe('GeneralTab', () => {
 
   it('does not disable either checkbox once two languages are ticked', async () => {
     mockSpellLanguages.mockResolvedValue(['ar-SA', 'en-US']);
-    useSettingsStore.setState({ spellLanguages: ['ar-SA', 'en-US'] });
+    useSettingsStore.setState({ spellLanguages: ['ar', 'en'] });
     await render();
     const boxes = Array.from(
       container.querySelectorAll<HTMLInputElement>('.settings__checklist input[type="checkbox"]'),

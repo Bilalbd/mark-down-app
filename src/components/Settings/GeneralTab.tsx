@@ -8,7 +8,12 @@ import {
 } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import { getAppVersion, spellLanguages as fetchSpellLanguages } from '@/lib/tauri';
-import { effectiveSpellLanguages, languageLabel } from '@/lib/spell';
+import {
+  effectiveSpellLanguages,
+  languageLabel,
+  spellLanguageGroups,
+  languageCode,
+} from '@/lib/spell';
 import { ICON } from '@/components/Toolbar/Toolbar';
 import { NumberInput, Row, Section, Select, Toggle } from './controls';
 
@@ -43,41 +48,48 @@ export function GeneralTab() {
   }, [setSpellSupportedLanguages]);
 
   const uiLang = navigator.language;
-  const tickedLanguages = useMemo(
+
+  // Get the language groups from the supported tags
+  const languageGroups = useMemo(
+    () => (supportedLanguages.length > 0 ? spellLanguageGroups(supportedLanguages, uiLang) : []),
+    [supportedLanguages, uiLang],
+  );
+
+  const tickedLanguageCodes = useMemo(
     () =>
       new Set(
         spellLanguagesSetting.length > 0
-          ? spellLanguagesSetting
-          : effectiveSpellLanguages([], supportedLanguages, uiLang),
+          ? spellLanguagesSetting.map((v) => languageCode(v))
+          : effectiveSpellLanguages([], supportedLanguages, uiLang).map((tag) => languageCode(tag)),
       ),
     [spellLanguagesSetting, supportedLanguages, uiLang],
   );
-  // Ticked languages first (so the ones in use are visible without scrolling a long list), each
-  // group then sorted by label - computed once, the first time the language list arrives, and
-  // then frozen for as long as this tab stays mounted. Recomputing it from `tickedLanguages` on
-  // every render would reorder the list out from under the pointer the instant a checkbox is
-  // ticked (the row just clicked jumps to the top, so a second click hits a different language).
-  // Reopening Settings remounts GeneralTab and re-freezes the order.
-  const orderRef = useRef<string[] | null>(null);
-  if (orderRef.current === null && supportedLanguages.length > 0) {
-    orderRef.current = [...supportedLanguages].sort((a, b) => {
-      const tickedDiff = Number(tickedLanguages.has(b)) - Number(tickedLanguages.has(a));
+
+  // Ticked languages first (so the ones in use are visible without scrolling a long list), then
+  // sorted by label - computed once and frozen for as long as this tab stays mounted. Reopening
+  // Settings remounts GeneralTab and re-freezes the order.
+  const orderRef = useRef<typeof languageGroups | null>(null);
+  if (orderRef.current === null && languageGroups.length > 0) {
+    orderRef.current = [...languageGroups].sort((a, b) => {
+      const tickedDiff =
+        Number(tickedLanguageCodes.has(b.code)) - Number(tickedLanguageCodes.has(a.code));
       if (tickedDiff !== 0) return tickedDiff;
-      return languageLabel(a, uiLang).localeCompare(languageLabel(b, uiLang));
+      return languageLabel(a.code, uiLang).localeCompare(languageLabel(b.code, uiLang));
     });
   }
-  const languageRows = (orderRef.current ?? supportedLanguages).map((tag) => ({
-    tag,
-    label: languageLabel(tag, uiLang),
+  const languageRows = (orderRef.current ?? languageGroups).map(({ code }) => ({
+    code,
+    label: languageLabel(code, uiLang),
   }));
 
-  const toggleLanguage = (tag: string) => {
-    const current = spellLanguagesSetting.length > 0 ? spellLanguagesSetting : [...tickedLanguages];
+  const toggleLanguage = (code: string) => {
+    const current =
+      spellLanguagesSetting.length > 0 ? spellLanguagesSetting : [...tickedLanguageCodes];
     // The checkbox for the sole ticked language is disabled in the UI (so `[]` always means
     // "automatic", never "explicitly nothing" - see the phase 2 review), but guard here too in
     // case this is ever called some other way.
-    if (current.includes(tag) && current.length === 1) return;
-    const next = current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag];
+    if (current.includes(code) && current.length === 1) return;
+    const next = current.includes(code) ? current.filter((c) => c !== code) : [...current, code];
     set('spellLanguages', next);
   };
 
@@ -177,16 +189,17 @@ export function GeneralTab() {
           ) : (
             <div className="settings__stack">
               <ul className="settings__checklist">
-                {languageRows.map(({ tag, label }) => {
-                  const isOnlyTicked = tickedLanguages.size === 1 && tickedLanguages.has(tag);
+                {languageRows.map(({ code, label }) => {
+                  const isOnlyTicked =
+                    tickedLanguageCodes.size === 1 && tickedLanguageCodes.has(code);
                   return (
-                    <li key={tag} data-tag={tag}>
+                    <li key={code} data-tag={code}>
                       <label>
                         <input
                           type="checkbox"
-                          checked={tickedLanguages.has(tag)}
+                          checked={tickedLanguageCodes.has(code)}
                           disabled={!spellCheck || isOnlyTicked}
-                          onChange={() => toggleLanguage(tag)}
+                          onChange={() => toggleLanguage(code)}
                         />
                         {label}
                       </label>

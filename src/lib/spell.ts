@@ -1,40 +1,101 @@
 import type { SpellError } from '@/lib/tauri';
 
-/**
- * The supported tag that best matches `navLang`: an exact match, else a tag sharing the same
- * primary language (preferring `en-US` among ties, e.g. `en-GB` → `en-US`), else `en-US` if it's
- * supported, else the first supported tag, else `null` if nothing is supported.
- */
-function automaticLanguage(supported: string[], navLang: string): string | null {
-  const navLower = navLang.toLocaleLowerCase();
-  const exact = supported.find((t) => t.toLocaleLowerCase() === navLower);
-  if (exact) return exact;
-
-  const primary = navLower.split('-')[0];
-  const samePrimary = supported.filter((t) => t.toLocaleLowerCase().split('-')[0] === primary);
-  if (samePrimary.length > 0) {
-    return samePrimary.find((t) => t.toLocaleLowerCase() === 'en-us') ?? samePrimary[0];
-  }
-
-  const enUs = supported.find((t) => t.toLocaleLowerCase() === 'en-us');
-  if (enUs) return enUs;
-
-  return supported[0] ?? null;
+/** The primary language subtag (everything before the first hyphen, lowercased). */
+export function languageCode(tag: string): string {
+  return tag.split('-')[0].toLocaleLowerCase();
 }
 
 /**
- * The languages actually used to check spelling: `saved` as-is once the user has chosen it
- * explicitly, or - while it's still `[]` - the single best automatic match for `navLang` (see
- * `automaticLanguage`), which may be no language at all.
+ * The preferred tag (the regional dictionary to use) for each unique language code in
+ * `supported`. Rules: `en` → `en-US`, `ar` → `ar-SA`, others → the tag whose region
+ * matches `new Intl.Locale(code).maximize().region`, else the first alphabetically.
+ * Sorted by the language label in `uiLang`.
+ */
+export function spellLanguageGroups(
+  supported: string[],
+  uiLang: string = navigator.language,
+): { code: string; tag: string }[] {
+  const groups = new Map<string, string[]>();
+  for (const tag of supported) {
+    const code = languageCode(tag);
+    if (!groups.has(code)) groups.set(code, []);
+    groups.get(code)!.push(tag);
+  }
+
+  const result: { code: string; tag: string }[] = [];
+  for (const [code, tags] of groups) {
+    let preferred: string;
+    if (code === 'en') {
+      // Bilal's choice: en-US
+      preferred = tags.find((t) => t.toLocaleLowerCase() === 'en-us') ?? tags[0];
+    } else if (code === 'ar') {
+      // Bilal's choice: ar-SA
+      preferred = tags.find((t) => t.toLocaleLowerCase() === 'ar-sa') ?? tags[0];
+    } else {
+      // Use the tag whose region matches the language's likely region
+      const likelyRegion = new Intl.Locale(code).maximize().region;
+      preferred =
+        (likelyRegion &&
+          tags.find((t) =>
+            t.toLocaleLowerCase().endsWith(`-${likelyRegion.toLocaleLowerCase()}`),
+          )) ||
+        [...tags].sort()[0];
+    }
+    result.push({ code, tag: preferred });
+  }
+
+  // Sort by language label
+  result.sort((a, b) => {
+    const aLabel = languageLabel(a.code, uiLang);
+    const bLabel = languageLabel(b.code, uiLang);
+    return aLabel.localeCompare(bLabel);
+  });
+
+  return result;
+}
+
+/**
+ * The languages actually used to check spelling: converts saved language codes to their
+ * preferred tags. `saved` may contain old regional tags (from before this change), which are
+ * normalised to language codes. If `saved` is empty, returns the automatic pick based on
+ * `navLang`'s primary subtag and the available dictionaries.
  */
 export function effectiveSpellLanguages(
   saved: string[],
   supported: string[],
   navLang: string,
 ): string[] {
-  if (saved.length > 0) return saved;
-  const auto = automaticLanguage(supported, navLang);
-  return auto ? [auto] : [];
+  // Normalise old regional tags to language codes and deduplicate (preserving first occurrence order)
+  const seenCodes = new Set<string>();
+  const codes: string[] = [];
+  for (const v of saved) {
+    const code = languageCode(v);
+    if (!seenCodes.has(code)) {
+      seenCodes.add(code);
+      codes.push(code);
+    }
+  }
+
+  // If there's an explicit choice, convert it to preferred tags (preserving order)
+  if (codes.length > 0) {
+    const groups = new Map<string, string>();
+    for (const group of spellLanguageGroups(supported)) {
+      groups.set(group.code, group.tag);
+    }
+    return codes.map((code) => groups.get(code)).filter((tag) => tag !== undefined) as string[];
+  }
+
+  // Automatic: find the primary subtag of navLang
+  const navCode = languageCode(navLang);
+  const groups = spellLanguageGroups(supported);
+  const autoGroup = groups.find((g) => g.code === navCode);
+  if (autoGroup) return [autoGroup.tag];
+
+  // Fall back to en if available, else the first language, else none
+  const enGroup = groups.find((g) => g.code === 'en');
+  if (enGroup) return [enGroup.tag];
+
+  return groups.length > 0 ? [groups[0].tag] : [];
 }
 
 /** A language tag's display name in `uiLang` (e.g. "English (United States)"), or the tag

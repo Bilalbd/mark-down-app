@@ -1,41 +1,82 @@
 import { describe, expect, it } from 'vitest';
-import { effectiveSpellLanguages, isKnownWord, languageLabel, SpellCache } from './spell';
+import {
+  effectiveSpellLanguages,
+  isKnownWord,
+  languageCode,
+  languageLabel,
+  spellLanguageGroups,
+  SpellCache,
+} from './spell';
 import type { SpellError } from '@/lib/tauri';
+
+describe('languageCode', () => {
+  it('extracts the primary subtag, lowercased', () => {
+    expect(languageCode('en-US')).toBe('en');
+    expect(languageCode('EN-US')).toBe('en');
+    expect(languageCode('ar-SA')).toBe('ar');
+    expect(languageCode('fr')).toBe('fr');
+  });
+});
+
+describe('spellLanguageGroups', () => {
+  it('groups tags by language code and picks preferred tags', () => {
+    const supported = ['ar-EG', 'ar-SA', 'en-CA', 'en-US'];
+    const groups = spellLanguageGroups(supported, 'en-US');
+    expect(groups).toHaveLength(2);
+    expect(groups[0]).toEqual({ code: 'ar', tag: 'ar-SA' }); // ar-SA is Bilal's choice
+    expect(groups[1]).toEqual({ code: 'en', tag: 'en-US' }); // en-US is Bilal's choice
+  });
+
+  it('uses likely region for non-special languages', () => {
+    const supported = ['fr-CA', 'fr-FR'];
+    const groups = spellLanguageGroups(supported, 'en-US');
+    const frGroup = groups.find((g) => g.code === 'fr');
+    expect(frGroup?.tag).toBe('fr-FR'); // fr's likely region is FR
+  });
+
+  it('falls back to first tag alphabetically when likely region is not installed', () => {
+    const supported = ['en-CA', 'en-GB'];
+    const groups = spellLanguageGroups(supported, 'en-US');
+    const enGroup = groups.find((g) => g.code === 'en');
+    expect(enGroup?.tag).toBe('en-CA'); // en-US (likely region US) is not available, so alphabetically first
+  });
+
+  it('sorts groups by language label', () => {
+    const supported = ['en-US', 'ar-SA', 'fr-FR'];
+    const groups = spellLanguageGroups(supported, 'en-US');
+    const labels = groups.map((g) => languageLabel(g.code, 'en-US'));
+    // Arabic should come before English and French alphabetically
+    expect(labels[0]).toContain('Arabic');
+  });
+});
 
 describe('effectiveSpellLanguages', () => {
   const supported = ['ar-SA', 'en-CA', 'en-PH', 'en-US', 'fr-FR'];
 
-  it('returns the saved list unchanged once the user has chosen one', () => {
-    expect(effectiveSpellLanguages(['ar-SA'], supported, 'en-US')).toEqual(['ar-SA']);
-    expect(effectiveSpellLanguages(['en-CA', 'fr-FR'], supported, 'en-US')).toEqual([
-      'en-CA',
-      'fr-FR',
-    ]);
+  it('converts language codes to their preferred tags, preserving input order', () => {
+    expect(effectiveSpellLanguages(['en', 'ar'], supported, 'en-US')).toEqual(['en-US', 'ar-SA']);
+    expect(effectiveSpellLanguages(['ar', 'en'], supported, 'en-US')).toEqual(['ar-SA', 'en-US']);
   });
 
-  it('picks the exact tag match automatically', () => {
-    expect(effectiveSpellLanguages([], supported, 'fr-FR')).toEqual(['fr-FR']);
+  it('normalises old regional tags to language codes, deduplicating', () => {
+    expect(effectiveSpellLanguages(['en-US', 'en-CA'], supported, 'en-US')).toEqual(['en-US']);
+    expect(effectiveSpellLanguages(['ar-EG', 'ar-SA'], supported, 'en-US')).toEqual(['ar-SA']);
   });
 
-  it('is case-insensitive for the exact match', () => {
-    expect(effectiveSpellLanguages([], supported, 'EN-US')).toEqual(['en-US']);
+  it('skips a saved code that is no longer installed', () => {
+    // 'de' is not in supported, so it's dropped
+    expect(effectiveSpellLanguages(['en', 'de'], supported, 'en-US')).toEqual(['en-US']);
   });
 
-  it('falls back to the same primary language, preferring en-US', () => {
-    // en-GB has no exact match; en-CA/en-PH/en-US all share the "en" primary - en-US wins.
-    expect(effectiveSpellLanguages([], supported, 'en-GB')).toEqual(['en-US']);
+  it('automatically picks navLang primary subtag if installed', () => {
+    expect(effectiveSpellLanguages([], supported, 'fr-CA')).toEqual(['fr-FR']);
   });
 
-  it('falls back to the first same-primary tag when en-US is not among them', () => {
-    const noEnUs = ['en-CA', 'en-PH'];
-    expect(effectiveSpellLanguages([], noEnUs, 'en-GB')).toEqual(['en-CA']);
-  });
-
-  it('falls back to en-US when no same-primary tag is supported', () => {
+  it('automatically falls back to en if navLang is not installed', () => {
     expect(effectiveSpellLanguages([], supported, 'de-DE')).toEqual(['en-US']);
   });
 
-  it('falls back to the first supported tag when en-US is not supported either', () => {
+  it('automatically uses the first language if en is not installed', () => {
     const noEnglish = ['ar-SA', 'fr-FR'];
     expect(effectiveSpellLanguages([], noEnglish, 'de-DE')).toEqual(['ar-SA']);
   });

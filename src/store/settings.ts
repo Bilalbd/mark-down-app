@@ -31,8 +31,9 @@ export interface Settings {
   statusBarVisible: boolean;
   /** Underlines misspelled words in the source editor. */
   spellCheck: boolean;
-  /** Ticked spelling languages (BCP-47 tags). `[]` means "automatic" - see
-   * `effectiveSpellLanguages` in `lib/spell.ts`. */
+  /** Ticked spelling languages (language codes, e.g. "en", "ar"). `[]` means "automatic" - see
+   * `effectiveSpellLanguages` in `lib/spell.ts`. Saved values from before this change (regional
+   * tags) are normalised to language codes. */
   spellLanguages: string[];
   /** The personal dictionary: words never underlined regardless of language. */
   spellWords: string[];
