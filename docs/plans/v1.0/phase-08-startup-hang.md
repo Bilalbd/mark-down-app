@@ -38,6 +38,17 @@ cause 1 or 2. When reproducing (task 7), also try launching just as the session 
 and check the System event log (Kernel-Power, Power-Troubleshooter) for the time of any hang you
 see.
 
+**Reproduced (v1.0 Phase 3 check, 2026-09-28, supervisor):** the PC entered Modern Standby at
+12:07:59 (Kernel-Power 506, no 507 after it). Three dev launches at 12:12–12:16 all hung: the
+window existed (cloaked, empty title), `EmbeddedBrowserWebView.dll` was loaded, 7 threads waiting,
+the message loop still responding, but no `msedgewebview2.exe` child stayed alive (once one
+appeared for under 3 s and exited; no crash event was logged). A **fresh**
+`WEBVIEW2_USER_DATA_FOLDER` hung the same way, so it isn't a stale data folder. After 25+ s no
+relaunch had happened and no watchdog thread was sleeping, so the watchdog fired but didn't
+recover the process. So: **launching while Windows is in Modern Standby reproduces the hang on
+demand**. Task 7 can use that (e.g. `powercfg`-driven or a manual lid/screen-off test) instead of
+waiting for a GPU reset.
+
 ## Goal
 
 Whatever WebView2 does, a launch **always** ends in one of: the window shows, a relaunched instance

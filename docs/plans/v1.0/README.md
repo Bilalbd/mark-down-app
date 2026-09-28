@@ -13,8 +13,9 @@ the **startup hang** parked during v0.8 as the last phase (Phase 8).
 
 This folder splits them into eight phases. Each phase is done by its own sub-agent, **in order**, on branch `claude/app-v1-feature-plan-d05cb2` (this
 worktree). A phase doesn't start until the one before it is committed and the supervisor has
-checked it. Phases 1–2 were built by **Sonnet 5**; from Phase 3 on, at Bilal's request
-(2026-09-28), agents are **Haiku** (`model: "haiku"`).
+checked it. Models, all at Bilal's request: **Sonnet 5** for Phases 1–2, **Haiku** for Phases
+2b–3 (the supervisor rewrote Phase 3's formatting commands after two failed Haiku attempts), and
+**Sonnet 5** again (`model: "sonnet"`) from Phase 4 on.
 
 | Phase | Change | Document | Commit message |
 |---|---|---|---|
@@ -128,8 +129,9 @@ on it for free.
 
 ## Rules for every agent
 
-**From Phase 3 on (Bilal's decision, 2026-09-28): agents write code and unit tests only.** They
-never launch the app, Vite or cargo-built executables, never run `cdp.mjs`, never stop or start any
+**Haiku agents (Phase 3, Bilal's decision) wrote code and unit tests only.** From Phase 4, Sonnet
+agents may run the dev app again as in Phases 1–2, following the rules below (supervisor
+decision; the supervisor still repeats every in-app check). A Haiku agent would never launch the app, Vite or cargo-built executables, never run `cdp.mjs`, never stop or start any
 process, and never read or write anything under `%APPDATA%\com.bilal.markdown-viewer\`. Every
 "Verify" item that needs the running app is done by the **supervisor**; the agent leaves it
 unticked and writes "left for the supervisor" next to it. The rules below about launching the dev
@@ -170,15 +172,15 @@ save-recent-polish rules too. They all apply here. In particular:
 - Synthetic pointer events need `pointerId: 1`. A synthetic `contextmenu` event needs `clientX`,
   `clientY` and `button: 2`.
 - Commit once, with the message from the table, ending with a blank line and
-  `Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>` (Phases 1–2 used the Sonnet 5
-  line). Tick your phase document's
+  `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>` (Haiku-built commits used the
+  Haiku 4.5 line). Tick your phase document's
   checkboxes and fill in its Report in the same commit.
 - Update `README.md` in the same commit when your phase changes a feature, shortcut or setting
   (Phases 1–5; Phase 6 rewrites it anyway).
 
 ## Launching a phase agent (supervisor)
 
-One Haiku agent per phase (`model: "haiku"`), in this worktree. Prompt:
+One Sonnet 5 agent per phase (`model: "sonnet"`), in this worktree. Prompt:
 
 > You are implementing Phase N of `docs/plans/v1.0/`. Read `CLAUDE.md`,
 > `docs/plans/v1.0/README.md` and `docs/plans/v1.0/<phase doc>` in full, then do exactly what the
@@ -198,7 +200,7 @@ screenshots in both themes, and records the outcome in the phase document's "Sup
 | 1 | `c3aedbe`, `81e3edc` | 491 → 495 (Rust 44 → 54) | Passed (CDP invoke checks, supervisor) | Integration test didn't init COM; fixed |
 | 2 | `87db9f5`, `bcf7f9d`, `f81f1a5`, `20ee8e5` | 495 → 555 | Passed (light and dark, supervisor) | 3 review rounds: stale replies, Ignore refresh, shared cache, last language, Settings layout, stable order |
 | 2b | `dc26d49`, `892fa61` | 555 → 563 | Passed (light and dark, supervisor) | Haiku. 2 bugs fixed in review; agent stopped Bilal's installed app |
-| 3 | | | | |
+| 3 | `3994567`, `bc04696`, `8c8b40f` | 563 → 644 | **Pending** (PC in Modern Standby) | Haiku x2 failed; supervisor rewrote `formatting.ts` |
 | 4 | | | | |
 | 5 | | | | |
 | 6 | | | | |

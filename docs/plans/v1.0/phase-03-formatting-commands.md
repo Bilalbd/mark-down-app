@@ -81,8 +81,26 @@ table (a group headed "Editing (Source view)") and in the README.
 
 ## Report
 
-_(agent fills in)_
+Written by the supervisor: the Haiku agent didn't fill this in.
+
+- `3994567` (Haiku): `formatting.ts`, 41 tests, the keymap, the Settings and README shortcut rows.
+  563 → 604 tests. Review found that selections were discarded by every command, `Ctrl+K`
+  duplicated the word under the cursor, ordered lists were numbered from the document line
+  number, the horizontal rule was inserted in front of the line's text, bold/italic didn't unwrap
+  markers outside the selection or `***` nesting, task lines were read as bullets, and the tests
+  rarely checked selections.
+- `bc04696` (Haiku, review fixes): committed with 20 failing tests, a lint error and a type error,
+  and broke heading, quote and list removal that worked before.
+- `8c8b40f` (supervisor, at Bilal's request): `formatting.ts` rewritten to the table above, keymap
+  reduced to one helper with the AltGr comment. Eight of Haiku's tests were wrong and were
+  corrected (see the commit message); weak checks now assert exact text and selection; 12 tests
+  added. `formatting.test.ts` has 81 tests; the suite is 644, all passing; lint and tsc clean.
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Unit-level: done (above). In the app: **not yet done**. The supervisor's script
+(`scratchpad/supervisor/keys.mjs`, real `Input.dispatchKeyEvent` key presses for every shortcut,
+undo, and Split view with focus in the preview) couldn't run: the PC was in Modern Standby from
+12:07:59, and three dev launches in that state hung with no WebView2 browser (see Phase 8). To do
+when the PC is awake, before Phase 4 starts: run the script, and check `Ctrl+Shift+0` with a real
+keyboard (Windows may reserve it for input-language switching, which CDP key events bypass).
