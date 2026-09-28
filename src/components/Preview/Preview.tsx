@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
+import { Copy } from 'lucide-react';
 import { renderMarkdown, headingLine } from '@/markdown/render';
 import { renderMermaidBlocks } from '@/markdown/mermaid';
 import { retryBrokenLocalImages } from '@/lib/brokenImages';
@@ -11,6 +12,7 @@ import { useViewStore } from '@/store/view';
 import { openPath } from '@/store/tabs';
 import { samePath } from '@/lib/tabs';
 import { stepWheel, type WheelAccumulator } from '@/lib/wheelAccumulator';
+import { ContextMenu, type MenuEntry } from '@/components/ContextMenu/ContextMenu';
 import './Preview.css';
 
 const RENDER_DEBOUNCE_MS = 150;
@@ -54,6 +56,7 @@ export function Preview() {
   const bumpPreviewVersion = useViewStore((s) => s.bumpPreviewVersion);
 
   const [html, setHtml] = useState<{ html: string; loadId: number }>({ html: '', loadId: -1 });
+  const [menu, setMenu] = useState<{ x: number; y: number; hasSelection: boolean } | null>(null);
   const theme = useResolvedTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
   const renderSeq = useRef(0);
@@ -194,8 +197,54 @@ export function Preview() {
     if ((e.target as HTMLElement).closest('a')) e.preventDefault();
   };
 
+  const onContextMenu = (e: MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const selection = window.getSelection();
+    const hasSelection =
+      !!selection &&
+      !selection.isCollapsed &&
+      selection.toString() !== '' &&
+      !!scrollRef.current?.contains(selection.anchorNode);
+    setMenu({ x: e.clientX, y: e.clientY, hasSelection });
+  };
+
+  const handleMenuAction = (id: string) => {
+    setMenu(null);
+    if (id === 'copy') {
+      const text = window.getSelection()?.toString() ?? '';
+      if (text) void navigator.clipboard.writeText(text).catch(() => undefined);
+      return;
+    }
+    if (id === 'select-all') {
+      const root = scrollRef.current?.querySelector('.preview');
+      if (!root) return;
+      const range = document.createRange();
+      range.selectNodeContents(root);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    }
+  };
+
+  const menuItems: MenuEntry[] = [
+    {
+      id: 'copy',
+      label: 'Copy',
+      icon: Copy,
+      shortcut: 'Ctrl+C',
+      ariaKeyShortcuts: 'Control+C',
+      disabled: menu ? !menu.hasSelection : true,
+    },
+    { id: 'select-all', label: 'Select all', shortcut: 'Ctrl+A', ariaKeyShortcuts: 'Control+A' },
+  ];
+
   return (
-    <div className="preview-scroll" ref={scrollRef} onScroll={onScroll}>
+    <div
+      className="preview-scroll"
+      ref={scrollRef}
+      onScroll={onScroll}
+      onContextMenu={onContextMenu}
+    >
       <article
         className={`preview${fullWidth ? ' preview--full' : ''}`}
         style={{ '--md-zoom': zoom } as React.CSSProperties}
@@ -203,6 +252,16 @@ export function Preview() {
         onAuxClick={onAuxClick}
         dangerouslySetInnerHTML={{ __html: html.html }}
       />
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          items={menuItems}
+          ariaLabel="Preview"
+          onAction={handleMenuAction}
+          onClose={() => setMenu(null)}
+        />
+      )}
     </div>
   );
 }

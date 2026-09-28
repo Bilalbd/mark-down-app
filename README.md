@@ -28,6 +28,11 @@ Built with Tauri 2 (Rust + WebView2), React, CodeMirror 6, markdown-it, Shiki, K
 - **Spell check** in Source mode, using the languages installed in Windows (red wavy
   underlines) — code, URLs, HTML, maths and front matter are skipped. On by default; pick the
   languages and manage a personal dictionary in Settings → General → Spelling.
+- **Right-click menus** replace the browser's default one everywhere in the app. In Source view:
+  spelling suggestions, Add to dictionary and Ignore on a misspelled word; Cut / Copy / Paste /
+  Select all; and formatting (Heading, Bold, Italic, Strikethrough, Inline code, Link, Code block,
+  Quote, Bulleted/Numbered/Task list, Horizontal rule). In Formatted view: Copy and Select all. The
+  **Menu** key or **Shift+F10** opens the Source view menu at the cursor.
 - Reads and preserves UTF-8 (with or without BOM) and UTF-16 (LE/BE) files, and CRLF/LF line
   endings, round-tripping each on save; a file with invalid-UTF-8 bytes asks before saving
   over them.

@@ -69,6 +69,19 @@ export default function App() {
 
   useAppTheme();
 
+  // The app draws its own right-click menus in the source editor, the preview and the tab strip;
+  // suppress WebView2's default menu everywhere else (it could include Refresh/Back, which would
+  // reload the webview and lose unsaved work - see CLAUDE.md §4). Inputs and textareas keep the
+  // native editing menu (Settings fields, the custom-CSS box).
+  useEffect(() => {
+    const onContextMenu = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).closest('input, textarea')) return;
+      e.preventDefault();
+    };
+    document.addEventListener('contextmenu', onContextMenu);
+    return () => document.removeEventListener('contextmenu', onContextMenu);
+  }, []);
+
   // Handle files forwarded by later launches (single-instance plugin).
   const handleOpenRequests = useCallback(async () => {
     if (!useSettingsStore.getState().loaded) return; // startup drains the queue once settings are in

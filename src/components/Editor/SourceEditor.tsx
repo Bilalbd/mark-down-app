@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   EditorState,
   Compartment,
@@ -30,11 +30,24 @@ import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import { cacheEditorState, cachedEditorState } from '@/lib/editorCache';
 import { countWords } from '@/lib/textStats';
-import { insertLink, setHeading, toggleBold, toggleItalic } from '@/lib/formatting';
+import {
+  insertHorizontalRule,
+  insertLink,
+  setHeading,
+  toggleBold,
+  toggleCodeBlock,
+  toggleInlineCode,
+  toggleItalic,
+  toggleList,
+  toggleQuote,
+  toggleStrikethrough,
+} from '@/lib/formatting';
+import { buildEditorMenu } from '@/lib/editorMenu';
+import { ContextMenu, findMenuItem, type MenuEntry } from '@/components/ContextMenu/ContextMenu';
 import { effectiveSpellLanguages } from '@/lib/spell';
-import { spellLanguages as fetchSpellLanguages } from '@/lib/tauri';
+import { spellLanguages as fetchSpellLanguages, spellSuggest } from '@/lib/tauri';
 import { editorHighlighting, editorTheme } from './editorTheme';
-import { spellcheckExtension } from './spellcheck';
+import { misspellingAt, spellcheckExtension } from './spellcheck';
 import './SourceEditor.css';
 
 const gutterCompartment = new Compartment();
@@ -53,6 +66,15 @@ function currentSpellExtension(): Extension {
 
 let lastEmitted: string | null = null;
 let pendingCursorUpdate: number | null = null;
+
+interface EditorMenuState {
+  x: number;
+  y: number;
+  items: MenuEntry[];
+  /** The misspelling the menu was built for, so its suggestions/Add/Ignore items know which
+   * word and range to act on. `null` when the click landed on correctly-spelled text. */
+  misspelling: { from: number; to: number; word: string } | null;
+}
 
 /** Returns the 0-based document line at the top of the editor viewport. */
 function topVisibleLine(view: EditorView): number {
@@ -194,6 +216,9 @@ export function SourceEditor() {
   const pendingScrollLine = useViewStore((s) => s.pendingScrollLine);
   const clearPendingScroll = useViewStore((s) => s.clearPendingScroll);
 
+  const [menu, setMenu] = useState<EditorMenuState | null>(null);
+  const menuSeqRef = useRef(0);
+
   // Snapshots, not a "first run" flag: comparing against a value already initialised
   // to the current prop makes this naturally idempotent under React StrictMode's
   // dev-only double-invoke of effects (a stale-flag pattern would instead see the
@@ -317,6 +342,12 @@ export function SourceEditor() {
         : [],
     [spellCheckOn, spellLanguagesSetting, supportedLanguages],
   );
+  // Read from the menu-opening handler below, which isn't a React render and so can't close
+  // over the memoised value directly without going stale between renders.
+  const effectiveSpellLangsRef = useRef(effectiveSpellLangs);
+  useEffect(() => {
+    effectiveSpellLangsRef.current = effectiveSpellLangs;
+  }, [effectiveSpellLangs]);
 
   useEffect(() => {
     viewRef.current?.dispatch({
@@ -333,12 +364,218 @@ export function SourceEditor() {
     clearPendingScroll();
   }, [pendingScrollLine, clearPendingScroll]);
 
+  // A tab switch (or reload) invalidates any open menu's position and misspelling range.
+  useEffect(() => {
+    setMenu(null);
+  }, [loadId]);
+
+  // Builds the menu model for a click/cursor position and opens it - shared by the right-click
+  // handler and the Menu-key/Shift+F10 handler below. Waits up to 150ms for spelling suggestions
+  // (per CLAUDE.md's "rendering stays debounced and fast") rather than opening once, then
+  // patching the suggestions in later.
+  const openMenuAt = useCallback(async (view: EditorView, pos: number, x: number, y: number) => {
+    const seq = ++menuSeqRef.current;
+    const state = view.state;
+    const hasSelection = !state.selection.main.empty;
+    const misspelling = misspellingAt(state, pos);
+
+    let suggestions: string[] = [];
+    if (misspelling) {
+      suggestions = await Promise.race([
+        spellSuggest(misspelling.word, effectiveSpellLangsRef.current).catch(() => [] as string[]),
+        new Promise<string[]>((resolve) => setTimeout(() => resolve([]), 150)),
+      ]);
+    }
+    if (menuSeqRef.current !== seq) return; // superseded by a newer open, or the menu was closed
+
+    setMenu({
+      x,
+      y,
+      misspelling,
+      items: buildEditorMenu({
+        misspelling: misspelling ? { word: misspelling.word } : null,
+        suggestions,
+        hasSelection,
+      }),
+    });
+  }, []);
+
+  // Right-click and keyboard (Menu key, Shift+F10) both open the same menu, at the pointer or
+  // at the caret respectively. Native listeners on the host div, not a CodeMirror extension:
+  // the menu is React-owned UI, not editor state, and this way it doesn't need rebuilding
+  // whenever the extensions are (load changes, settings changes).
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+
+    const onContextMenu = (e: MouseEvent) => {
+      const view = viewRef.current;
+      if (!view) return;
+      e.preventDefault();
+      const pos =
+        view.posAtCoords({ x: e.clientX, y: e.clientY }) ?? view.state.selection.main.head;
+      const sel = view.state.selection.main;
+      // Clicking inside the selection keeps it; clicking outside moves the cursor there first.
+      if (sel.empty || pos < sel.from || pos > sel.to) {
+        view.dispatch({ selection: { anchor: pos } });
+      }
+      void openMenuAt(view, pos, e.clientX, e.clientY);
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'ContextMenu' && !(e.shiftKey && e.key === 'F10')) return;
+      const view = viewRef.current;
+      if (!view) return;
+      e.preventDefault();
+      const pos = view.state.selection.main.head;
+      const coords = view.coordsAtPos(pos);
+      if (!coords) return;
+      void openMenuAt(view, pos, coords.left, coords.bottom);
+    };
+
+    host.addEventListener('contextmenu', onContextMenu);
+    host.addEventListener('keydown', onKeyDown);
+    return () => {
+      host.removeEventListener('contextmenu', onContextMenu);
+      host.removeEventListener('keydown', onKeyDown);
+    };
+  }, [openMenuAt]);
+
+  const handleMenuAction = (id: string) => {
+    const view = viewRef.current;
+    const current = menu;
+    setMenu(null);
+    if (!view) return;
+    const misspelling = current?.misspelling ?? null;
+    const item = current ? findMenuItem(current.items, id) : undefined;
+    const finish = () => view.focus();
+
+    if (id.startsWith('suggestion-') && item && misspelling) {
+      view.dispatch({
+        changes: { from: misspelling.from, to: misspelling.to, insert: item.label },
+        selection: { anchor: misspelling.from + item.label.length },
+        scrollIntoView: true,
+      });
+      finish();
+      return;
+    }
+
+    switch (id) {
+      case 'add-to-dictionary': {
+        if (misspelling) {
+          const { spellWords: words, set } = useSettingsStore.getState();
+          if (!words.includes(misspelling.word)) set('spellWords', [...words, misspelling.word]);
+        }
+        finish();
+        return;
+      }
+      case 'ignore': {
+        if (misspelling) useViewStore.getState().ignoreWord(misspelling.word);
+        finish();
+        return;
+      }
+      case 'cut': {
+        const sel = view.state.selection.main;
+        if (sel.empty) {
+          finish();
+          return;
+        }
+        const text = view.state.sliceDoc(sel.from, sel.to);
+        navigator.clipboard
+          .writeText(text)
+          .then(() => view.dispatch({ changes: { from: sel.from, to: sel.to, insert: '' } }))
+          .catch(() => undefined) // clipboard write failed - leave the text in place
+          .finally(finish);
+        return;
+      }
+      case 'copy': {
+        const sel = view.state.selection.main;
+        if (sel.empty) {
+          finish();
+          return;
+        }
+        const text = view.state.sliceDoc(sel.from, sel.to);
+        navigator.clipboard
+          .writeText(text)
+          .catch(() => undefined)
+          .finally(finish);
+        return;
+      }
+      case 'paste': {
+        navigator.clipboard
+          .readText()
+          .then((text) => {
+            if (text) view.dispatch(view.state.replaceSelection(text));
+          })
+          .catch(() => undefined) // no clipboard access - nothing to paste
+          .finally(finish);
+        return;
+      }
+      case 'select-all': {
+        view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } });
+        finish();
+        return;
+      }
+      case 'bold':
+        formatCommand(toggleBold)(view);
+        break;
+      case 'italic':
+        formatCommand(toggleItalic)(view);
+        break;
+      case 'strikethrough':
+        formatCommand(toggleStrikethrough)(view);
+        break;
+      case 'inline-code':
+        formatCommand(toggleInlineCode)(view);
+        break;
+      case 'link':
+        formatCommand(insertLink)(view);
+        break;
+      case 'code-block':
+        formatCommand(toggleCodeBlock)(view);
+        break;
+      case 'quote':
+        formatCommand(toggleQuote)(view);
+        break;
+      case 'list-bullet':
+        formatCommand((s) => toggleList(s, 'bullet'))(view);
+        break;
+      case 'list-ordered':
+        formatCommand((s) => toggleList(s, 'ordered'))(view);
+        break;
+      case 'list-task':
+        formatCommand((s) => toggleList(s, 'task'))(view);
+        break;
+      case 'horizontal-rule':
+        formatCommand(insertHorizontalRule)(view);
+        break;
+      default:
+        if (id.startsWith('heading-')) {
+          const level = Number(id.slice('heading-'.length)) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
+          formatCommand((s) => setHeading(s, level))(view);
+        }
+    }
+    finish();
+  };
+
   return (
-    <div
-      className="source-editor"
-      ref={hostRef}
-      style={{ '--editor-font-size': `${fontSize}px` } as React.CSSProperties}
-    />
+    <>
+      <div
+        className="source-editor"
+        ref={hostRef}
+        style={{ '--editor-font-size': `${fontSize}px` } as React.CSSProperties}
+      />
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          items={menu.items}
+          ariaLabel="Formatting"
+          onAction={handleMenuAction}
+          onClose={() => setMenu(null)}
+        />
+      )}
+    </>
   );
 }
 

@@ -1,0 +1,61 @@
+.context-menu {
+  position: fixed;
+  z-index: 60;
+  min-width: 200px;
+  max-width: 280px;
+  padding: 4px;
+  border-radius: 6px;
+  background: var(--chrome-bg);
+  border: 1px solid var(--chrome-border);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.context-menu__separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--chrome-border);
+}
+
+.context-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--chrome-fg);
+  font-size: 12.5px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.context-menu__item:hover,
+.context-menu__item:focus-visible {
+  outline: none;
+  background: var(--chrome-hover);
+}
+
+.context-menu__item:disabled {
+  opacity: 0.4;
+  cursor: default;
+  background: transparent;
+}
+
+.context-menu__item.is-bold {
+  font-weight: 600;
+}
+
+.context-menu__item span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.context-menu__item kbd {
+  font: inherit;
+  font-size: 11px;
+  color: var(--chrome-fg-muted);
+}
