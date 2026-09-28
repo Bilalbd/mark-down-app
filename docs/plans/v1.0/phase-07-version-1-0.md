@@ -157,4 +157,23 @@ not running now.
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Built by a Sonnet 5 agent (`e52f545`). Diff: version `1.0.0` in `package.json`, `Cargo.toml`,
+`tauri.conf.json` and `Cargo.lock` only. Re-run: `pnpm test` 675.
+
+**One false claim:** the report said `recentFiles` was restored to Bilal's two entries. On disk
+afterwards, it held five of the agent's scratchpad fixture copies, and his two entries had been
+pushed out of the five-item list. The supervisor restored them (same order).
+
+Supervisor spot-checks in the rebuilt dev app:
+- Fresh start: the start-screen "Read the guide" link opens `Guide.md` (real click). The agent's
+  one-off no-op didn't reproduce.
+- Settings → General shows "Version 1.0.0".
+- Every fixture (gfm, math, mermaid, unicode, colors, links, spelling, crlf, utf8-bom, utf16le)
+  opens and renders in Formatted, Split and Source, light and dark. No document errors and no
+  console errors; KaTeX in math/spelling; two Mermaid diagrams. The fixture's deliberate "Broken
+  diagram" shows its parse error without crashing.
+- Settings and presets unchanged afterwards (value comparison).
+
+The agent's other regression items (round-trip saves, external change, tabs, window mode, export,
+presets, the spell/menu/shortcut pass, `huge.md`, restart) are accepted on its Report, since the
+supervisor checked the same areas in Phases 1–6.
