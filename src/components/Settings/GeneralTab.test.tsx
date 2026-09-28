@@ -130,6 +130,39 @@ describe('GeneralTab', () => {
     expect(expectedOrder.slice(0, 2).sort()).toEqual([...ticked].sort());
   });
 
+  it('keeps the checklist order stable when a checkbox is ticked', async () => {
+    // Only en-US ticked to start, so ar-SA (further down, alphabetically after en-US within the
+    // untouched group) is a safe row to tick without hitting the disabled "only ticked" box.
+    mockSpellLanguages.mockResolvedValue(['ar-SA', 'en-US', 'fr-FR']);
+    useSettingsStore.setState({ spellLanguages: ['en-US'] });
+    await render();
+
+    const orderBefore = Array.from(
+      container.querySelectorAll<HTMLLIElement>('.settings__checklist li'),
+    ).map((li) => li.dataset.tag);
+
+    const arCheckbox = container.querySelector<HTMLInputElement>(
+      '.settings__checklist li[data-tag="ar-SA"] input[type="checkbox"]',
+    )!;
+    expect(arCheckbox.checked).toBe(false);
+    act(() => {
+      arCheckbox.click();
+    });
+
+    // The setting changed (ar-SA is now ticked)...
+    expect(useSettingsStore.getState().spellLanguages.includes('ar-SA')).toBe(true);
+    // ...but the row order - and in particular ar-SA's position - did not.
+    const orderAfter = Array.from(
+      container.querySelectorAll<HTMLLIElement>('.settings__checklist li'),
+    ).map((li) => li.dataset.tag);
+    expect(orderAfter).toEqual(orderBefore);
+    expect(
+      container.querySelector<HTMLInputElement>(
+        '.settings__checklist li[data-tag="ar-SA"] input[type="checkbox"]',
+      )?.checked,
+    ).toBe(true);
+  });
+
   it('disables the language checklist while spell check is off', async () => {
     mockSpellLanguages.mockResolvedValue(['en-US']);
     useSettingsStore.setState({ spellCheck: false });

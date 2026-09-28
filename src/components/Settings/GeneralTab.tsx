@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import {
   useSettingsStore,
@@ -52,19 +52,24 @@ export function GeneralTab() {
       ),
     [spellLanguagesSetting, supportedLanguages, uiLang],
   );
-  // Ticked languages first (so the ones in use are visible without scrolling a long list),
-  // each group then sorted by label.
-  const languageRows = useMemo(
-    () =>
-      supportedLanguages
-        .map((tag) => ({ tag, label: languageLabel(tag, uiLang) }))
-        .sort((a, b) => {
-          const tickedDiff =
-            Number(tickedLanguages.has(b.tag)) - Number(tickedLanguages.has(a.tag));
-          return tickedDiff !== 0 ? tickedDiff : a.label.localeCompare(b.label);
-        }),
-    [supportedLanguages, uiLang, tickedLanguages],
-  );
+  // Ticked languages first (so the ones in use are visible without scrolling a long list), each
+  // group then sorted by label - computed once, the first time the language list arrives, and
+  // then frozen for as long as this tab stays mounted. Recomputing it from `tickedLanguages` on
+  // every render would reorder the list out from under the pointer the instant a checkbox is
+  // ticked (the row just clicked jumps to the top, so a second click hits a different language).
+  // Reopening Settings remounts GeneralTab and re-freezes the order.
+  const orderRef = useRef<string[] | null>(null);
+  if (orderRef.current === null && supportedLanguages.length > 0) {
+    orderRef.current = [...supportedLanguages].sort((a, b) => {
+      const tickedDiff = Number(tickedLanguages.has(b)) - Number(tickedLanguages.has(a));
+      if (tickedDiff !== 0) return tickedDiff;
+      return languageLabel(a, uiLang).localeCompare(languageLabel(b, uiLang));
+    });
+  }
+  const languageRows = (orderRef.current ?? supportedLanguages).map((tag) => ({
+    tag,
+    label: languageLabel(tag, uiLang),
+  }));
 
   const toggleLanguage = (tag: string) => {
     const current = spellLanguagesSetting.length > 0 ? spellLanguagesSetting : [...tickedLanguages];

@@ -440,6 +440,46 @@ Re-ran after this fix: `pnpm test` **554 passed** (+1, the new ordering test). `
 `presets.json`/`.window-state.json` byte-identical to a fresh backup; `settings.json` matched the
 backup exactly this time (`recentFiles` was never touched - no document was opened this round).
 
+### Stable checklist order while ticking
+
+Supervisor found the ticked-first order (added in the layout fix above) recomputed from
+`tickedLanguages` on every render, so ticking a row re-sorted the list immediately - the just-
+clicked row jumped to the top, putting a different language under the pointer for a second
+click. Fixed in `GeneralTab.tsx` by freezing the order instead of deriving it live: a `useRef`
+holds the ticked-first, then-by-label order, computed once - during render, not in a
+`useEffect`, so there's no extra frame where the list is unsorted - the first time
+`supportedLanguages` arrives non-empty, and left untouched after that for as long as the tab
+stays mounted (checkbox `checked` state still reads the live `tickedLanguages` every render, so
+ticking still updates instantly - only the *row order* is frozen). `SettingsPanel` unmounts
+`GeneralTab` whenever Settings closes (`{ !open || !loaded ? null : ... }`) or the General tab is
+left, so reopening Settings (or navigating away and back) remounts it and the ref starts fresh,
+re-sorting as before.
+
+Updated `GeneralTab.test.tsx`'s ticked-first-order test (unaffected in substance - it never
+ticks anything mid-test, so the frozen and the old live-sorted versions produce the same result)
+and added a new one: ticks a lower, currently-unticked row (`ar-SA` among `ar-SA`/`en-US`/
+`fr-FR`, `en-US` pre-ticked) and asserts the full `data-tag` order is byte-identical before and
+after, while the setting and the checkbox's own `checked` state did change. 1 new test.
+
+Checked in the running app (debug exe, `--new-window`, this session's own WebView2 folder; Vite
+separate), 20 real languages, `ar-SA`/`en-US` pre-ticked: clicked the real checkbox (not the
+store) for the 4th row (`ar-BH`, unticked) with Settings open - the row order before and after
+the click were identical arrays (`ar-SA, en-US, ar-DZ, ar-BH, ar-EG, …`), `ar-BH`'s checkbox
+switched to checked in place, and `spellLanguages` in the store picked up `ar-BH`. Closed and
+reopened Settings: the order re-sorted with `ar-BH` now leading (`ar-BH, ar-SA, en-US, ar-DZ,
+…`) - light-theme screenshot taken at that point shows exactly this: `Arabic (Bahrain)` at the
+top of the checklist, `Arabic (Saudi Arabia)` and `English (United States)` right after, then
+the rest alphabetically, full-width bordered scrollable box.
+
+As flagged, ticking the real checkbox persists `spellLanguages` to `settings.json` (no
+`persist: false` on that code path) - confirmed it landed on disk (`["ar-SA","en-US","ar-BH"]`)
+and restored it to `[]` via the store's normal (persisting) `set` afterwards; `recentFiles` was
+untouched (no document opened this round); `presets.json`/`.window-state.json` byte-identical to
+a fresh backup throughout.
+
+Re-ran after this fix: `pnpm test` **555 passed** (+1). `pnpm lint`, `npx tsc --noEmit`: clean.
+`pnpm format`: no files needed changes.
+
 ## Supervisor check
 
 _(supervisor fills in)_
