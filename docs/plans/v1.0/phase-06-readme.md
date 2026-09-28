@@ -177,4 +177,23 @@ people who want to **use** the app first, for people who want to **build** it se
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Built by a Sonnet 5 agent (`73f0032` licence, `554062f` README); two text fixes by the supervisor
+(`c0b6268`).
+
+- `LICENSE`: the official CC0 1.0 legal code (7,048 bytes, "Creative Commons Legal Code / CC0 1.0
+  Universal"). `CC0-1.0` is in `package.json` and `Cargo.toml`.
+- README fact check:
+  - The Releases link uses the real `origin` remote. The shortcut tables match
+    `GeneralTab.tsx`, and the presets and defaults match the code.
+  - `window.__mdv` does include `tabs`. No signing config, so the SmartScreen note is right.
+  - The network paragraph matches the agent's search (only remote images, plus the CDN link
+    written into a non-self-contained export).
+  - Two fixes: the status bar was said to show the "spelling language" (it shows a fixed
+    "Markdown" label), and "Right-click anywhere" now says the Source editor, with the formatted
+    view's own menu mentioned.
+- Images: `formatted-light.png` (132 KB, GFM fixture, light) and `split-dark.png` (168 KB, maths
+  in Split, dark), looked at by the supervisor; no personal paths.
+- Ports free, Bilal's settings (`recentFiles`, spelling keys) and active preset unchanged
+  afterwards.
+- Note for Bilal: the README points to GitHub Releases for the installer; publishing a release
+  there is his step.

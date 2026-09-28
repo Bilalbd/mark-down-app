@@ -204,6 +204,6 @@ screenshots in both themes, and records the outcome in the phase document's "Sup
 | 3 | `3994567`, `bc04696`, `8c8b40f`, + Ctrl+Shift+0 removal | 563 → 644 | Passed (real key events, supervisor) | Haiku x2 failed; supervisor rewrote `formatting.ts`; Ctrl+Shift+0 dropped (Bilal) |
 | 4 | `347ad3c`, `13449a0` | 644 → 665 | Passed (real events, light and dark, supervisor) | Sonnet 5. Focus after Escape and first Paste fixed (clipboard plugin) |
 | 5 | `d18e1d8`, `77bbfa0` | 665 → 675 | Passed (real events, light and dark, window mode, supervisor) | Sonnet 5. Supervisor fixed the cheat sheet's outline nesting |
-| 6 | | | | |
+| 6 | `73f0032`, `554062f`, `c0b6268` | 675 → 675 | Passed (README fact-checked, images viewed, supervisor) | Sonnet 5. Two README details corrected by the supervisor |
 | 7 | | | | |
 | 8 | | | | |
