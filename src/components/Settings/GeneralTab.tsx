@@ -292,8 +292,7 @@ export function GeneralTab() {
               ['Ctrl+B', 'Bold'],
               ['Ctrl+I', 'Italic'],
               ['Ctrl+K', 'Link'],
-              ['Ctrl+Shift+1 … Ctrl+Shift+6', 'Heading 1–6'],
-              ['Ctrl+Shift+0', 'Paragraph'],
+              ['Ctrl+Shift+1 … Ctrl+Shift+6', 'Heading 1–6 (press again for a paragraph)'],
             ].map(([k, d]) => (
               <tr key={k}>
                 <td>

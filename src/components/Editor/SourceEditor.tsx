@@ -101,12 +101,14 @@ function formatCommand(command: (state: EditorState) => TransactionSpec | null) 
 
 /** Formatting shortcuts, above the default keymap (Ctrl+I replaces "select parent syntax").
  * Headings use Ctrl+Shift+digit, not Ctrl+Alt+digit: on Windows Ctrl+Alt is AltGr, which many
- * keyboard layouts need for typing `{ [ ] }`. Ctrl+digit is taken by tab switching and zoom. */
+ * keyboard layouts need for typing `{ [ ] }`. Ctrl+digit is taken by tab switching and zoom.
+ * There's no Ctrl+Shift+0 for Paragraph: Windows registers it as an input-language hotkey, and
+ * a real press left the page unresponsive. Pressing a heading's own shortcut again toggles it off. */
 const formattingKeymap: KeyBinding[] = [
   { key: 'Mod-b', run: formatCommand(toggleBold) },
   { key: 'Mod-i', run: formatCommand(toggleItalic) },
   { key: 'Mod-k', run: formatCommand(insertLink) },
-  ...([0, 1, 2, 3, 4, 5, 6] as const).map((level) => ({
+  ...([1, 2, 3, 4, 5, 6] as const).map((level) => ({
     key: `Mod-Shift-${level}`,
     run: formatCommand((state) => setHeading(state, level)),
   })),
