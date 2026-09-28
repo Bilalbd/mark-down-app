@@ -11,10 +11,10 @@ Five requests from Bilal on 2026-09-28, to take the app from 0.8 to 1.0:
 Bilal added two more on the same day: license the project under **CC0 1.0** (Phase 6), and fix
 the **startup hang** parked during v0.8 as the last phase (Phase 8).
 
-This folder splits them into eight phases. Each phase is done by its own **Sonnet 5** sub-agent
-(`model: "sonnet"`), **in order**, on branch `claude/app-v1-feature-plan-d05cb2` (this
+This folder splits them into eight phases. Each phase is done by its own sub-agent, **in order**, on branch `claude/app-v1-feature-plan-d05cb2` (this
 worktree). A phase doesn't start until the one before it is committed and the supervisor has
-checked it.
+checked it. Phases 1–2 were built by **Sonnet 5**; from Phase 3 on, at Bilal's request
+(2026-09-28), agents are **Haiku** (`model: "haiku"`).
 
 | Phase | Change | Document | Commit message |
 |---|---|---|---|
@@ -161,14 +161,15 @@ save-recent-polish rules too. They all apply here. In particular:
 - Synthetic pointer events need `pointerId: 1`. A synthetic `contextmenu` event needs `clientX`,
   `clientY` and `button: 2`.
 - Commit once, with the message from the table, ending with a blank line and
-  `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`. Tick your phase document's
+  `Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>` (Phases 1–2 used the Sonnet 5
+  line). Tick your phase document's
   checkboxes and fill in its Report in the same commit.
 - Update `README.md` in the same commit when your phase changes a feature, shortcut or setting
   (Phases 1–5; Phase 6 rewrites it anyway).
 
 ## Launching a phase agent (supervisor)
 
-One Sonnet 5 agent per phase (`model: "sonnet"`), in the foreground, in this worktree. Prompt:
+One Haiku agent per phase (`model: "haiku"`), in this worktree. Prompt:
 
 > You are implementing Phase N of `docs/plans/v1.0/`. Read `CLAUDE.md`,
 > `docs/plans/v1.0/README.md` and `docs/plans/v1.0/<phase doc>` in full, then do exactly what the
