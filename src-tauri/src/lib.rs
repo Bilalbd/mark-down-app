@@ -1,6 +1,7 @@
 mod assets;
 mod commands;
 mod instance;
+mod spell;
 mod watch;
 
 use std::path::{Path, PathBuf};
@@ -191,6 +192,7 @@ pub fn run() {
         .manage(watch::WatchState::default())
         .manage(assets::AssetRoot::default())
         .manage(commands::PendingOpens::default())
+        .manage(spell::SpellState::default())
         .register_asynchronous_uri_scheme_protocol("mdasset", |ctx, request, responder| {
             let root = match ctx.app_handle().state::<assets::AssetRoot>().0.lock() {
                 Ok(guard) => guard.clone(),
@@ -211,7 +213,10 @@ pub fn run() {
             assets::set_asset_root,
             assets::read_asset_data_url,
             watch::watch_file,
-            watch::unwatch_file
+            watch::unwatch_file,
+            spell::spell_languages,
+            spell::spell_check,
+            spell::spell_suggest
         ])
         .setup(|app| {
             let window = app.get_webview_window("main").expect("main window exists");

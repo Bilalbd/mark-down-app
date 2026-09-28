@@ -136,3 +136,28 @@ export function getAppVersion(): Promise<string | null> {
   if (!isTauri()) return Promise.resolve(null);
   return getVersion().catch(() => null);
 }
+
+export interface SpellError {
+  start: number;
+  length: number;
+  kind: 'misspelled' | 'repeated' | 'autocorrect';
+}
+
+/** Windows' installed spelling dictionaries, as BCP-47 language tags. `[]` outside Tauri. */
+export function spellLanguages(): Promise<string[]> {
+  if (!isTauri()) return Promise.resolve([]);
+  return invoke<string[]>('spell_languages');
+}
+
+/** Checks each of `texts` against every supported language in `languages` (a range is only
+ * reported if all of them reject it). Outside Tauri, resolves to one empty list per text. */
+export function spellCheck(texts: string[], languages: string[]): Promise<SpellError[][]> {
+  if (!isTauri()) return Promise.resolve(texts.map(() => []));
+  return invoke<SpellError[][]>('spell_check', { texts, languages });
+}
+
+/** Suggestions for `word` from every supported language that rejects it. `[]` outside Tauri. */
+export function spellSuggest(word: string, languages: string[]): Promise<string[]> {
+  if (!isTauri()) return Promise.resolve([]);
+  return invoke<string[]>('spell_suggest', { word, languages });
+}
