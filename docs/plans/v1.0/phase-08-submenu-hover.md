@@ -155,4 +155,17 @@ guard the unchanged behaviour).
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Built by a Sonnet 5 agent (`52c5c7b`). Diff reviewed: pure geometry in `src/lib/menuAim.ts` (tested),
+a 3-point pointer trail and aim apex in `ContextMenu.tsx`, items inside the submenu no longer start
+a close timer (a second cause the agent found), and the same aim logic for the tab strip's
+"Open recent" flyout (which had the same bug). Re-run: `pnpm test` 698, lint and tsc clean.
+
+In-app, supervisor (`scratchpad/supervisor/aim.mjs`, real CDP `mouseMoved` steps of 5 px every
+14 ms):
+- Diagonal from "Heading" across Bold/Italic to "Heading 3", submenu on the right: open on arrival,
+  the click gives `### Line one`.
+- Menu opened near the right edge, submenu flipped to the left: the same result.
+- Straight down to "Bold" and resting: the submenu closes.
+
+Bilal's settings and presets are unchanged; his `recentFiles` is exactly his two entries (the
+agent's report was accurate this time).

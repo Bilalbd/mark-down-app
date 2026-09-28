@@ -216,7 +216,7 @@ screenshots in both themes, and records the outcome in the phase document's "Sup
 | 5 | `d18e1d8`, `77bbfa0` | 665 → 675 | Passed (real events, light and dark, window mode, supervisor) | Sonnet 5. Supervisor fixed the cheat sheet's outline nesting |
 | 6 | `73f0032`, `554062f`, `c0b6268` | 675 → 675 | Passed (README fact-checked, images viewed, supervisor) | Sonnet 5. Two README details corrected by the supervisor |
 | 7 | `e52f545` | 675 → 675 | Passed (spot-checks + fixture sweep, light and dark, supervisor) | Sonnet 5. No regressions found; agent's recentFiles claim was false (restored) |
-| 8 | | | | |
+| 8 | `52c5c7b` | 675 → 698 | Passed (real diagonal mouse path, both sides, supervisor) | Sonnet 5. Also fixed submenu items closing their own submenu, and the tab strip flyout |
 | 9 | | | | |
 | 10 | | | | |
 | 11 | | | | |
