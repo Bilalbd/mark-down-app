@@ -70,7 +70,7 @@ src/
 src-tauri/src/           lib.rs (builder, navigation guard), commands.rs (file I/O, encodings),
                          watch.rs (file watcher), assets.rs (mdasset:// local-image protocol)
 fixtures/                hand-test documents: one per feature area
-docs/plans/              implementation plans for agents
+docs/plans/              implementation plans for agents (local only, git-ignored)
 ```
 
 Placement rules:
@@ -218,7 +218,8 @@ Placement rules:
 - Keep `README.md` in sync when you change features, shortcuts, settings, storage locations or dev
   commands.
 - Larger work starts as a plan in `docs/plans/<topic>.md` (context, phases, verification, a
-  report-back table) so another agent can pick it up cold.
+  report-back table) so another agent can pick it up cold. `docs/plans/` is git-ignored: plans
+  stay on this machine and are never committed or pushed.
 
 ---
 
