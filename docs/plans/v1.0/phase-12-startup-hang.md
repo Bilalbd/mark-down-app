@@ -312,5 +312,43 @@ title `Markdown`; a synthetic F1 `keydown` opened a second window, class `Tauri 
 
 ## Supervisor check
 
-_(supervisor fills in; include the installer check and, if Bilal agrees, the install test:
-install, open a `.md` from Explorer, open the guide from the installed app, check the version.)_
+Supervisor (Opus 5.5), 2026-09-29. **Passed.** Commit `7cc73a0`.
+
+- **Diff read in full** against this document. No stray files, no test deleted or weakened
+  (`relaunch_args` and `launch_path` tests unchanged; new ones added). Deviations accepted:
+  - the wider `is_stuck` (setup done **and** the page started);
+  - the clipboard plugin pinned to `~2.3.3` to match the crate;
+  - the README storage and layout lines.
+- **Commands:** `pnpm test` 737 → 737, `pnpm lint` clean, `npx tsc --noEmit` clean, `cargo test`
+  56 → 77, `cargo clippy` the same 3 old warnings (none in new code).
+- **In the app** (debug exe, own WebView2 folder; Bilal's app checked not running before each
+  launch without `--new-window`):
+  - **Normal start** with `gfm.md`, then a second launch with `math.md`: the second process exited
+    and `math.md` opened as a tab in the first window. The process was still alive after 27 s and
+    wrote no `startup.log`.
+  - **`first` stall**, then `gfm.md` and `math.md` launched during it: both forwarders exited. At
+    +19 s the original was gone and one relaunched copy ran with
+    `--new-window --relaunched --open …gfm.md --open …math.md`. Its window opened both as tabs
+    (screenshots light and dark checked). The log line has every stage and `relaunch=started`.
+  - **Agent's stale-outline note:** not reproduced. Four runs of `--relaunched --open gfm --open
+    math`, sampled at 0.5, 1.5 and 4 s, always showed `math.md` active with "Math Fixture" in the
+    outline.
+  - **`all` stall:** the relaunch logged `relaunch=none (already relaunched); showing the error box`.
+    The box ("Markdown couldn't start…", error icon) was captured with PrintWindow. `WM_CLOSE` to
+    it ended the process.
+- **Release and installer:** the agent built them 3 minutes before its commit, so I rebuilt with
+  `pnpm tauri build` from `7cc73a0`.
+  - `Markdown_1.0.0_x64-setup.exe` and `markdown-viewer.exe` are both version 1.0.0.
+  - `MDV_TEST_STALL` is absent from the release exe and present in the debug exe.
+  - The release exe (`--new-window`, own profile) passed `guidewin.mjs`: F1 opens one `#guide`
+    window, F1 again keeps one, 18 outline entries, no editor, toolbar or tabs, and keys change
+    nothing. Escape closes it. Screenshot checked (dark app theme).
+- **Clean-up:** every PID I started was stopped (debug copies, the release exe, Vite 19584 and its
+  `cmd` 2444). The test `startup.log` was copied to my scratchpad and removed (it didn't exist
+  before). `settings.json` differed only in `recentFiles`, which I restored; all values now match
+  the backup. `presets.json` and `.window-state.json` are unchanged.
+- **Risk to note:** the watchdog now also ends a start whose page hasn't called Rust within 15 s.
+  A healthy start takes under 1 s (the log shows `frontend-started` at +0.6–0.7 s), so only a start
+  that is really stuck or extremely slow is affected; such a start is relaunched once.
+- **Not verified:** the real triggers (Modern Standby, GPU reset), and installing. The install
+  test waits for Bilal's OK.

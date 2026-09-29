@@ -220,4 +220,4 @@ screenshots in both themes, and records the outcome in the phase document's "Sup
 | 9 | `c815c8f` | 698 → 707 | Passed (light and dark, paragraph and table row, supervisor) | Sonnet 5. Table rows needed extra CSS; off by default |
 | 10 | `149e627` | 707 → 728 | Passed (every page, light and dark, supervisor) | Sonnet 5. Tests moved with their code |
 | 11 | `44400e3` | 728 → 737 | Passed (real keys, light and dark, supervisor) | Sonnet 5. Rust window + narrow capability; old file-based guide removed |
-| 12 | | | | |
+| 12 | `7cc73a0` | 737 → 737 (Rust 56 → 77) | Passed (stall, double-click hand-over, error box, release F1; supervisor) | Sonnet 5. Watchdog also covers a page that never starts; installer rebuilt from the commit, not yet installed |
