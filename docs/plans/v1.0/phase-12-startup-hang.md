@@ -35,7 +35,7 @@ ignoring the result, and then calls `std::process::exit(1)`.
 Standby / idle session-disconnect event at the same moment (see the Phase 2 Report). So the browser
 may never start, not only start and exit, and a power or session transition can trigger it. The
 15 s watchdog didn't relaunch that process either before the agent killed it at 20+ s, which fits
-cause 1 or 2. When reproducing (task 7), also try launching just as the session locks or resumes,
+cause 1 or 2. When reproducing (task 8), also try launching just as the session locks or resumes,
 and check the System event log (Kernel-Power, Power-Troubleshooter) for the time of any hang you
 see.
 
@@ -47,14 +47,38 @@ appeared for under 3 s and exited; no crash event was logged). A **fresh**
 `WEBVIEW2_USER_DATA_FOLDER` hung the same way, so it isn't a stale data folder. After 25+ s no
 relaunch had happened and no watchdog thread was sleeping, so the watchdog fired but didn't
 recover the process. So: **launching while Windows is in Modern Standby reproduces the hang on
-demand**. Task 7 can use that (e.g. `powercfg`-driven or a manual lid/screen-off test) instead of
+demand**. Task 8 can use that (e.g. `powercfg`-driven or a manual lid/screen-off test) instead of
 waiting for a GPU reset.
+
+## The double-click side effect (added 2026-09-29, Bilal chose "fix + test the side effect")
+
+Suspected by the supervisor from the code; **not yet seen**, so task 7 confirms it first. In the
+hang the process has already initialised its plugins, so the single-instance plugin's hidden
+`com.bilal.markdown-viewer-sic` window exists and the main thread's message loop still answers
+(Phase 3 check). A later double-click on a `.md` file therefore:
+
+1. runs `instance::existing_instance_is_hung`, which sends `WM_NULL` with a 2 s timeout, gets an
+   answer and says "not hung";
+2. forwards the file to the stuck process. Its single-instance callback pushes the path into
+   `commands::PendingOpens` and emits `open-requested`, but that process has no page to receive
+   it, and `REVEALED` is false, so nothing is shown;
+3. exits. The user sees nothing, and the file is lost when the stuck process ends.
+
+After task 1 the stuck process ends within about 15 s, so later double-clicks work again. The
+gap to cover: **files forwarded to a stuck process must reach the relaunched copy**, not vanish.
+The frontend already drains `PendingOpens` at startup (`App.tsx`, `handleOpenRequests` after
+`getLaunchArgs`), so the relaunched copy only needs its queue seeded from its own arguments.
+
+Known limitation, don't change it: the relaunch uses `--new-window`, so it skips the
+single-instance plugin (otherwise it could forward to the dying original). After a recovery, the
+next double-click opens its own window instead of a tab in the recovered one.
 
 ## Goal
 
 Whatever WebView2 does, a launch **always** ends in one of: the window shows, a relaunched instance
 takes over, or the user sees the error box and the process ends. Never an invisible process that
-lives forever. And the next time it happens, there's a record of what happened.
+lives forever. Files double-clicked while a launch is stuck open in the relaunched copy. And the
+next time it happens, there's a record of what happened.
 
 ## Tasks
 
@@ -83,23 +107,48 @@ lives forever. And the next time it happens, there's a record of what happened.
   size cap, and anything else you extract. `relaunch_args` tests stay as they are (add, don't
   change).
 - [ ] **6. End-to-end test with a simulated stall (debug builds only).** Add a
-  `#[cfg(debug_assertions)]` check for an environment variable `MDV_TEST_STALL_STARTUP=1` that makes
-  the main thread sleep forever **before** `tauri::Builder` runs, so the watchdog fires. It must not
-  exist in release builds (check with `cargo build --release` + `strings`/`Select-String` on the exe
-  for the variable name). Launch the dev exe with it (its own `WEBVIEW2_USER_DATA_FOLDER`,
-  `--new-window`), and confirm: after 15 s a relaunched process appears with `--relaunched`, the
-  original process is gone, the relaunched one shows its window, and `startup.log` has the entry.
-  Then set the variable for the relaunch too (it inherits the environment) and confirm the second
-  stage: the error box appears and, once closed (`WM_CLOSE` to the box), the process is gone.
-- [ ] **7. Try to reproduce the real hang, safely.** Launch the dev exe and, during startup, stop
+  `#[cfg(debug_assertions)]` check for an environment variable `MDV_TEST_STALL_STARTUP`. It must
+  imitate the real hang: stall **inside `.setup()`, before `SETUP_DONE` is set**, so the plugins
+  (including single-instance) are initialised and the main window exists, and keep **pumping the
+  main thread's messages** (a `PeekMessageW`/`DispatchMessageW` loop with a short sleep) so the
+  message loop still answers, as it does in the real hang. Values: `first` stalls only a launch
+  without `--relaunched` (so the relaunch can succeed); `all` stalls every launch. None of it may
+  exist in release builds (check with `cargo build --release` + `Select-String` on the exe for the
+  variable name). Launch the dev exe with `first` (its own `WEBVIEW2_USER_DATA_FOLDER`, no
+  `--new-window`, so it takes the single-instance lock like a real first launch) and confirm:
+  after 15 s a relaunched process appears with `--relaunched`, the original process is gone, the
+  relaunched one shows its window, and `startup.log` has the entry. Then use `all` and confirm the
+  second stage: the error box appears and, once closed (`WM_CLOSE` to the box), the process is
+  gone.
+- [ ] **7. Double-click during a stuck start: confirm, then cover.**
+  - *Confirm first*, before changing the forwarding code: start a stalled first launch (`first`),
+    then within the 15 s launch the dev exe again **without** `--new-window`, with the same
+    `WEBVIEW2_USER_DATA_FOLDER` and a fixture path (`fixtures/gfm.md`), the way Explorer does.
+    Record in the Report: does the second process exit at once, does nothing appear, and does the
+    relaunched copy open without `gfm.md`? If the file isn't lost (the side effect doesn't
+    happen), say so with evidence and skip the fix.
+  - *Cover it*: when the watchdog fires, take the paths waiting in `PendingOpens` and pass them to
+    the relaunch (for example as repeated `--open <path>` arguments; pick what fits the code). At
+    startup, seed `PendingOpens` from those arguments so the frontend's existing startup drain
+    opens them as tabs (or windows, per *Open files in*). The file from the original command line
+    keeps working as it does today. Put the argument building and parsing in pure functions with
+    tests (paths with spaces, several paths, no paths, `--relaunched` already present). Keep the
+    `relaunch_args` tests as they are (add, don't change). If the relaunch fails too and the error
+    box shows, the files are lost; that's acceptable, the user has been told.
+  - *Check again* with the same steps: the relaunched window opens with `gfm.md`. Also try two
+    fixtures double-clicked during the stall; both open.
+  - *No regression*: with no stall, start the app, then launch it again with a file (as Explorer
+    does): the file opens as a tab in the running window, as before. And select two fixtures in
+    one launch burst (start two processes a few ms apart): both still end up in one window.
+- [ ] **8. Try to reproduce the real hang, safely.** Launch the dev exe and, during startup, stop
   **only the `msedgewebview2.exe` processes whose parent is the dev exe you started** (match by
   parent PID, never by name or path alone). Record what the app does: does creation fail, hang,
   and does the watchdog now recover within ~15 s? Try a few timings (right after the browser
   process appears, after 200 ms, after 1 s). If it can't be reproduced, say so; don't claim it's
   fixed beyond what the tests show.
-- [ ] **8. Update the known issue.** In `../v0.8-polish/README.md`, add one line under "Known
+- [ ] **9. Update the known issue.** In `../v0.8-polish/README.md`, add one line under "Known
   issue" pointing here with the outcome (don't rewrite the section).
-- [ ] **9. Build the installer.** `pnpm tauri build`: expect
+- [ ] **10. Build the installer.** `pnpm tauri build`: expect
   `src-tauri/target/release/bundle/nsis/Markdown_1.0.0_x64-setup.exe`. Since Phase 11 the guide
   is inside the frontend bundle, not a separate resource, so check instead that the **release exe**
   (`src-tauri/target/release/markdown-viewer.exe`, run with `--new-window` and its own
@@ -109,14 +158,25 @@ lives forever. And the next time it happens, there's a record of what happened.
 ## Files
 
 - `src-tauri/src/lib.rs`, possibly a new `src-tauri/src/startup.rs` for the watchdog and log,
-  `src-tauri/Cargo.toml` (windows-sys feature), `docs/plans/v0.8-polish/README.md` (one line).
+  `src-tauri/src/commands.rs` (seeding `PendingOpens`), `src-tauri/Cargo.toml` (windows-sys
+  features), `docs/plans/v0.8-polish/README.md` (one line).
+
+## Safety for launches without `--new-window`
+
+Tasks 6 and 7 launch the dev exe **without** `--new-window`. It uses the same identifier as
+Bilal's installed app, so if his app is running, the dev exe would hand its file to *his* app (or
+probe it). Before every such launch, check that no process runs from
+`%LOCALAPPDATA%\Markdown\markdown-viewer.exe`. If one does, **don't launch and don't close it**:
+stop and report to the supervisor, who asks Bilal. Stop only processes you started, by exact PID.
 
 ## Verify
 
 - [ ] `cargo check`, `cargo test`, `cargo clippy` (no new warnings), `pnpm test`, `pnpm lint`,
   `npx tsc --noEmit`.
-- [ ] Task 6 and 7 results, with the process list and log contents quoted in the Report.
+- [ ] Task 6, 7 and 8 results, with the process list and log contents quoted in the Report.
 - [ ] A normal launch still shows the window with no flash and writes no `startup.log`.
+- [ ] Task 7's no-regression checks: a second launch with a file still opens it as a tab in the
+  running window.
 - [ ] Commit: `Make the startup watchdog exit even when the process is stuck` (adjust the wording
   if the fix turns out different, keeping the style).
 
