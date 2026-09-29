@@ -20,11 +20,12 @@
 .settings__tabs {
   flex: 1;
   display: flex;
-  gap: 2px;
+  gap: 0;
 }
 .settings__tab {
   height: 28px;
-  padding: 0 10px;
+  padding: 0 8px;
+  white-space: nowrap;
   border: 0;
   border-radius: 5px;
   background: transparent;
@@ -56,27 +57,33 @@
 .settings__body {
   flex: 1;
   overflow: auto;
-  padding: 8px 14px 24px;
+  padding: 12px 12px 24px;
 }
 
+/* A titled card: a group of related rows. */
 .settings__section {
-  margin-bottom: 18px;
+  margin-bottom: 12px;
+  padding: 10px 12px 8px;
+  background: var(--chrome-bg);
+  border: 1px solid var(--chrome-border);
+  border-radius: 8px;
 }
 .settings__section-title {
-  margin: 10px 0 6px;
-  font-size: 11px;
+  margin: 0 0 4px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--chrome-fg-muted);
+  color: var(--chrome-fg);
 }
 
 .settings__row {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 30px;
-  padding: 2px 0;
+  min-height: 34px;
+  padding: 4px 0;
+}
+.settings__section > .settings__row + .settings__row {
+  border-top: 1px solid var(--chrome-border);
 }
 .settings__label {
   flex: 0 0 120px;
@@ -172,6 +179,14 @@
   padding: 2px;
   margin-bottom: 6px;
 }
+/* The Appearance page's switcher spans the panel, its buttons sharing the width equally. */
+.settings__segment--fill {
+  display: flex;
+  margin-bottom: 12px;
+}
+.settings__segment--fill .settings__seg {
+  flex: 1;
+}
 .settings__seg {
   height: 24px;
   padding: 0 10px;
@@ -192,13 +207,16 @@
   color: var(--chrome-fg-muted);
   line-height: 1.4;
 }
+.settings__note.is-error {
+  color: var(--spell-error);
+}
 .settings__note code {
   font-family: var(--font-mono);
 }
 
 .settings__css {
   width: 100%;
-  height: calc(100vh - 220px);
+  height: calc(100vh - 260px);
   min-height: 200px;
   resize: vertical;
   font-family: var(--font-mono);
@@ -215,8 +233,11 @@
   background: var(--chrome-inset);
   color: var(--chrome-fg);
 }
-.settings__btn:hover {
+.settings__btn:hover:not(:disabled) {
   filter: brightness(1.08);
+}
+.settings__btn:disabled {
+  opacity: 0.5;
 }
 .settings__actions {
   margin-top: 8px;
@@ -301,7 +322,8 @@
   vertical-align: top;
 }
 .settings__shortcuts td:first-child {
-  width: 170px;
+  width: 58%;
+  padding-right: 8px;
 }
 .settings__shortcuts kbd {
   font-family: var(--font-mono);
@@ -311,6 +333,8 @@
   border-bottom-width: 2px;
   border-radius: 4px;
   background: var(--chrome-inset);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 
 /* A row whose control is a tall, scrolling list (the language checklist, the personal
@@ -385,8 +409,44 @@
   color: var(--chrome-fg);
 }
 
-.settings__version {
-  margin: 16px 0 0;
-  font-size: 10.5px;
+.settings__about {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 4px 0 16px;
+  padding: 0 4px;
+}
+.settings__about-logo {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  background-color: var(--accent);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+.settings__about-text p,
+.settings__about-name {
+  margin: 0;
+}
+.settings__about-name {
+  font-size: 18px;
+  font-weight: 600;
+}
+.settings__version,
+.settings__about-licence {
+  font-size: 12px;
   color: var(--chrome-fg-muted);
+}
+.settings__path {
+  margin: 4px 0 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--chrome-fg-muted);
+  overflow-wrap: anywhere;
+  user-select: text;
 }

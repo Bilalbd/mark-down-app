@@ -2,13 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   guidePath,
   readClipboardText,
+  settingsFolder,
   spellCheck,
   spellLanguages,
   spellSuggest,
   writeClipboardText,
 } from '@/lib/tauri';
 
-vi.mock('@tauri-apps/api/path', () => ({ resolveResource: vi.fn() }));
+vi.mock('@tauri-apps/api/path', () => ({ resolveResource: vi.fn(), appDataDir: vi.fn() }));
 
 // These wrappers must be safe when Tauri isn't there (plain Vite dev, or tests): `isTauri()`
 // is false in jsdom, since `window.__TAURI_INTERNALS__` is never set here.
@@ -27,6 +28,12 @@ describe('spell check wrappers outside Tauri', () => {
 
   it('spellSuggest resolves to an empty list', async () => {
     await expect(spellSuggest('tset', ['en-US'])).resolves.toEqual([]);
+  });
+});
+
+describe('settingsFolder outside Tauri', () => {
+  it('resolves to null', async () => {
+    await expect(settingsFolder()).resolves.toBeNull();
   });
 });
 

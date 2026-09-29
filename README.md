@@ -26,7 +26,7 @@ The installer isn't code-signed, so Windows SmartScreen may warn when you first 
 
 - Formatted, Source and Split views (`Ctrl+E`, `Ctrl+Shift+E`), with the source line kept in
   place when you switch and bidirectional scroll sync in Split. An optional, off-by-default
-  highlight (Settings → General) tints the formatted block that holds the source cursor.
+  highlight (Settings → General → Layout) tints the formatted block that holds the source cursor.
 - A full-width toggle in Formatted view fits the document to the window instead of the preset's
   usual content width; it's remembered.
 - GFM tables, task lists, footnotes and autolinks; fenced code with Shiki syntax highlighting;
@@ -65,7 +65,7 @@ The installer isn't code-signed, so Windows SmartScreen may warn when you first 
 **Tabs and windows**
 
 - Open files as tabs in one window, or each in its own window — set by **Open files in** in
-  Settings → General (default: New tab).
+  Settings → General → Window (default: New tab).
 - Drag files in from Explorer, use `Ctrl+O` to open several at once, or reopen one from **Recent
   files**.
 - Drag a tab to reorder it, or use `Ctrl+Shift+←/→`; right-click a tab for Close, Close others,
@@ -79,8 +79,10 @@ The installer isn't code-signed, so Windows SmartScreen may warn when you first 
 - Nine built-in presets — Boulayla (the default), GitHub, Obsidian, Claude, Manuscript, Nord,
   Rosé Pine, Catppuccin and Solarized — each with its own light and dark colour set, so it looks
   right in both app themes.
-- Every font, size, spacing and colour is editable in Settings (`Ctrl+,`); presets can be copied,
-  renamed, and exported or imported as JSON, and each has a custom-CSS slot.
+- Every font, size, spacing and colour is editable in Settings → Appearance (`Ctrl+,`); presets can
+  be copied, renamed, and exported or imported as JSON, and each has a custom-CSS slot. Settings
+  has five pages (General, Editor, Appearance, Shortcuts, About) and sits beside the document, so
+  you see changes as you make them.
 - A separate **Light / Dark / Follow Windows** theme for the app's own chrome.
 
 **Export and print**
@@ -104,7 +106,7 @@ The installer isn't code-signed, so Windows SmartScreen may warn when you first 
 Spell check runs in the Source editor, using the languages installed in Windows, and underlines a
 word only if *every* language you've ticked rejects it (so notes that mix languages work
 correctly). It's on by default and checks your Windows display language until you choose
-otherwise, in **Settings → General → Spelling** — the list shows one entry per language, and
+otherwise, in **Settings → Editor → Spelling** — the list shows one entry per language, and
 right-clicking a misspelled word offers suggestions, **Add to dictionary** and **Ignore**. To add
 a language that isn't listed, install it in Windows under **Settings → Time & language → Language
 & region → Add a language**; spelling comes with its basic typing feature, no separate download
@@ -153,7 +155,7 @@ needed.
 | Ctrl+K | Link |
 | Ctrl+Shift+1 … Ctrl+Shift+6 | Heading 1–6 (press again for a paragraph) |
 
-This list is also in Settings → General, and always up to date with what the app actually binds.
+This list is also in Settings → Shortcuts, and always up to date with what the app actually binds.
 
 ## Guide
 

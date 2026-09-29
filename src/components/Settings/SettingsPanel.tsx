@@ -3,25 +3,30 @@ import { X } from 'lucide-react';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 import { useDialogStore } from '@/components/Dialog/ConfirmDialog';
-import { AppearanceTab } from './AppearanceTab';
-import { PresetsTab } from './PresetsTab';
-import { CustomCssTab } from './CustomCssTab';
-import { GeneralTab } from './GeneralTab';
+import { AboutPage } from './AboutPage';
+import { AppearancePage, type AppearanceView } from './AppearancePage';
+import { EditorPage } from './EditorPage';
+import { GeneralPage } from './GeneralPage';
+import { ShortcutsPage } from './ShortcutsPage';
 import './SettingsPanel.css';
 
-type Tab = 'appearance' | 'presets' | 'css' | 'general';
+type Page = 'general' | 'editor' | 'appearance' | 'shortcuts' | 'about';
 
-const TABS: { id: Tab; label: string }[] = [
+const PAGES: { id: Page; label: string }[] = [
   { id: 'general', label: 'General' },
-  { id: 'presets', label: 'Presets' },
+  { id: 'editor', label: 'Editor' },
   { id: 'appearance', label: 'Appearance' },
-  { id: 'css', label: 'Custom CSS' },
+  { id: 'shortcuts', label: 'Shortcuts' },
+  { id: 'about', label: 'About' },
 ];
 
 export function SettingsPanel() {
   const open = useViewStore((s) => s.settingsOpen);
   const setOpen = useViewStore((s) => s.setSettingsOpen);
-  const [tab, setTab] = useState<Tab>('general');
+  // The panel stays mounted while closed, so the last page (and the Appearance view) are
+  // remembered until the app closes; they are never saved.
+  const [page, setPage] = useState<Page>('general');
+  const [appearanceView, setAppearanceView] = useState<AppearanceView>('presets');
   const loaded = useSettingsStore((s) => s.loaded);
 
   useEffect(() => {
@@ -43,15 +48,17 @@ export function SettingsPanel() {
     <aside className="settings" aria-label="Settings">
       <header className="settings__header">
         <nav className="settings__tabs" role="tablist">
-          {TABS.map((t) => (
+          {PAGES.map((p) => (
             <button
-              key={t.id}
+              key={p.id}
+              id={`settings-tab-${p.id}`}
               role="tab"
-              aria-selected={tab === t.id}
-              className={`settings__tab ${tab === t.id ? 'is-active' : ''}`}
-              onClick={() => setTab(t.id)}
+              aria-selected={page === p.id}
+              aria-controls="settings-page"
+              className={`settings__tab ${page === p.id ? 'is-active' : ''}`}
+              onClick={() => setPage(p.id)}
             >
-              {t.label}
+              {p.label}
             </button>
           ))}
         </nav>
@@ -63,11 +70,21 @@ export function SettingsPanel() {
           <X size={14} strokeWidth={1.75} absoluteStrokeWidth />
         </button>
       </header>
-      <div className="settings__body">
-        {tab === 'appearance' && <AppearanceTab />}
-        {tab === 'presets' && <PresetsTab />}
-        {tab === 'css' && <CustomCssTab />}
-        {tab === 'general' && <GeneralTab />}
+      {/* Keyed by page so each page opens scrolled to the top. */}
+      <div
+        key={page}
+        id="settings-page"
+        role="tabpanel"
+        aria-labelledby={`settings-tab-${page}`}
+        className="settings__body"
+      >
+        {page === 'general' && <GeneralPage />}
+        {page === 'editor' && <EditorPage />}
+        {page === 'appearance' && (
+          <AppearancePage view={appearanceView} onViewChange={setAppearanceView} />
+        )}
+        {page === 'shortcuts' && <ShortcutsPage />}
+        {page === 'about' && <AboutPage />}
       </div>
     </aside>
   );

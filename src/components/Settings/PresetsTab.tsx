@@ -131,7 +131,7 @@ export function PresetsTab() {
       <Section title="Custom">
         {custom.length === 0 ? (
           <p className="settings__note">
-            No custom presets yet. Copy a built-in one or edit any setting in Appearance.
+            No custom presets yet. Copy a built-in one or edit any setting in Fonts & colours.
           </p>
         ) : (
           renderList(custom)

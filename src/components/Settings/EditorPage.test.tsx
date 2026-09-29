@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 
-// GeneralTab imports the toolbar's shared icon props (for the personal dictionary's remove
+// EditorPage imports the toolbar's shared icon props (for the personal dictionary's remove
 // button), which pulls in the theme hook; jsdom has no matchMedia, so provide it before that
 // module loads.
 vi.hoisted(() => {
@@ -18,17 +18,16 @@ vi.hoisted(() => {
 const mockSpellLanguages = vi.fn<() => Promise<string[]>>().mockResolvedValue([]);
 
 vi.mock('@/lib/tauri', () => ({
-  getAppVersion: vi.fn().mockResolvedValue('0.8.0'),
   spellLanguages: () => mockSpellLanguages(),
 }));
 
-import { GeneralTab } from './GeneralTab';
+import { EditorPage } from './EditorPage';
 import { useSettingsStore } from '@/store/settings';
 import { useViewStore } from '@/store/view';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
-describe('GeneralTab', () => {
+describe('EditorPage', () => {
   let container: HTMLElement;
   let root: ReturnType<typeof createRoot>;
 
@@ -51,16 +50,11 @@ describe('GeneralTab', () => {
 
   const render = async () => {
     await act(async () => {
-      root.render(<GeneralTab />);
+      root.render(<EditorPage />);
       await Promise.resolve();
       await Promise.resolve();
     });
   };
-
-  it('shows the app version once it loads', async () => {
-    await render();
-    expect(container.querySelector('.settings__version')?.textContent).toBe('Version 0.8.0');
-  });
 
   it('shows a hint when Windows has no spelling dictionaries', async () => {
     await render();
@@ -78,20 +72,6 @@ describe('GeneralTab', () => {
       (n) => n.textContent,
     );
     expect(note.some((t) => t?.includes('No words added yet.'))).toBe(true);
-  });
-
-  it('has a Split cursor highlight toggle, off by default, that turns the setting on', async () => {
-    useSettingsStore.setState({ splitCursorMirror: false });
-    await render();
-    const row = Array.from(container.querySelectorAll('.settings__row')).find((r) =>
-      r.textContent?.includes("Highlight the cursor's block in Split view"),
-    );
-    expect(row?.textContent).toContain("Tints the formatted block you're editing");
-    const box = row!.querySelector<HTMLElement>('[role="switch"], input[type="checkbox"]')!;
-    expect(box).toBeTruthy();
-    act(() => box.click());
-    expect(useSettingsStore.getState().splitCursorMirror).toBe(true);
-    useSettingsStore.setState({ splitCursorMirror: false });
   });
 
   it('lists one checkbox per language (not per region)', async () => {
@@ -281,10 +261,29 @@ describe('GeneralTab', () => {
     expect(arCheckbox.checked).toBe(false);
   });
 
-  it('lists F1 for the guide in the shortcuts table', async () => {
+  it('has the Editor and Spelling cards with their settings in order', async () => {
     await render();
-    const rows = Array.from(container.querySelectorAll('.settings__shortcuts tr'));
-    const guideRow = rows.find((r) => r.textContent?.includes('Guide'));
-    expect(guideRow?.querySelector('kbd')?.textContent).toBe('F1');
+    const cards = Array.from(container.querySelectorAll('.settings__section')).map((c) => ({
+      title: c.querySelector('.settings__section-title')?.textContent,
+      rows: Array.from(c.querySelectorAll('.settings__label')).map(
+        (l) => l.childNodes[0]?.textContent,
+      ),
+    }));
+    expect(cards).toEqual([
+      { title: 'Editor', rows: ['Font size', 'Line numbers'] },
+      { title: 'Spelling', rows: ['Check spelling', 'Languages', 'Personal dictionary'] },
+    ]);
+  });
+
+  it('flips Line numbers from its new place', async () => {
+    useSettingsStore.setState({ editorFontSize: 14, editorLineNumbers: true });
+    await render();
+    const row = (text: string) =>
+      Array.from(container.querySelectorAll('.settings__row')).find((r) =>
+        r.textContent?.includes(text),
+      )!;
+    act(() => row('Line numbers').querySelector<HTMLInputElement>('input')!.click());
+    expect(useSettingsStore.getState().editorLineNumbers).toBe(false);
+    useSettingsStore.setState({ editorFontSize: 14, editorLineNumbers: true });
   });
 });

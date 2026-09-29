@@ -1,7 +1,7 @@
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { emit } from '@tauri-apps/api/event';
 import { getVersion } from '@tauri-apps/api/app';
-import { resolveResource } from '@tauri-apps/api/path';
+import { appDataDir, resolveResource } from '@tauri-apps/api/path';
 
 export const isTauri = (): boolean => '__TAURI_INTERNALS__' in window;
 
@@ -153,6 +153,14 @@ export function writeClipboardText(text: string): Promise<void> {
 export function getAppVersion(): Promise<string | null> {
   if (!isTauri()) return Promise.resolve(null);
   return getVersion().catch(() => null);
+}
+
+/** The folder that holds `settings.json` and `presets.json` (`%APPDATA%\com.bilal.markdown-viewer`),
+ * or `null` outside Tauri or if it can't be resolved. It is the same folder the store plugin
+ * writes to, which resolves relative file names against the app data directory. */
+export function settingsFolder(): Promise<string | null> {
+  if (!isTauri()) return Promise.resolve(null);
+  return appDataDir().catch(() => null);
 }
 
 /** Resolved once and reused: the bundled guide's path never changes within a run. */

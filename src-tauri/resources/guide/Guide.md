@@ -31,7 +31,7 @@ that saving would make that replacement permanent.
 ## Tabs and windows
 
 Whether an opened file becomes a new tab in this window or a whole new window is controlled by
-**Open files in** in Settings → General (**New tab**, the default, or **New window**).
+**Open files in** in Settings → General → Window (**New tab**, the default, or **New window**).
 
 In tab mode:
 
@@ -58,10 +58,10 @@ the start screen, or with whatever file it was launched with.
   window instead of the preset’s usual content width; the choice is remembered.
 - **Source** is a plain-text editor with Markdown syntax highlighting.
 - **Split** shows both side by side. The **swap panes** toolbar button flips which side the source
-  editor is on (also set persistently in Settings → General → *Split layout*). Scrolling either
+  editor is on (also set persistently in Settings → General → Layout → *Split layout*). Scrolling either
   pane scrolls the other to match. An optional highlight, off by default, tints the formatted block
   that holds your cursor as a band across the whole pane, like the editor’s current line; turn it
-  on with *Highlight the cursor’s block in Split view* in Settings → General.
+  on with *Highlight the cursor’s block in Split view* in Settings → General → Layout.
 
 **Zoom** (**Ctrl+=**, **Ctrl+−**, **Ctrl+0**, or **Ctrl** + mouse wheel over the formatted view)
 changes the size of the *rendered* document only; it doesn’t affect the Source editor, which has
@@ -96,7 +96,7 @@ it changes while you have no unsaved edits, it’s reloaded automatically.
 
 ## Spell check
 
-Turn spell checking on or off, and choose which languages to check, in Settings → General →
+Turn spell checking on or off, and choose which languages to check, in Settings → Editor →
 Spelling. It runs in the Source editor only (the formatted view isn’t editable, so there’s nothing
 to check there), and underlines words in red wherever they’re wrong in *every* language you’ve
 ticked — so a note that mixes, say, English and Arabic works correctly. Until you tick anything,
@@ -113,7 +113,7 @@ instead.
 Right-click a misspelled word for suggestions, or:
 
 - **Add to dictionary** — remembers the word for good. It’s stored in the app’s own settings (not
-  the shared Windows dictionary), and listed under *Personal dictionary* in Settings, where you
+  the shared Windows dictionary), and listed under *Personal dictionary* in Settings → Editor → Spelling, where you
   can remove any of them again.
 - **Ignore** — stops the word being flagged for the rest of this session (it’s forgotten again
   once you close the app).
@@ -141,19 +141,19 @@ The theme button in the toolbar (its icon and tooltip show the current choice) c
 own **Light**, **Dark** and **Follow Windows** theme — this is the app’s chrome; the document’s
 look is separate, below.
 
-Settings → Presets lists the built-in presets — **Boulayla** (the default), **GitHub**,
+Settings → Appearance → Presets lists the built-in presets — **Boulayla** (the default), **GitHub**,
 **Obsidian**, **Claude**, **Manuscript**, **Nord**, **Rosé Pine**, **Catppuccin** and
 **Solarized** — plus any you’ve made yourself. Click one to use it. Every preset has its own light
 and dark colour set, so it looks right in both app themes.
 
-In Settings → Appearance you can edit the active preset’s fonts, base size, line height, content
+In Settings → Appearance → Fonts & colours you can edit the active preset’s fonts, base size, line height, content
 width, heading sizes and weight, block spacing, and every colour — separately for light and dark
 (a segmented control switches which one you’re editing). Editing a built-in preset saves your
-changes as a new custom preset instead of overwriting the original. Back in Settings → Presets you
+changes as a new custom preset instead of overwriting the original. Back in Presets you
 can **Copy** any preset, **Rename** or **Delete** a custom one, and **Export** any preset (or
 **Import**) as a JSON file, handy for sharing or backing up.
 
-Settings → Custom CSS gives the active preset a slot for your own CSS, applied on top of
+Settings → Appearance → Custom CSS gives the active preset a slot for your own CSS, applied on top of
 everything else so it can override anything. It targets elements inside `.preview`, for example:
 
 ```css
@@ -175,7 +175,7 @@ you already have open. A relative link to anything else reveals that file in Fil
 
 Local images are only ever loaded from the open document’s own folder (including subfolders) — an
 image reference that points anywhere else won’t load, by design. **Block remote images**, in
-Settings → General, stops `http(s)` image sources from loading at all, for documents you don’t
+Settings → General → Documents, stops `http(s)` image sources from loading at all, for documents you don’t
 fully trust.
 
 ## Export and print
@@ -183,7 +183,7 @@ fully trust.
 The toolbar’s export button offers:
 
 - **Export as HTML…** — a standalone HTML file that reproduces the formatted view with the active
-  preset’s styling baked in. With **Self-contained HTML export** on (Settings → General → Export,
+  preset’s styling baked in. With **Self-contained HTML export** on (Settings → General → Documents,
   on by default), local images and the maths font are embedded as data straight in the file, so it
   works offline anywhere; remote images stay linked, and the bundled preset fonts fall back to
   whatever’s on the system that opens it.
@@ -360,29 +360,46 @@ A HEX colour code gets a small swatch next to it in the formatted view, for exam
 
 ## Settings reference
 
-Open Settings with **Ctrl+,** or the toolbar button.
+Open Settings with **Ctrl+,** or the toolbar button. It has five pages, each made of titled cards,
+and the document stays visible beside it while you change things. Settings remembers which page you
+were on until you close the app.
 
-**Application**
+**General**
+
+*Window*
 
 | Setting | What it does | Default |
 |---|---|---|
-| Open files in | New tab, or a new window per file | New tab |
 | Theme | The app’s own light / dark / Follow Windows theme | Dark |
-| Split layout | Which side the Source editor sits on in Split view | Source left, formatted right |
-| Highlight the cursor’s block in Split view | Tints the formatted block that holds the Source cursor, across the whole pane | Off |
+| Open files in | New tab, or a new window per file | New tab |
+
+*Layout*
+
+| Setting | What it does | Default |
+|---|---|---|
 | Show outline | Shows or hides the outline sidebar | On |
 | Show status bar | Shows or hides the status bar | On |
+| Split layout | Which side the Source editor sits on in Split view | Source left, formatted right |
+| Highlight the cursor’s block in Split view | Tints the formatted block that holds the Source cursor, across the whole pane | Off |
 | Preview zoom | The formatted view’s zoom level | 100% |
-| Block remote images | Stops `http(s)` images loading in the preview | Off |
 
-**Source editor**
+*Documents*
 
 | Setting | What it does | Default |
 |---|---|---|
-| Line numbers | Shows line numbers in the gutter | On |
-| Font size | The Source editor’s text size | 14px |
+| Block remote images | Stops `http(s)` images loading in the preview | Off |
+| Self-contained HTML export | Embeds images and maths fonts in exported HTML | On |
 
-**Spelling**
+**Editor**
+
+*Editor*
+
+| Setting | What it does | Default |
+|---|---|---|
+| Font size | The Source editor’s text size | 14px |
+| Line numbers | Shows line numbers in the gutter | On |
+
+*Spelling*
 
 | Setting | What it does | Default |
 |---|---|---|
@@ -390,11 +407,22 @@ Open Settings with **Ctrl+,** or the toolbar button.
 | Languages | Which installed Windows languages are checked | Automatic (see Spell check) |
 | Personal dictionary | Words added with *Add to dictionary* | Empty |
 
-**Export**
+**Appearance**
 
-| Setting | What it does | Default |
-|---|---|---|
-| Self-contained HTML export | Embeds images and maths fonts in exported HTML | On |
+A switch at the top of the page chooses between **Presets** (pick, copy, rename, delete, import and
+export presets), **Fonts & colours** (the active preset’s typography and colours) and **Custom CSS**
+(your own CSS on top of the preset). See Styling, above.
+
+**Shortcuts**
+
+Every keyboard shortcut, grouped as *Files*, *Tabs*, *Views* and *Editing (Source view)* — the same
+list as the Keyboard shortcuts section above.
+
+**About**
+
+The app’s version and licence, an **Open the guide** button (the same as **F1**), and the **Settings
+folder**: where your settings and presets are stored, with a **Show in File Explorer** button that
+opens it.
 
 A few other things are remembered automatically without a Settings row of their own: the **full
 width** toggle in Formatted view, the outline’s width, and the divider position in Split view —
@@ -412,4 +440,5 @@ each just remembers wherever you last left it.
 - **No spelling languages listed**: Windows has no spelling dictionaries installed. Add one under
   **Settings → Time & language → Language & region → Add a language** (see Spell check, above).
 - **Where things are stored**: settings and presets live in
-  `%APPDATA%\com.bilal.markdown-viewer\` (`settings.json`, `presets.json`).
+  `%APPDATA%\com.bilal.markdown-viewer\` (`settings.json`, `presets.json`). Settings → About →
+  **Show in File Explorer** takes you there.
