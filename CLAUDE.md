@@ -45,7 +45,8 @@ In dev builds the stores are exposed on `window.__mdv` (`document`, `settings`, 
 
 **Definition of done:** tests, lint and typecheck pass; `cargo check` and `cargo test` also pass
 if Rust changed. Anything visible has been checked in the running app (a screenshot counts),
-using the relevant `fixtures/*.md` files.
+using the relevant `fixtures/*.md` files. Sub-agents implementing a plan phase stop at tests, lint,
+typecheck and cargo: the supervising session does the running-app checks, batched across phases (§7).
 
 ### Machine quirks
 - The **Bash tool turns `\\` into `\`** on this machine. Write anything that contains backslashes
@@ -220,6 +221,11 @@ Placement rules:
 - Larger work starts as a plan in `docs/plans/<topic>.md` (context, phases, verification, a
   report-back table) so another agent can pick it up cold. `docs/plans/` is git-ignored: plans
   stay on this machine and are never committed or pushed.
+- Phases handed to sub-agents use the `implementer` agent type (`.claude/agents/implementer.md`),
+  which has only the tools that work needs. Implementers never build, launch or screenshot the app.
+  Plans put the running-app checks in a supervisor checklist, run once per batch of phases, not in
+  each phase's tasks. Launching the app and driving it over CDP from every agent is what made the
+  v1.0 run expensive.
 
 ---
 
