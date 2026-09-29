@@ -1,6 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { invoke } from '@tauri-apps/api/core';
+import { emit } from '@tauri-apps/api/event';
 import {
-  guidePath,
+  emitGuideReady,
+  openGuideWindow,
   readClipboardText,
   settingsFolder,
   spellCheck,
@@ -9,7 +12,9 @@ import {
   writeClipboardText,
 } from '@/lib/tauri';
 
-vi.mock('@tauri-apps/api/path', () => ({ resolveResource: vi.fn(), appDataDir: vi.fn() }));
+vi.mock('@tauri-apps/api/path', () => ({ appDataDir: vi.fn() }));
+vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(), convertFileSrc: vi.fn() }));
+vi.mock('@tauri-apps/api/event', () => ({ emit: vi.fn() }));
 
 // These wrappers must be safe when Tauri isn't there (plain Vite dev, or tests): `isTauri()`
 // is false in jsdom, since `window.__TAURI_INTERNALS__` is never set here.
@@ -62,36 +67,43 @@ describe('clipboard wrappers outside Tauri', () => {
   });
 });
 
-describe('guidePath', () => {
-  beforeEach(async () => {
-    const { resolveResource } = await import('@tauri-apps/api/path');
-    vi.mocked(resolveResource).mockReset();
-  });
-
+describe('guide window wrappers', () => {
   afterEach(() => {
     delete (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+    vi.mocked(invoke).mockReset();
+    vi.mocked(emit).mockReset();
   });
 
-  it('resolves to null outside Tauri, without calling resolveResource', async () => {
-    const { resolveResource } = await import('@tauri-apps/api/path');
-    await expect(guidePath()).resolves.toBeNull();
-    expect(resolveResource).not.toHaveBeenCalled();
+  it('openGuideWindow does nothing outside Tauri', async () => {
+    await expect(openGuideWindow()).resolves.toBeUndefined();
+    expect(invoke).not.toHaveBeenCalled();
   });
 
-  it('resolves the bundled resource path inside Tauri, and caches it', async () => {
-    const { resolveResource } = await import('@tauri-apps/api/path');
-    vi.mocked(resolveResource).mockResolvedValue(
-      'C:\\Program Files\\Markdown\\resources\\guide\\Guide.md',
-    );
+  it('openGuideWindow asks Rust to open the window inside Tauri', async () => {
     (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    vi.mocked(invoke).mockResolvedValue(undefined);
 
-    await expect(guidePath()).resolves.toBe(
-      'C:\\Program Files\\Markdown\\resources\\guide\\Guide.md',
-    );
-    await expect(guidePath()).resolves.toBe(
-      'C:\\Program Files\\Markdown\\resources\\guide\\Guide.md',
-    );
-    expect(resolveResource).toHaveBeenCalledTimes(1); // cached, not re-resolved
-    expect(resolveResource).toHaveBeenCalledWith('resources/guide/Guide.md');
+    await openGuideWindow();
+
+    expect(invoke).toHaveBeenCalledWith('open_guide_window');
+  });
+
+  it('openGuideWindow passes a failure on to the caller', async () => {
+    (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    vi.mocked(invoke).mockRejectedValue('no window');
+
+    await expect(openGuideWindow()).rejects.toBe('no window');
+  });
+
+  it('emitGuideReady does nothing outside Tauri, and emits only once inside it', () => {
+    emitGuideReady();
+    expect(emit).not.toHaveBeenCalled();
+
+    (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    emitGuideReady();
+    emitGuideReady();
+
+    expect(emit).toHaveBeenCalledTimes(1);
+    expect(emit).toHaveBeenCalledWith('guide-ready');
   });
 });

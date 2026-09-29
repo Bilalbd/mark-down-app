@@ -1,7 +1,7 @@
 import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { emit } from '@tauri-apps/api/event';
 import { getVersion } from '@tauri-apps/api/app';
-import { appDataDir, resolveResource } from '@tauri-apps/api/path';
+import { appDataDir } from '@tauri-apps/api/path';
 
 export const isTauri = (): boolean => '__TAURI_INTERNALS__' in window;
 
@@ -163,17 +163,21 @@ export function settingsFolder(): Promise<string | null> {
   return appDataDir().catch(() => null);
 }
 
-/** Resolved once and reused: the bundled guide's path never changes within a run. */
-let cachedGuidePath: string | null | undefined;
+/** Shows the guide window, focusing it if it's already open (one per app process). Does nothing
+ * outside Tauri. */
+export function openGuideWindow(): Promise<void> {
+  if (!isTauri()) return Promise.resolve();
+  return invoke('open_guide_window');
+}
 
-/** Absolute path of the bundled guide (`src-tauri/resources/guide/Guide.md`, added to
- * `bundle.resources`), resolved and cached on first call. `null` outside Tauri, or if the
- * resource can't be found (a broken install). */
-export async function guidePath(): Promise<string | null> {
-  if (!isTauri()) return null;
-  if (cachedGuidePath !== undefined) return cachedGuidePath;
-  cachedGuidePath = await resolveResource('resources/guide/Guide.md').catch(() => null);
-  return cachedGuidePath;
+let guideReadySent = false;
+
+/** Tells the Rust side the guide has rendered, so it can reveal the guide window (which starts
+ * hidden). Only the first call emits, like `emitAppReady`. */
+export function emitGuideReady(): void {
+  if (!isTauri() || guideReadySent) return;
+  guideReadySent = true;
+  void emit('guide-ready');
 }
 
 export interface SpellError {

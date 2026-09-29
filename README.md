@@ -160,8 +160,10 @@ This list is also in Settings → Shortcuts, and always up to date with what the
 ## Guide
 
 The app has a built-in guide covering every feature, with a live Markdown cheat sheet. Open it
-with the **Guide** toolbar button, **F1**, or the link on the start screen. You can also read it
-on GitHub: [`src-tauri/resources/guide/Guide.md`](src-tauri/resources/guide/Guide.md).
+with the **Guide** toolbar button, **F1**, the link on the start screen, or Settings → About. It
+opens in its own read-only window with just the outline and the formatted guide (no toolbar, tabs,
+Find or editing); **Ctrl+W** or **Escape** closes it, and it remembers its size and position. You
+can also read it on GitHub: [`src/guide/Guide.md`](src/guide/Guide.md).
 
 ## Where things are stored
 
@@ -205,8 +207,9 @@ src/
   styles/                 app-theme.css, base.css, preset → CSS mapping, presets/*.json
 src-tauri/src/            lib.rs (builder, navigation guard), commands.rs (file I/O, encodings),
                           watch.rs (file watcher), assets.rs (local-image protocol), spell.rs
-                          (Windows Spell Checking API), instance.rs (single instance / new window)
-src-tauri/resources/guide/ the bundled Guide.md
+                          (Windows Spell Checking API), instance.rs (single instance / new window),
+                          guide.rs (the guide window)
+src/guide/Guide.md        the guide's text, shown in the guide window (components/GuideWindow)
 fixtures/                 hand-test documents, one per feature area, including fixtures/tabs/
 ```
 

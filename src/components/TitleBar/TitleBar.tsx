@@ -12,9 +12,11 @@ import './TitleBar.css';
 interface Props {
   fileName?: string;
   dirty?: boolean;
+  /** Set to false for a window that never shows tabs (the guide window). */
+  allowTabs?: boolean;
 }
 
-export function TitleBar({ fileName, dirty = false }: Props) {
+export function TitleBar({ fileName, dirty = false, allowTabs = true }: Props) {
   const [maximized, setMaximized] = useState(false);
 
   const tabCount = useTabsStore((s) => s.tabs.length);
@@ -35,7 +37,7 @@ export function TitleBar({ fileName, dirty = false }: Props) {
 
   const win = () => getCurrentWindow();
 
-  const showTabs = tabsVisible(openFilesIn, tabCount);
+  const showTabs = allowTabs && tabsVisible(openFilesIn, tabCount);
 
   return (
     <header className="titlebar" data-tauri-drag-region>

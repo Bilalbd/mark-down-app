@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { GuideWindow } from './components/GuideWindow/GuideWindow';
 import './styles/app-theme.css';
 import './styles/base.css';
 import 'katex/dist/katex.min.css';
@@ -34,13 +35,15 @@ if (import.meta.env.DEV) {
   });
 }
 
+// The guide window (see `guide.rs`) loads this same page with a `#guide` marker.
+const isGuideWindow = window.location.hash === '#guide';
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
+  <React.StrictMode>{isGuideWindow ? <GuideWindow /> : <App />}</React.StrictMode>,
 );
 
 // The app itself calls emitAppReady once settings/styles are loaded and any launch
 // file is open, so the window only appears once it's actually themed correctly. This
 // is just a safety net in case that never happens (e.g. an error during startup).
-setTimeout(emitAppReady, 1500);
+// The guide window has its own reveal, and must never trigger the main window's.
+if (!isGuideWindow) setTimeout(emitAppReady, 1500);

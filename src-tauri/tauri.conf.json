@@ -61,8 +61,7 @@
       }
     },
     "resources": [
-      "icons/markdown-file.ico",
-      "resources/guide/Guide.md"
+      "icons/markdown-file.ico"
     ]
   }
 }

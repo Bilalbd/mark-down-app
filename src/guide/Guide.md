@@ -1,8 +1,9 @@
 # Guide
 
 Welcome to **Markdown**, a small, fast Markdown viewer and editor for Windows. This guide covers
-everything the app does. You can come back to it any time by pressing **F1**, clicking the
-**Guide** button in the toolbar, or (from the start screen) the “Read the guide” link.
+everything the app does. It opens in its own read-only window, so it never gets in the way of your
+documents. You can bring it up any time by pressing **F1**, clicking the **Guide** button in the
+toolbar, or (from the start screen) the “Read the guide” link.
 
 ## Welcome
 
@@ -12,6 +13,24 @@ Source) and **Ctrl+Shift+E** (toggle Split). The app always starts in Formatted 
 last had a document open in Source.
 
 If you ever get stuck, this guide is one press away: **F1** opens it from anywhere in the app.
+
+## The guide window
+
+The guide is deliberately simple: a title bar, the **outline** on the left (click a heading to jump
+to it) and the formatted guide. There is no toolbar, no tabs, and no Find, zoom or editing, so it
+can’t change anything. You can still select text in it and press **Ctrl+C** to copy.
+
+- **F1**, the toolbar’s **Guide** button, the start-screen link and **Settings → About → Open the
+  guide** all open it. If it’s already open, that window is brought to the front instead of a
+  second one being opened. It works the same in both *Open files in* modes.
+- **Ctrl+W** or **Escape** closes it, as does the close button in its title bar. Closing the main
+  window closes it too.
+- It remembers its size and position.
+- It looks like the main window: the same light or dark theme and the same preset. If you change
+  either in the main window, the guide catches up the next time you click into it.
+- Links: `http(s)://` and `mailto:` links open in your default browser or mail app, and `#anchor`
+  links scroll. Any other kind of link does nothing.
+- Opening or closing it never affects the documents you have open, or their unsaved changes.
 
 ## Opening and creating files
 
@@ -346,7 +365,7 @@ A HEX colour code gets a small swatch next to it in the formatted view, for exam
 | Ctrl+\\ | Toggle outline |
 | Ctrl+F | Find |
 | Ctrl+, | Settings |
-| F1 | Guide |
+| F1 | Guide (opens the guide window) |
 | Ctrl+= / Ctrl+− / Ctrl+0 / Ctrl+wheel | Zoom preview |
 
 **Editing (Source view)**
@@ -420,8 +439,8 @@ list as the Keyboard shortcuts section above.
 
 **About**
 
-The app’s version and licence, an **Open the guide** button (the same as **F1**), and the **Settings
-folder**: where your settings and presets are stored, with a **Show in File Explorer** button that
+The app’s version and licence, an **Open the guide** button (the same as **F1**: it opens the guide
+window), and the **Settings folder**: where your settings and presets are stored, with a **Show in File Explorer** button that
 opens it.
 
 A few other things are remembered automatically without a Settings row of their own: the **full

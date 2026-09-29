@@ -1,5 +1,6 @@
 mod assets;
 mod commands;
+mod guide;
 mod instance;
 mod spell;
 mod watch;
@@ -194,6 +195,14 @@ pub fn run() {
         .manage(assets::AssetRoot::default())
         .manage(commands::PendingOpens::default())
         .manage(spell::SpellState::default())
+        .manage(guide::GuideState::default())
+        // The guide window can't outlive the main window (the app would keep running with only it).
+        .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::Destroyed) && guide::closes_guide(window.label())
+            {
+                guide::close(window.app_handle());
+            }
+        })
         .register_asynchronous_uri_scheme_protocol("mdasset", |ctx, request, responder| {
             let root = match ctx.app_handle().state::<assets::AssetRoot>().0.lock() {
                 Ok(guard) => guard.clone(),
@@ -211,6 +220,7 @@ pub fn run() {
             commands::write_file,
             commands::take_pending_opens,
             commands::open_in_new_window,
+            guide::open_guide_window,
             assets::set_asset_root,
             assets::read_asset_data_url,
             watch::watch_file,
