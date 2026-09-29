@@ -38,6 +38,7 @@ install anything.
 | Rust check / tests | `$env:Path = "$env:USERPROFILE\.cargo\bin;" + $env:Path; cd src-tauri; cargo check; cargo test` |
 | Run the app (dev) | `.\scripts\dev.ps1 [file.md]` (WebView2 remote debugging on port 9222) |
 | Drive the running app | `node scripts/cdp.mjs eval "<js>"` · `eval-file <f.js>` · `screenshot <out.png>` · `pdf <out.pdf>` |
+| Running-app checks | `.\scripts\checks\launch.ps1 [-File f.md] [-Build]`, then `node scripts/checks/<sweep\|keys\|menus\|guide\|settings>.mjs`, then `.\scripts\checks\stop.ps1` (README → Development) |
 | Installer | `pnpm tauri build` |
 
 In dev builds the stores are exposed on `window.__mdv` (`document`, `settings`, `view`, `style`,
@@ -224,7 +225,8 @@ Placement rules:
 - Phases handed to sub-agents use the `implementer` agent type (`.claude/agents/implementer.md`),
   which has only the tools that work needs. Implementers never build, launch or screenshot the app.
   Plans put the running-app checks in a supervisor checklist, run once per batch of phases, not in
-  each phase's tasks. Launching the app and driving it over CDP from every agent is what made the
+  each phase's tasks. Use `scripts/checks/` for them and add to it (a new check script, or new
+  cases in an existing one) rather than writing one-off scripts. Launching the app and driving it over CDP from every agent is what made the
   v1.0 run expensive.
 
 ---

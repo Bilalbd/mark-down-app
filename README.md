@@ -198,6 +198,24 @@ it. In dev builds the stores are exposed on `window.__mdv` (`document`, `setting
 `style`, `tabs`, `render`). Debug builds also honour `MDV_TEST_STALL_STARTUP=first|all`, which
 imitates a stuck start (`first`: only a launch without `--relaunched`) to test the startup watchdog.
 
+`scripts/checks/` holds repeatable checks against the running app, using real mouse and key
+events. Each check prints PASS/FAIL lines:
+
+```powershell
+.\scripts\checks\launch.ps1 -File fixtures\gfm.md [-Build]   # back up settings, start Vite + the app
+node scripts/checks/sweep.mjs [--shots <dir>]    # every fixture, light and dark, all three views
+node scripts/checks/keys.mjs                     # formatting shortcuts
+node scripts/checks/menus.mjs [--shots <dir>]    # right-click menus (--clipboard for Cut/Paste)
+node scripts/checks/guide.mjs                    # F1, the Guide button and the guide window
+node scripts/checks/settings.mjs [--shots <dir>] # every Settings page, light and dark
+.\scripts\checks\stop.ps1 [-KeepState]           # stop what launch started, put settings back
+```
+
+The app runs in its own window and WebView2 profile next to an installed copy. `stop.ps1` stops
+only the processes `launch.ps1` recorded, and restores `settings.json`, `presets.json` and
+`.window-state.json` (keeping recent files opened in the installed app meanwhile). Screenshots
+are half size unless `SHOT_SCALE` says otherwise.
+
 ```
 src/
   main.tsx, App.tsx      bootstrapping, top-level layout, app-wide shortcuts and events
