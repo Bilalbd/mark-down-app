@@ -3,6 +3,7 @@ mod commands;
 mod guide;
 mod instance;
 mod spell;
+mod startup;
 mod watch;
 
 use std::path::{Path, PathBuf};
@@ -13,19 +14,15 @@ use tauri_plugin_window_state::{StateFlags, WindowExt};
 
 const IDENTIFIER: &str = "com.bilal.markdown-viewer";
 const SHOW_FALLBACK: Duration = Duration::from_secs(5);
-const STARTUP_WATCHDOG: Duration = Duration::from_secs(15);
 
 /// Set to true when the app-ready event is received from the frontend.
 static APP_READY: AtomicBool = AtomicBool::new(false);
-
-/// Set to true when .setup() completes. Used by the startup watchdog.
-static SETUP_DONE: AtomicBool = AtomicBool::new(false);
 
 /// Set to true when the window is first revealed to the user.
 static REVEALED: AtomicBool = AtomicBool::new(false);
 
 /// Build relaunch arguments: returns None if already relaunched, else args[1..] plus --new-window (not duplicated) and --relaunched.
-fn relaunch_args(args: &[String]) -> Option<Vec<String>> {
+pub(crate) fn relaunch_args(args: &[String]) -> Option<Vec<String>> {
     if args.iter().any(|a| a == "--relaunched") {
         return None;
     }
@@ -47,7 +44,7 @@ fn relaunch_args(args: &[String]) -> Option<Vec<String>> {
 }
 
 #[cfg(windows)]
-fn show_startup_error() {
+pub(crate) fn show_startup_error() {
     use std::ffi::OsStr;
     use std::os::windows::ffi::OsStrExt;
 
@@ -74,7 +71,7 @@ fn show_startup_error() {
 }
 
 #[cfg(not(windows))]
-fn show_startup_error() {}
+pub(crate) fn show_startup_error() {}
 
 /// Whether `url` is a location the app's own webview should be allowed to navigate to.
 /// Everything else (a relative `.md` link resolving to a real navigation, `file:`, a
@@ -110,6 +107,7 @@ fn fallback_webview_dir(local_app_data: &Path) -> PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    startup::init();
     let args: Vec<String> = std::env::args().collect();
     let is_relaunched = args.iter().any(|a| a == "--relaunched");
     let new_window = args.iter().any(|a| a == "--new-window");
@@ -129,28 +127,13 @@ pub fn run() {
         }
     }
 
-    // Watchdog: relaunch if setup doesn't complete in time.
-    {
-        let args_owned = args.clone();
-        std::thread::spawn(move || {
-            std::thread::sleep(STARTUP_WATCHDOG);
-            if !SETUP_DONE.load(Ordering::Relaxed) {
-                match relaunch_args(&args_owned) {
-                    None => {
-                        show_startup_error();
-                        std::process::exit(1);
-                    }
-                    Some(new_args) => {
-                        if let Ok(exe) = std::env::current_exe() {
-                            let _ = std::process::Command::new(exe).args(&new_args).spawn();
-                        }
-                        std::process::exit(1);
-                    }
-                }
-            }
-        });
-    }
+    // Watchdog: relaunch (or show the error box) if setup doesn't complete in time.
+    // A relaunch is told (with --open) which files were forwarded to the stuck copy; they are
+    // queued here so the frontend's startup drain opens them.
+    let pending = commands::PendingOpens::seeded(commands::opens_from_args(&args));
+    startup::spawn_watchdog(args.clone(), pending.clone());
 
+    startup::mark(startup::Stage::BuilderRun);
     let mut builder = tauri::Builder::default();
 
     // Add single-instance plugin first, but only if not launching with --new-window.
@@ -189,11 +172,12 @@ pub fn run() {
         .plugin(
             tauri::plugin::Builder::<tauri::Wry, ()>::new("navigation-guard")
                 .on_navigation(|_webview, url| is_app_url(url))
+                .on_webview_ready(|_webview| startup::mark(startup::Stage::WebviewCreated))
                 .build(),
         )
         .manage(watch::WatchState::default())
         .manage(assets::AssetRoot::default())
-        .manage(commands::PendingOpens::default())
+        .manage(pending)
         .manage(spell::SpellState::default())
         .manage(guide::GuideState::default())
         // The guide window can't outlive the main window (the app would keep running with only it).
@@ -230,6 +214,11 @@ pub fn run() {
             spell::spell_suggest
         ])
         .setup(|app| {
+            startup::mark(startup::Stage::SetupStart);
+            // Debug builds only: MDV_TEST_STALL_STARTUP imitates the hang (see startup.rs).
+            #[cfg(debug_assertions)]
+            startup::stall_if_requested(&std::env::args().collect::<Vec<_>>());
+
             let window = app.get_webview_window("main").expect("main window exists");
 
             // Cloak window, restore state, show for layout/paint (all off-screen); uncloak in reveal().
@@ -242,6 +231,7 @@ pub fn run() {
                 let w = window.clone();
                 app.handle().clone().listen("app-ready", move |_event| {
                     APP_READY.store(true, Ordering::Relaxed);
+                    startup::mark(startup::Stage::AppReady);
                     reveal(&w);
                 });
             }
@@ -257,7 +247,7 @@ pub fn run() {
                 });
             }
 
-            SETUP_DONE.store(true, Ordering::Relaxed);
+            startup::mark(startup::Stage::SetupDone);
             Ok(())
         })
         .run(tauri::generate_context!())

@@ -103,6 +103,11 @@ thread was no longer sleeping). Likely suspects: `std::process::exit` running DL
 blocks, or `Command::spawn` blocking. Not reproduced on demand (a fake WebView2 runtime to force the
 stall was refused by the safety classifier). Parked; not part of the v0.8 phases.
 
+Outcome (v1.0 Phase 12, 2026-09-29): reproduced on demand by stopping the WebView2 browser process
+during startup. The old watchdog only covered a stuck `.setup()`; it now also covers a page that
+never starts, ends the process with `TerminateProcess`, and logs to `startup.log`. See
+[`../v1.0/phase-12-startup-hang.md`](../v1.0/phase-12-startup-hang.md).
+
 ## Report-back table (supervisor fills in)
 
 | Phase | Commit | Tests before → after | Manual check | Notes |

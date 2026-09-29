@@ -168,7 +168,9 @@ can also read it on GitHub: [`src/guide/Guide.md`](src/guide/Guide.md).
 ## Where things are stored
 
 Settings and style presets live in `%APPDATA%\com.bilal.markdown-viewer\` (`settings.json`,
-`presets.json`); nothing else is written outside the files you open and save yourself.
+`presets.json`). The only other file the app writes, apart from the files you open and save
+yourself, is `%LOCALAPPDATA%\com.bilal.markdown-viewer\startup.log`: one line each time a start
+gets stuck and the app has to recover (never written on a normal start, capped at 64 KB).
 
 The app makes no network requests of its own. The one exception is remote (`http(s)`) images
 referenced by a document you open, which you can stop with **Block remote images** in Settings;
@@ -193,7 +195,8 @@ pnpm tauri build               # NSIS installer in src-tauri/target/release/bund
 `scripts/dev.ps1 [file.md]` launches the dev app with WebView2 remote debugging on port 9222;
 `node scripts/cdp.mjs eval "<js>" | eval-file <file> | screenshot <out.png> | pdf <out.pdf>` drives
 it. In dev builds the stores are exposed on `window.__mdv` (`document`, `settings`, `view`,
-`style`, `tabs`, `render`).
+`style`, `tabs`, `render`). Debug builds also honour `MDV_TEST_STALL_STARTUP=first|all`, which
+imitates a stuck start (`first`: only a launch without `--relaunched`) to test the startup watchdog.
 
 ```
 src/
@@ -208,7 +211,7 @@ src/
 src-tauri/src/            lib.rs (builder, navigation guard), commands.rs (file I/O, encodings),
                           watch.rs (file watcher), assets.rs (local-image protocol), spell.rs
                           (Windows Spell Checking API), instance.rs (single instance / new window),
-                          guide.rs (the guide window)
+                          guide.rs (the guide window), startup.rs (startup watchdog and its log)
 src/guide/Guide.md        the guide's text, shown in the guide window (components/GuideWindow)
 fixtures/                 hand-test documents, one per feature area, including fixtures/tabs/
 ```

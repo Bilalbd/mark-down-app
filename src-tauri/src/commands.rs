@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 #[serde(rename_all = "kebab-case")]
@@ -83,12 +83,20 @@ fn encode(content: &str, enc: Encoding) -> Vec<u8> {
     }
 }
 
+/// Flag the watchdog's relaunch uses to hand over files that were forwarded to the stuck process
+/// (`--open <path>`, repeated). They are not the launch file; see `opens_from_args`.
+pub const OPEN_FLAG: &str = "--open";
+
 /// The file to open from a command line (`args[0]` is the exe): the first argument that isn't
-/// a flag, made absolute against `cwd` and normalised.
+/// a flag (or the value of `--open`), made absolute against `cwd` and normalised.
 pub fn launch_path(args: &[String], cwd: &Path) -> Option<String> {
+    let mut after_open = false;
     args.iter()
         .skip(1) // Skip args[0], which is the exe path
-        .find(|a| !a.starts_with('-'))
+        .find(|a| {
+            let is_open_value = std::mem::replace(&mut after_open, a.as_str() == OPEN_FLAG);
+            !is_open_value && !a.starts_with('-')
+        })
         .map(|a| {
             let path = PathBuf::from(a);
             let absolute = if path.is_absolute() {
@@ -106,12 +114,32 @@ pub fn launch_path(args: &[String], cwd: &Path) -> Option<String> {
 /// Set when the app is launched via a `.md` file association or "Open With".
 #[tauri::command]
 pub fn get_launch_args() -> Option<String> {
+    // The first thing the page does at startup; tells the startup watchdog the page is running.
+    crate::startup::mark(crate::startup::Stage::FrontendStarted);
     launch_path(&std::env::args().collect::<Vec<_>>(), &std::env::current_dir().unwrap_or_default())
 }
 
-/// Files forwarded by later launches (single-instance), waiting for the frontend to open them.
-#[derive(Default)]
-pub struct PendingOpens(pub Mutex<Vec<String>>);
+/// The files handed over with `--open <path>` arguments, in order.
+pub fn opens_from_args(args: &[String]) -> Vec<String> {
+    args.iter()
+        .skip(1)
+        .zip(args.iter().skip(2))
+        .filter(|(flag, _)| flag.as_str() == OPEN_FLAG)
+        .map(|(_, path)| path.clone())
+        .collect()
+}
+
+/// Files forwarded by later launches (single-instance) or handed over by a relaunch, waiting for
+/// the frontend to open them. Shared (`Arc`) so the startup watchdog can read it without the app.
+#[derive(Default, Clone)]
+pub struct PendingOpens(pub Arc<Mutex<Vec<String>>>);
+
+impl PendingOpens {
+    /// A queue that already holds `paths` (the files a relaunch was told to open).
+    pub fn seeded(paths: Vec<String>) -> Self {
+        PendingOpens(Arc::new(Mutex::new(paths)))
+    }
+}
 
 /// Returns and clears the forwarded files.
 #[tauri::command]
@@ -406,5 +434,48 @@ mod launch_path_tests {
         let args = vec!["exe".to_string(), "--relaunched".to_string(), "C:\\file.md".to_string()];
         let result = launch_path(&args, Path::new("C:\\home"));
         assert_eq!(result, Some("C:\\file.md".to_string()));
+    }
+
+    fn strings(items: &[&str]) -> Vec<String> {
+        items.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn open_values_are_not_the_launch_file() {
+        let args = strings(&["exe", "--new-window", "--relaunched", "--open", "C:\\b.md"]);
+        assert_eq!(launch_path(&args, Path::new("C:\\home")), None);
+    }
+
+    #[test]
+    fn launch_file_comes_before_open_values() {
+        let args = strings(&["exe", "C:\\a.md", "--new-window", "--relaunched", "--open", "C:\\b.md"]);
+        assert_eq!(launch_path(&args, Path::new("C:\\home")), Some("C:\\a.md".to_string()));
+    }
+
+    #[test]
+    fn opens_from_args_collects_every_open_value_in_order() {
+        let args = strings(&[
+            "exe", "C:\\a.md", "--new-window", "--relaunched", "--open", "C:\\my docs\\b.md", "--open", "C:\\c.md",
+        ]);
+        assert_eq!(
+            opens_from_args(&args),
+            strings(&["C:\\my docs\\b.md", "C:\\c.md"])
+        );
+    }
+
+    #[test]
+    fn opens_from_args_is_empty_without_the_flag_or_a_value() {
+        assert!(opens_from_args(&strings(&["exe", "C:\\a.md", "--relaunched"])).is_empty());
+        assert!(opens_from_args(&strings(&["exe", "--open"])).is_empty());
+        assert!(opens_from_args(&strings(&["exe"])).is_empty());
+        assert!(opens_from_args(&[]).is_empty());
+    }
+
+    #[test]
+    fn a_seeded_queue_hands_its_files_over_once() {
+        let pending = PendingOpens::seeded(strings(&["C:\\b.md"]));
+        let shared = pending.clone();
+        assert_eq!(std::mem::take(&mut *pending.0.lock().unwrap()), strings(&["C:\\b.md"]));
+        assert!(shared.0.lock().unwrap().is_empty());
     }
 }
