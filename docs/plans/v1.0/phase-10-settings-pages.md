@@ -184,4 +184,22 @@ Explorer note). (3) The Guide's shortcuts table is one flat table while the app 
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Built by a Sonnet 5 agent (`149e627`). Re-run: `pnpm test` 728 (from 707; every earlier assertion
+kept, moved with its code), lint and tsc clean.
+
+In-app, supervisor (`scratchpad/supervisor/pages.mjs`, real clicks on each tab):
+- All five pages have the planned cards: General (Window | Layout | Documents), Editor (Editor |
+  Spelling), Appearance (segment over Presets / Fonts & colours / Custom CSS), Shortcuts (Files |
+  Tabs | Views | Editing), About (Markdown, Version 1.0.0, CC0 | Guide | Settings folder).
+- Screenshots in light and dark were checked by eye: a hint under every setting, and the Split
+  highlight toggle in Layout.
+- Settings unchanged afterwards.
+
+Noted for Bilal:
+- "Show in File Explorer" opens the Roaming folder with `com.bilal.markdown-viewer` selected
+  (reveal behaviour); opening inside it would need a new opener permission.
+- At the 480 px minimum width with the outline open, the settings panel overflows (as before this
+  phase).
+- `settings.json` has had `spellWords` = understad, Helo, typecheck, ESLint and `spellLanguages` =
+  en, ar since before the Phase 8 check. They aren't from any fixture, so they were left for Bilal
+  to confirm.
