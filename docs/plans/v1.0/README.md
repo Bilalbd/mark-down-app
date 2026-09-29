@@ -219,5 +219,5 @@ screenshots in both themes, and records the outcome in the phase document's "Sup
 | 8 | `52c5c7b` | 675 → 698 | Passed (real diagonal mouse path, both sides, supervisor) | Sonnet 5. Also fixed submenu items closing their own submenu, and the tab strip flyout |
 | 9 | `c815c8f` | 698 → 707 | Passed (light and dark, paragraph and table row, supervisor) | Sonnet 5. Table rows needed extra CSS; off by default |
 | 10 | `149e627` | 707 → 728 | Passed (every page, light and dark, supervisor) | Sonnet 5. Tests moved with their code |
-| 11 | | | | |
+| 11 | `44400e3` | 728 → 737 | Passed (real keys, light and dark, supervisor) | Sonnet 5. Rust window + narrow capability; old file-based guide removed |
 | 12 | | | | |

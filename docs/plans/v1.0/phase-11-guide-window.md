@@ -218,4 +218,27 @@ second-instance exe, the release exe, Vite and its `pnpm`, and my stuck CDP `nod
 
 ## Supervisor check
 
-_(supervisor fills in)_
+Built by a Sonnet 5 agent (`44400e3`). Diff reviewed:
+- `guide.rs`: a mutex against a double build; the window is cloaked until `guide-ready`, with a 5 s
+  fallback; `lib.rs` closes the guide when `main` is destroyed.
+- `capabilities/guide.json`: window controls, events, store read-only and the opener for URLs;
+  `default.json` is unchanged.
+- The file-based guide plumbing is removed; its 8 tests are listed in the commit.
+
+Re-run: `pnpm test` 737, lint and tsc clean, `cargo test` 56.
+
+In-app, supervisor (`scratchpad/supervisor/guidewin.mjs`, real CDP keys). One launch hung because
+the PC entered Modern Standby at 11:11:57 (the Phase 12 bug); after relaunching:
+- F1 opens exactly one `#guide` window, and F1 again keeps one.
+- The guide window has no editor, toolbar, tabs or contenteditable. The outline has 18 entries.
+- Typing, Ctrl+S, Ctrl+V, Ctrl+E and Delete change nothing.
+- Escape closes it, and the main window is unaffected.
+- Light and dark screenshots checked; the title bar reads "Markdown – Guide".
+- Settings, presets and window state were unchanged afterwards.
+
+Noted for Bilal:
+- The agent's link check opened two tabs in his real Chrome, which it left open.
+- The agent again wrote into the supervisor's backup folder.
+- App commands (`read_file` etc.) aren't restricted per window in this project (no app manifest);
+  the guide window loads only the app's own bundle.
+- The guide's outline width isn't remembered.
