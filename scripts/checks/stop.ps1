@@ -7,6 +7,18 @@ $state = Join-Path $env:TEMP "mdv-checks"
 $pidFile = Join-Path $state "pids.json"
 if (Test-Path $pidFile) {
   $pids = Get-Content $pidFile -Raw | ConvertFrom-Json
+  # A slow first start (e.g. a cold Vite) lets the startup watchdog relaunch the app with
+  # --relaunched and end the original, so the copy it started isn't the recorded PID. Windows
+  # keeps the dead parent's PID, which identifies it; the exe path guards against PID reuse.
+  $exe = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) "src-tauri\target\debug\markdown-viewer.exe"
+  if ($pids.app) {
+    Get-CimInstance Win32_Process -Filter "Name='markdown-viewer.exe' AND ParentProcessId=$($pids.app)" |
+      Where-Object { $_.ExecutablePath -eq $exe -and $_.CommandLine -like "*--relaunched*" } |
+      ForEach-Object {
+        taskkill /PID $_.ProcessId /T /F | Out-Null
+        "Stopped the relaunched app (PID $($_.ProcessId))"
+      }
+  }
   foreach ($name in "app", "vite") {
     $id = $pids.$name
     if ($id -and (Get-Process -Id $id -ErrorAction SilentlyContinue)) {
