@@ -16,6 +16,11 @@ Every change to the app and to how it's built is logged here, newest first. The 
 
 ## [Unreleased]
 
+### Fixed
+
+- A tab's unsaved-changes dot now sits before the file name and shows on every unsaved tab,
+  including the active one, instead of being hidden behind the close button.
+
 ### Development
 
 - Plan phases handed to sub-agents use a lean `implementer` agent type that never launches the

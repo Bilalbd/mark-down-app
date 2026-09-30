@@ -484,12 +484,12 @@ export function TabStrip() {
             }}
             onKeyDown={(e) => handleKeyDown(e, t.id)}
           >
-            <span className="tabstrip__label">{t.label}</span>
             {t.dirty && (
               <span className="tabstrip__dirty" aria-label="Unsaved changes">
                 •
               </span>
             )}
+            <span className="tabstrip__label">{t.label}</span>
             <button
               className="tabstrip__close"
               aria-label={`Close ${t.label}`}

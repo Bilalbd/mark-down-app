@@ -95,6 +95,63 @@ describe('TabStrip context menu', () => {
   });
 });
 
+describe('TabStrip unsaved marker', () => {
+  let container: HTMLElement;
+  let root: ReturnType<typeof createRoot>;
+  const tabsBefore = useTabsStore.getState();
+  const docBefore = useDocumentStore.getState();
+
+  beforeEach(() => {
+    useDocumentStore.setState({
+      ...EMPTY_DOC,
+      path: '/docs/active.md',
+      hasDocument: true,
+      content: 'edited',
+      savedContent: 'saved',
+    });
+    useTabsStore.setState({
+      tabs: [
+        { id: 'a', snapshot: null },
+        {
+          id: 'b',
+          snapshot: {
+            doc: { ...EMPTY_DOC, path: '/notes/other.md', hasDocument: true, content: 'x' },
+            viewMode: 'formatted',
+            topLine: 0,
+            needsReload: false,
+          },
+        },
+      ],
+      activeId: 'a',
+    });
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    act(() => root.render(<TabStrip />));
+  });
+
+  afterEach(() => {
+    act(() => root.unmount());
+    container.remove();
+    useTabsStore.setState({ tabs: tabsBefore.tabs, activeId: tabsBefore.activeId });
+    useDocumentStore.setState({
+      path: docBefore.path,
+      hasDocument: docBefore.hasDocument,
+      content: docBefore.content,
+      savedContent: docBefore.savedContent,
+    });
+  });
+
+  // The close button sits on the right, so a marker there was hidden on the active tab.
+  it.each(['a', 'b'])('puts the marker before the file name (tab %s)', (tabId) => {
+    const tab = container.querySelector(`[data-tab-id="${tabId}"]`)!;
+    expect(tab.firstElementChild?.getAttribute('aria-label')).toBe('Unsaved changes');
+    expect(tab.firstElementChild?.nextElementSibling?.classList.contains('tabstrip__label')).toBe(
+      true,
+    );
+  });
+});
+
 describe('TabStrip "Open recent" flyout hover aim', () => {
   let container: HTMLElement;
   let root: ReturnType<typeof createRoot>;

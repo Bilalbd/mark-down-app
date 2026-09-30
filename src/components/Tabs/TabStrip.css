@@ -154,16 +154,6 @@
   display: none;
 }
 
-/* When dirty and not hovered/active, show dot and hide close button */
-.tabstrip__tab.is-dirty:not(:hover):not(.is-active):not(:focus-visible) .tabstrip__close {
-  display: none;
-}
-
-.tabstrip__tab.is-dirty:hover .tabstrip__dirty,
-.tabstrip__tab.is-dirty.is-active .tabstrip__dirty {
-  display: none;
-}
-
 .tabstrip__new {
   width: 18px;
   height: 18px;
