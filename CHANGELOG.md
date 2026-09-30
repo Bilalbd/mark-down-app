@@ -16,8 +16,15 @@ Every change to the app and to how it's built is logged here, newest first. The 
 
 ## [Unreleased]
 
+### Added
+
+- 16 more built-in fonts (sans, serif, heading, code and Arabic families), bundled so they work
+  offline.
+
 ### Changed
 
+- Built-in fonts now include only Latin and Arabic characters, keeping the installer small; other
+  scripts use a system font.
 - The Solarized preset has darker body text in light mode and brighter text in dark mode for
   easier reading, with slightly tighter line spacing and a wider page (800px).
 
