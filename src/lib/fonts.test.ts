@@ -6,6 +6,7 @@ import {
   groupFonts,
   primaryFamily,
   resolveFamily,
+  systemFontsToFamilies,
   type FontFamily,
 } from './fonts';
 
@@ -208,5 +209,36 @@ describe('groupFonts', () => {
     expect(groupFonts([font({ family: 'Zilla', source: 'google' })]).map((g) => g.source)).toEqual([
       'google',
     ]);
+  });
+});
+
+describe('systemFontsToFamilies', () => {
+  it('maps each installed font to a system entry with the right category', () => {
+    const result = systemFontsToFamilies([
+      { family: 'Cascadia Code', monospace: true, arabic: false },
+      { family: 'Segoe UI', monospace: false, arabic: true },
+    ]);
+    expect(result).toEqual([
+      {
+        family: 'Cascadia Code',
+        cssName: 'Cascadia Code',
+        source: 'system',
+        category: 'monospace',
+        monospace: true,
+        arabic: false,
+      },
+      {
+        family: 'Segoe UI',
+        cssName: 'Segoe UI',
+        source: 'system',
+        category: 'sans-serif',
+        monospace: false,
+        arabic: true,
+      },
+    ]);
+  });
+
+  it('gives an empty list for no fonts', () => {
+    expect(systemFontsToFamilies([])).toEqual([]);
   });
 });

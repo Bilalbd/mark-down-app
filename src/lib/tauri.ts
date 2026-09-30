@@ -204,3 +204,24 @@ export function spellSuggest(word: string, languages: string[]): Promise<string[
   if (!isTauri()) return Promise.resolve([]);
   return invoke<string[]>('spell_suggest', { word, languages });
 }
+
+/** One font family installed on this PC, as listed by DirectWrite. */
+export interface SystemFont {
+  family: string;
+  monospace: boolean;
+  arabic: boolean;
+}
+
+let systemFontsPromise: Promise<SystemFont[]> | null = null;
+
+/** The font families installed on this PC, cached for the session (fonts rarely change while the
+ * app runs). `[]` outside Tauri, and also if listing fails, so the picker still works with its
+ * other groups; a failure isn't cached, so the next call tries again. */
+export function listSystemFonts(): Promise<SystemFont[]> {
+  if (!isTauri()) return Promise.resolve([]);
+  systemFontsPromise ??= invoke<SystemFont[]>('list_system_fonts').catch(() => {
+    systemFontsPromise = null;
+    return [];
+  });
+  return systemFontsPromise;
+}

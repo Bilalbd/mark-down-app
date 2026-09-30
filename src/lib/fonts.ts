@@ -1,3 +1,5 @@
+import type { SystemFont } from '@/lib/tauri';
+
 /** Where a font comes from: shipped with the app, installed on this PC, or a Google font. */
 export type FontSource = 'builtin' | 'system' | 'google';
 
@@ -139,6 +141,18 @@ export function filterFonts(fonts: FontFamily[], filter: FontFilter): FontFamily
       (!filter.arabicOnly || f.arabic) &&
       (!q || f.family.toLowerCase().includes(q) || f.cssName.toLowerCase().includes(q)),
   );
+}
+
+/** Turns DirectWrite's list into picker entries: monospace or sans-serif, `cssName` = the family. */
+export function systemFontsToFamilies(list: SystemFont[]): FontFamily[] {
+  return list.map((f) => ({
+    family: f.family,
+    cssName: f.family,
+    source: 'system',
+    category: f.monospace ? 'monospace' : 'sans-serif',
+    monospace: f.monospace,
+    arabic: f.arabic,
+  }));
 }
 
 const GROUP_ORDER: FontSource[] = ['builtin', 'system', 'google'];

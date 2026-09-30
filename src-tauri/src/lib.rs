@@ -1,5 +1,6 @@
 mod assets;
 mod commands;
+mod fonts;
 mod guide;
 mod instance;
 mod spell;
@@ -211,7 +212,8 @@ pub fn run() {
             watch::unwatch_file,
             spell::spell_languages,
             spell::spell_check,
-            spell::spell_suggest
+            spell::spell_suggest,
+            fonts::list_system_fonts
         ])
         .setup(|app| {
             startup::mark(startup::Stage::SetupStart);
