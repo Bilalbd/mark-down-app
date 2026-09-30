@@ -34,6 +34,8 @@ export function SettingsPanel() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (useDialogStore.getState().current !== null) return;
+        // An open font picker takes Escape itself, to close just its list.
+        if (e.target instanceof Element && e.target.closest('.font-picker__popover')) return;
         e.stopPropagation();
         setOpen(false);
       }

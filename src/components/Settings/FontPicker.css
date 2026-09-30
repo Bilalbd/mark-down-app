@@ -1,0 +1,156 @@
+.font-picker {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.font-picker__button {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 6px;
+  font: inherit;
+  text-align: left;
+  color: var(--chrome-fg);
+  background: var(--chrome-inset);
+  border: 1px solid var(--chrome-border);
+  border-radius: 4px;
+}
+.font-picker__button:focus-visible,
+.font-picker__link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.font-picker__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.font-picker__name.is-missing {
+  color: var(--chrome-fg-muted);
+}
+.font-picker__note {
+  flex: none;
+  font-size: 10.5px;
+  color: var(--chrome-fg-muted);
+}
+
+.font-picker__link {
+  flex: none;
+  padding: 2px 4px;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--accent);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+}
+.font-picker__link:hover {
+  background: var(--chrome-hover);
+}
+
+.font-picker__popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  width: 300px;
+  padding: 6px;
+  border-radius: 6px;
+  background: var(--chrome-bg);
+  border: 1px solid var(--chrome-border);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+.font-picker__search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 6px;
+  color: var(--chrome-fg-muted);
+  background: var(--chrome-inset);
+  border: 1px solid var(--chrome-border);
+  border-radius: 4px;
+}
+.font-picker__search:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.font-picker__search svg {
+  flex: none;
+}
+/* The field sits inside a bordered wrapper, so it drops its own border and focus ring. */
+.settings .font-picker__search input[type='text'] {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  outline: none;
+}
+.font-picker__filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 2px 4px;
+  color: var(--chrome-fg);
+}
+
+.font-picker__list {
+  max-height: 260px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.font-picker__group {
+  padding: 8px 8px 2px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--chrome-fg-muted);
+}
+.font-picker__empty {
+  padding: 4px 8px;
+  color: var(--chrome-fg-muted);
+}
+.font-picker__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: 4px;
+  color: var(--chrome-fg);
+  cursor: default;
+}
+.font-picker__option.is-action {
+  color: var(--accent);
+}
+.font-picker__option.is-active {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.font-picker__row-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+.font-picker__row-tag {
+  flex: none;
+  font-size: 10.5px;
+  color: var(--chrome-fg-muted);
+}
+.font-picker__check {
+  flex: none;
+  margin-left: auto;
+  color: var(--accent);
+}

@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   BUILTIN_FONTS,
+  buildPickerRows,
+  excludeBuiltin,
   filterFonts,
   fontStack,
   groupFonts,
+  isCustomStack,
+  isGenericFamily,
   primaryFamily,
   resolveFamily,
   systemFontsToFamilies,
@@ -240,5 +244,96 @@ describe('systemFontsToFamilies', () => {
 
   it('gives an empty list for no fonts', () => {
     expect(systemFontsToFamilies([])).toEqual([]);
+  });
+});
+
+describe('excludeBuiltin', () => {
+  it('hides installed fonts that are also bundled, by family or CSS name, ignoring case', () => {
+    const result = excludeBuiltin([
+      font({ family: 'JetBrains Mono' }),
+      font({ family: 'inter' }),
+      font({ family: 'Open Sans Variable' }),
+      font({ family: 'Cascadia Code' }),
+    ]);
+    expect(result.map((f) => f.family)).toEqual(['Cascadia Code']);
+  });
+});
+
+describe('isGenericFamily / isCustomStack', () => {
+  it('recognises CSS generic keywords', () => {
+    expect(isGenericFamily('serif')).toBe(true);
+    expect(isGenericFamily(' System-UI ')).toBe(true);
+    expect(isGenericFamily('Georgia')).toBe(false);
+  });
+
+  it('treats a stack starting with a generic keyword as custom', () => {
+    expect(isCustomStack('monospace')).toBe(true);
+    expect(isCustomStack('ui-sans-serif, Arial')).toBe(true);
+  });
+
+  it('keeps named families, blank stacks and unknown names in the picker', () => {
+    expect(isCustomStack("'Inter Variable', sans-serif")).toBe(false);
+    expect(isCustomStack('Charter, Georgia, serif')).toBe(false);
+    expect(isCustomStack('')).toBe(false);
+    expect(isCustomStack("''")).toBe(true);
+  });
+});
+
+describe('buildPickerRows', () => {
+  const many = (n: number) =>
+    Array.from({ length: n }, (_, i) => font({ family: `Font ${String(i).padStart(3, '0')}` }));
+  const labels = (rows: ReturnType<typeof buildPickerRows>) =>
+    rows.map((r) => (r.type === 'option' ? r.option.key : r.key));
+
+  it('lists Same as body first, then groups, a Google placeholder and the custom row', () => {
+    const rows = buildPickerRows({
+      groups: groupFonts([font({ family: 'Lora', source: 'builtin' }), font({ family: 'Arial' })]),
+      searching: false,
+      allowSame: true,
+      expanded: [],
+    });
+    expect(labels(rows)).toEqual([
+      'same',
+      'header:builtin',
+      'font:builtin:Lora',
+      'header:system',
+      'font:system:Arial',
+      'header:google',
+      'note:google',
+      'custom',
+    ]);
+  });
+
+  it('drops Same as body and the placeholder while searching', () => {
+    const rows = buildPickerRows({
+      groups: groupFonts([font({ family: 'Arial' })]),
+      searching: true,
+      allowSame: true,
+      expanded: [],
+    });
+    expect(labels(rows)).toEqual(['header:system', 'font:system:Arial', 'custom']);
+  });
+
+  it('caps a long group with a Show all row that expands it', () => {
+    const groups = groupFonts(many(120));
+    const input = { groups, searching: false, allowSame: false, expanded: [] };
+    const capped = buildPickerRows(input);
+    expect(capped.filter((r) => r.type === 'option' && r.option.kind === 'font')).toHaveLength(50);
+    const more = capped.find((r) => r.type === 'option' && r.option.kind === 'more');
+    expect(more).toMatchObject({ option: { total: 120, next: 'font:system:Font 050' } });
+
+    const all = buildPickerRows({ ...input, expanded: ['system'] });
+    expect(all.filter((r) => r.type === 'option' && r.option.kind === 'font')).toHaveLength(120);
+    expect(all.some((r) => r.type === 'option' && r.option.kind === 'more')).toBe(false);
+  });
+
+  it('caps search results at a larger limit', () => {
+    const rows = buildPickerRows({
+      groups: groupFonts(many(300)),
+      searching: true,
+      allowSame: false,
+      expanded: [],
+    });
+    expect(rows.filter((r) => r.type === 'option' && r.option.kind === 'font')).toHaveLength(200);
   });
 });

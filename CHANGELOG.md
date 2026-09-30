@@ -25,6 +25,8 @@ Every change to the app and to how it's built is logged here, newest first. The 
 
 - Built-in fonts now include only Latin and Arabic characters, keeping the installer small; other
   scripts use a system font.
+- Fonts in Settings → Appearance are chosen from a searchable list of built-in fonts and fonts
+  installed on this PC, each shown in its own typeface; a custom CSS font list is still available.
 - The Solarized preset has darker body text in light mode and brighter text in dark mode for
   easier reading, with slightly tighter line spacing and a wider page (800px).
 

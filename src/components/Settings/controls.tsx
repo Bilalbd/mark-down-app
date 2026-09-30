@@ -62,27 +62,6 @@ export function NumberInput({ value, onChange, min, max, step = 1, unit }: Numbe
   );
 }
 
-const FONT_SUGGESTIONS = [
-  "'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif",
-  "'Segoe UI', sans-serif",
-  "'Inter Variable', sans-serif",
-  'Inter, sans-serif',
-  "'Open Sans Variable', sans-serif",
-  "'Open Sans', sans-serif",
-  'Calibri, sans-serif',
-  'Arial, sans-serif',
-  'Verdana, sans-serif',
-  "Georgia, 'Times New Roman', serif",
-  'Cambria, serif',
-  "'Times New Roman', serif",
-  "'Cascadia Code', monospace",
-  "'Cascadia Mono', Consolas, monospace",
-  'Consolas, monospace',
-  "'JetBrains Mono Variable', monospace",
-  "'JetBrains Mono', monospace",
-  "'Fira Code', monospace",
-];
-
 /** Text input with debounced commit so typing a font stack doesn't re-render per keystroke. */
 export function FontInput({
   value,
@@ -101,22 +80,14 @@ export function FontInput({
     return () => clearTimeout(t);
   }, [draft, value, onChange]);
   return (
-    <>
-      <input
-        type="text"
-        className="settings__text"
-        list="font-suggestions"
-        value={draft}
-        placeholder={placeholder}
-        onChange={(e) => setDraft(e.target.value)}
-        spellCheck={false}
-      />
-      <datalist id="font-suggestions">
-        {FONT_SUGGESTIONS.map((f) => (
-          <option key={f} value={f} />
-        ))}
-      </datalist>
-    </>
+    <input
+      type="text"
+      className="settings__text"
+      value={draft}
+      placeholder={placeholder}
+      onChange={(e) => setDraft(e.target.value)}
+      spellCheck={false}
+    />
   );
 }
 

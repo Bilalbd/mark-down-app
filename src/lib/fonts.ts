@@ -155,6 +155,123 @@ export function systemFontsToFamilies(list: SystemFont[]): FontFamily[] {
   }));
 }
 
+/**
+ * Drops installed fonts that are also bundled (by family or CSS name, case-insensitively), so a
+ * font like JetBrains Mono appears once, under Built in.
+ */
+export function excludeBuiltin(
+  system: FontFamily[],
+  builtin: FontFamily[] = BUILTIN_FONTS,
+): FontFamily[] {
+  const taken = new Set(builtin.flatMap((f) => [f.family.toLowerCase(), f.cssName.toLowerCase()]));
+  return system.filter(
+    (f) => !taken.has(f.family.toLowerCase()) && !taken.has(f.cssName.toLowerCase()),
+  );
+}
+
+const GENERIC_FAMILIES = new Set([
+  'serif',
+  'sans-serif',
+  'monospace',
+  'cursive',
+  'fantasy',
+  'system-ui',
+  'ui-serif',
+  'ui-sans-serif',
+  'ui-monospace',
+  'ui-rounded',
+  'math',
+  'emoji',
+  'fangsong',
+]);
+
+/** Whether `name` is a CSS generic family keyword such as `serif` or `system-ui`. */
+export function isGenericFamily(name: string): boolean {
+  return GENERIC_FAMILIES.has(name.trim().toLowerCase());
+}
+
+/**
+ * Whether a stack can't be shown as a single font in the picker: it starts with a generic keyword
+ * (or can't be parsed), so the control opens in free-text mode. A blank stack is not custom.
+ */
+export function isCustomStack(stack: string): boolean {
+  if (!stack.trim()) return false;
+  const name = primaryFamily(stack);
+  return name === null || isGenericFamily(name);
+}
+
+export const SOURCE_LABELS: Record<FontSource, string> = {
+  builtin: 'Built in',
+  system: 'On this PC',
+  google: 'Google Fonts',
+};
+
+/** Rows shown per group before a "Show all" row, without and with a search query. */
+export const GROUP_CAP = 50;
+export const GROUP_CAP_SEARCHING = 200;
+
+export type PickerOption =
+  | { key: string; kind: 'same' }
+  | { key: string; kind: 'font'; font: FontFamily }
+  /** `next` is the key of the first row the expansion reveals. */
+  | { key: string; kind: 'more'; source: FontSource; total: number; next: string }
+  | { key: string; kind: 'custom' };
+
+export type PickerRow =
+  | { type: 'header'; key: string; source: FontSource }
+  | { type: 'note'; key: string; text: string }
+  | { type: 'option'; option: PickerOption };
+
+export interface PickerRowsInput {
+  groups: FontGroup[];
+  searching: boolean;
+  /** Offer the "Same as body" row (heading font). */
+  allowSame: boolean;
+  /** Groups whose "Show all" has been used. */
+  expanded: FontSource[];
+}
+
+/** The key that identifies a font's row in the picker. */
+export function fontKey(font: FontFamily): string {
+  return `font:${font.source}:${font.cssName}`;
+}
+
+/**
+ * Lays out the picker list: an optional "Same as body" row, each group (capped, with a
+ * "Show all (N)" row), a Google Fonts placeholder until that group exists, and the custom row.
+ */
+export function buildPickerRows(input: PickerRowsInput): PickerRow[] {
+  const { groups, searching, allowSame, expanded } = input;
+  const rows: PickerRow[] = [];
+  if (allowSame && !searching) rows.push({ type: 'option', option: { key: 'same', kind: 'same' } });
+  const cap = searching ? GROUP_CAP_SEARCHING : GROUP_CAP;
+  for (const group of groups) {
+    rows.push({ type: 'header', key: `header:${group.source}`, source: group.source });
+    const limit = expanded.includes(group.source) ? group.fonts.length : cap;
+    for (const font of group.fonts.slice(0, limit)) {
+      rows.push({ type: 'option', option: { key: fontKey(font), kind: 'font', font } });
+    }
+    if (group.fonts.length > limit) {
+      rows.push({
+        type: 'option',
+        option: {
+          key: `more:${group.source}`,
+          kind: 'more',
+          source: group.source,
+          total: group.fonts.length,
+          next: fontKey(group.fonts[limit]),
+        },
+      });
+    }
+  }
+  if (!searching && !groups.some((g) => g.source === 'google')) {
+    rows.push({ type: 'header', key: 'header:google', source: 'google' });
+    rows.push({ type: 'note', key: 'note:google', text: 'Coming soon' });
+  }
+  rows.push({ type: 'option', option: { key: 'custom', kind: 'custom' } });
+  return rows;
+}
+
 const GROUP_ORDER: FontSource[] = ['builtin', 'system', 'google'];
 
 /** Groups fonts for the picker: built-in, system, Google; A to Z inside; empty groups dropped. */
