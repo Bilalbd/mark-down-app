@@ -208,7 +208,7 @@ node scripts/checks/keys.mjs                     # formatting shortcuts
 node scripts/checks/menus.mjs [--shots <dir>]    # right-click menus (--clipboard for Cut/Paste)
 node scripts/checks/guide.mjs                    # F1, the Guide button and the guide window
 node scripts/checks/settings.mjs [--shots <dir>] # every Settings page, light and dark
-node scripts/checks/fonts.mjs [--shots <dir>]    # built-in fonts load and render, light and dark
+node scripts/checks/fonts.mjs [--shots <dir>]    # built-in fonts and the font picker, light and dark
 .\scripts\checks\stop.ps1 [-KeepState]           # stop what launch started, put settings back
 ```
 

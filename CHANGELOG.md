@@ -46,7 +46,8 @@ Every change to the app and to how it's built is logged here, newest first. The 
   restore, plus checks for the fixture sweep, formatting shortcuts, right-click menus, the guide
   and the Settings pages. ([note](docs/changes/2026-09-30-check-scripts.md))
 - A running-app font check (`scripts/checks/fonts.mjs`): every built-in font loads only its Latin
-  (and Arabic) files and renders, with a specimen screenshot in light and dark.
+  (and Arabic) files and renders, and the font picker's groups, search, keyboard use, filters,
+  custom mode and preset fonts work, with screenshots in light and dark.
 - `scripts/checks/stop.ps1` also stops the copy the startup watchdog relaunches after a slow
   first start, which used to keep running and block the next launch.
 - This changelog, `docs/changes/`, and a hook that reminds Claude Code sessions to log each

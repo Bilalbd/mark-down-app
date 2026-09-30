@@ -1,8 +1,10 @@
 /**
  * Font checks, in light and dark: every built-in font loads its Latin faces (and Arabic faces for
  * the Arabic fonts) and nothing for other alphabets, and text set in it measures differently from
- * its fallback, so it really renders. With --shots, saves a specimen of every built-in font and
- * the Unicode fixture with its body in an Arabic font.
+ * its fallback, so it really renders. Then drives the font picker in Settings → Appearance: groups,
+ * search, keyboard, the monospace and Arabic filters, picking built-in and installed fonts into the
+ * preview, Same as body, the custom CSS mode, and every built-in preset showing its fonts. With
+ * --shots, saves a font specimen, the Unicode fixture in Arabic fonts and the open picker.
  * Usage: node scripts/checks/fonts.mjs [--shots <dir>]
  */
 import { join } from 'node:path';
@@ -90,6 +92,230 @@ if (opts.shots) {
     await app.js(`const p = document.querySelector('.preview-scroll .preview');
       p.style.removeProperty('--md-font-body'); p.style.removeProperty('--md-font-heading'); return 1;`);
   }
+}
+
+// ---- The font picker in Settings → Appearance ----
+// Picking fonts edits the active preset; the store is put back at the end (and stop.ps1 restores
+// presets.json on disk).
+const style0 = await app.js(`const s = window.__mdv.style.getState();
+  return JSON.stringify({ presets: s.presets, activePresetId: s.activePresetId });`);
+await app.setting('viewMode', 'formatted');
+await app.open(fixture('gfm.md'));
+
+const btn = (label) => `.font-picker__button[aria-label^="${label}:"]`;
+const labelOf = (label) =>
+  app.js(
+    `return document.querySelector(${JSON.stringify(btn(label))})?.getAttribute('aria-label') ?? null;`,
+  );
+const clickSel = async (sel) => {
+  const c =
+    await app.js(`const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null;
+    e.scrollIntoView({ block: 'nearest' }); const r = e.getBoundingClientRect();
+    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };`);
+  if (!c) return false;
+  await app.mouse(c.x, c.y);
+  return true;
+};
+const typeText = async (text) => {
+  await app.send('Input.insertText', { text });
+  await wait(300);
+};
+const clearSearch = async () => {
+  await app.press('ctrl+a');
+  await app.press('Backspace');
+  await wait(200);
+};
+const popover = () =>
+  app.js(`const p = document.querySelector('.font-picker__popover'); if (!p) return null;
+    const opts = [...p.querySelectorAll('[role=option]')];
+    const input = p.querySelector('[role=combobox]');
+    const active = input && document.getElementById(input.getAttribute('aria-activedescendant'));
+    return {
+      groups: [...p.querySelectorAll('.font-picker__group')].map((g) => g.textContent.trim()),
+      fonts: opts.filter((o) => !o.classList.contains('is-action')).map((o) => ({
+        name: o.querySelector('.font-picker__row-name')?.textContent,
+        tag: o.querySelector('.font-picker__row-tag')?.textContent ?? '' })),
+      actions: opts.filter((o) => o.classList.contains('is-action')).map((o) => o.textContent.trim()),
+      active: active?.textContent.trim() ?? null,
+      focused: document.activeElement === input,
+    };`);
+// Which fonts cover Arabic, from the same sources the picker uses.
+const arabicNames = await app.js(`${FONTS}
+  const sys = window.__TAURI_INTERNALS__ ? await window.__TAURI_INTERNALS__.invoke('list_system_fonts') : [];
+  return [...BUILTIN_FONTS.filter((f) => f.arabic).map((f) => f.family), ...sys.filter((f) => f.arabic).map((f) => f.family)];`);
+const previewFont = (sel) =>
+  app.js(`const e = document.querySelector('.preview-scroll .preview ${sel}');
+    return e ? getComputedStyle(e).fontFamily : null;`);
+const shot = (name, theme) =>
+  opts.shots ? app.shot(join(String(opts.shots), `picker-${name}-${theme}.png`)) : null;
+
+for (const theme of ['light', 'dark']) {
+  await app.setting('appTheme', theme);
+  await app.js(`window.__mdv.style.setState(${style0}); return 1;`);
+  if (!(await app.js(`return !!document.querySelector('.settings');`)))
+    await app.click('[aria-label="Settings"]');
+  await wait(400);
+  await app.click('.settings [role=tab]', 'Appearance');
+  await wait(300);
+  await app.click('.settings [role=tabpanel] button', 'Fonts & colours');
+  await wait(400);
+
+  // Body font: groups, one JetBrains Mono, search, keyboard, Escape.
+  await clickSel(btn('Body font'));
+  let p = await popover();
+  r.check(
+    `${theme} picker opens with the three groups`,
+    p?.focused && ['Built in', 'On this PC', 'Google Fonts'].every((g) => p.groups.includes(g)),
+    `groups=${p?.groups.join(' | ')} rows=${p?.fonts.length} actions=${p?.actions.join(' | ')}`,
+  );
+  await shot('body', theme);
+  await typeText('jetbrains');
+  p = await popover();
+  r.check(
+    `${theme} JetBrains Mono listed once, under Built in`,
+    p.fonts.filter((f) => f.name === 'JetBrains Mono').length === 1 &&
+      p.groups.join() === 'Built in',
+    `rows=${p.fonts.map((f) => f.name).join(', ')} groups=${p.groups.join(', ')}`,
+  );
+  await clearSearch();
+  await typeText('casc');
+  p = await popover();
+  r.check(
+    `${theme} search "casc"`,
+    p.fonts.length > 0 && p.fonts.every((f) => f.name.toLowerCase().includes('casc')),
+    p.fonts.map((f) => f.name).join(', '),
+  );
+  await clearSearch();
+  const moves = [];
+  for (const key of ['Home', 'ArrowDown', 'ArrowDown', 'ArrowUp', 'End']) {
+    await app.press(key);
+    moves.push((await popover()).active);
+  }
+  r.check(
+    `${theme} keyboard Home/Down/Up/End`,
+    moves[0] !== moves[1] &&
+      moves[1] !== moves[2] &&
+      moves[3] === moves[1] &&
+      moves[4] === 'Custom CSS font list…',
+    moves.join(' → '),
+  );
+  await app.press('Escape');
+  const afterEsc =
+    await app.js(`return { popover: !!document.querySelector('.font-picker__popover'),
+    settings: !!document.querySelector('.settings'),
+    focus: document.activeElement?.matches(${JSON.stringify(btn('Body font'))}) ?? false };`);
+  r.check(
+    `${theme} Escape closes only the list, focus back on the button`,
+    !afterEsc.popover && afterEsc.settings && afterEsc.focus,
+    JSON.stringify(afterEsc),
+  );
+
+  // Pick a built-in body font with the keyboard.
+  await app.press('ArrowDown');
+  await typeText('lora');
+  await app.press('Enter');
+  await wait(400);
+  r.check(
+    `${theme} Lora applied to the body`,
+    (await labelOf('Body font'))?.startsWith('Body font: Lora, Built in') &&
+      (await previewFont('p'))?.includes('Lora Variable'),
+    `${await labelOf('Body font')} / preview p: ${await previewFont('p')}`,
+  );
+
+  // Code font: monospace only; pick an installed font with the mouse.
+  await clickSel(btn('Code font'));
+  p = await popover();
+  r.check(
+    `${theme} Code font lists monospace fonts only`,
+    p.fonts.length > 0 && p.fonts.every((f) => f.tag === 'Mono'),
+    `${p.fonts.length} rows: ${p.fonts.map((f) => f.name).join(', ')}`,
+  );
+  await shot('code', theme);
+  await typeText('cascadia code');
+  await clickSel('.font-picker__popover [role=option]:not(.is-action)');
+  await wait(400);
+  const codeFont = await previewFont('code');
+  r.check(
+    `${theme} Cascadia Code (on this PC) applied to code`,
+    (await labelOf('Code font'))?.startsWith('Code font: Cascadia Code, On this PC') &&
+      /^["']?Cascadia Code/.test(codeFont ?? ''),
+    `${await labelOf('Code font')} / preview code: ${codeFont}`,
+  );
+
+  // Supports Arabic.
+  await clickSel(btn('Body font'));
+  await clickSel('.font-picker__filter input');
+  p = await popover();
+  const notArabic = p.fonts.filter((f) => !arabicNames.includes(f.name));
+  r.check(
+    `${theme} Supports Arabic filter`,
+    p.fonts.length > 0 && notArabic.length === 0,
+    `${p.fonts.length} rows` +
+      (notArabic.length ? `; not Arabic: ${notArabic.map((f) => f.name)}` : ''),
+  );
+  await shot('arabic', theme);
+  await app.press('Escape');
+
+  // Heading font: Same as body.
+  await clickSel(btn('Heading font'));
+  p = await popover();
+  await clickSel('.font-picker__popover [role=option]');
+  await wait(300);
+  r.check(
+    `${theme} Heading "Same as body"`,
+    p.actions[0] === 'Same as body' &&
+      (await labelOf('Heading font')) === 'Heading font: Same as body' &&
+      (await app.js('return window.__mdv.style.getState().active().typography.headingFont;')) ===
+        '',
+    `first row=${p.actions[0]} label=${await labelOf('Heading font')}`,
+  );
+
+  // Custom mode round trip on the Code font.
+  await clickSel(btn('Code font'));
+  await app.press('End');
+  await app.press('Enter');
+  await wait(300);
+  const input = await app.js(`const i = document.activeElement;
+    return i?.matches('.font-picker .settings__text') ? i.value : null;`);
+  await app.press('ctrl+a');
+  await typeText('Consolas, monospace');
+  await wait(700);
+  const stored = await app.js('return window.__mdv.style.getState().active().typography.monoFont;');
+  await shot('custom', theme);
+  await app.click('.font-picker__link', 'Choose from list');
+  await wait(300);
+  r.check(
+    `${theme} custom CSS font list round trip`,
+    input?.startsWith("'Cascadia Code'") &&
+      stored === 'Consolas, monospace' &&
+      (await labelOf('Code font'))?.startsWith('Code font: Consolas, On this PC'),
+    `input was "${input}", stored "${stored}", then ${await labelOf('Code font')}`,
+  );
+
+  // Every built-in preset shows its current fonts (Charter isn't on Windows).
+  const presets = await app.js(
+    `return window.__mdv.style.getState().presets.filter((p) => p.builtin).map((p) => p.id);`,
+  );
+  for (const id of presets) {
+    await app.js(
+      `window.__mdv.style.setState({ activePresetId: ${JSON.stringify(id)} }); return 1;`,
+    );
+    await wait(250);
+    const labels = [
+      await labelOf('Body font'),
+      await labelOf('Heading font'),
+      await labelOf('Code font'),
+    ];
+    const bad = labels.filter((l) => !l || (l.includes('Not installed') && !l.includes('Charter')));
+    r.check(
+      `${theme} preset ${id}`,
+      bad.length === 0,
+      labels.map((l) => l?.replace(/^\w+ font: /, '')).join(' | '),
+    );
+  }
+  await app.js(`window.__mdv.style.setState(${style0}); return 1;`);
+  await app.click('[aria-label="Settings"]');
+  await wait(300);
 }
 
 await app.setting('appTheme', theme0);

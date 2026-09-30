@@ -131,6 +131,9 @@ export async function connect() {
     ArrowRight: 39,
     ArrowLeft: 37,
     ContextMenu: 93,
+    Home: 36,
+    End: 35,
+    Backspace: 8,
     F1: 112,
     F10: 121,
   };
