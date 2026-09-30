@@ -3,7 +3,9 @@
 **Markdown** is a small, fast Markdown viewer and editor for Windows. It is built with Tauri 2
 (Rust + WebView2), React 19, TypeScript, CodeMirror 6, markdown-it, Shiki, KaTeX and Mermaid.
 The maintainer is Bilal. This file sets the rules every agent follows so the codebase stays
-consistent. Read it fully before changing anything. `README.md` covers features and layout.
+consistent. Claude Code loads it into every session and sub-agent in this repository, so its
+rules apply to all work here, one-line fixes included. Read it fully before changing anything.
+`README.md` covers features and layout; `CHANGELOG.md` records every change (§7).
 
 ---
 
@@ -46,8 +48,9 @@ In dev builds the stores are exposed on `window.__mdv` (`document`, `settings`, 
 
 **Definition of done:** tests, lint and typecheck pass; `cargo check` and `cargo test` also pass
 if Rust changed. Anything visible has been checked in the running app (a screenshot counts),
-using the relevant `fixtures/*.md` files. Sub-agents implementing a plan phase stop at tests, lint,
-typecheck and cargo: the supervising session does the running-app checks, batched across phases (§7).
+using the relevant `fixtures/*.md` files. The change is logged in `CHANGELOG.md` (§7). Sub-agents
+implementing a plan phase stop at tests, lint, typecheck and cargo: the supervising session does
+the running-app checks, batched across phases (§7).
 
 ### Machine quirks
 - The **Bash tool turns `\\` into `\`** on this machine. Write anything that contains backslashes
@@ -214,6 +217,15 @@ Placement rules:
 - **One logical change per commit.** Messages are imperative, sentence case, no conventional-commit
   prefix, and say what and why, e.g. `Preserve CRLF line endings on save`. A preset-specific
   change may use a `Preset:` prefix (`Nord: lighten light-mode background`).
+- **Log every change in [`CHANGELOG.md`](CHANGELOG.md), in the same commit.** Add one line under
+  **[Unreleased]**: Added, Changed, Fixed or Removed for the app, or Development for tooling,
+  tests, docs and process. Write it for someone who uses the app.
+  - A larger feature or a tricky bug fix also gets a short note in `docs/changes/` (template in
+    its README), linked from the line.
+  - A feature built over several commits on one branch is logged once. WIP commits are exempt.
+  - A release renames **[Unreleased]** to the version and date.
+  - A hook (`.claude/hooks/changelog-check.mjs`) flags commits without an entry; add the entry in
+    a follow-up commit, never by amending.
 - Never use a bare `git stash` / `git stash pop`; the stash is shared across worktrees and other
   agents. Use a temporary WIP commit instead.
 - Never skip hooks (`--no-verify`) or rewrite published history.
@@ -226,13 +238,13 @@ Placement rules:
   which has only the tools that work needs. Implementers never build, launch or screenshot the app.
   Plans put the running-app checks in a supervisor checklist, run once per batch of phases, not in
   each phase's tasks. Use `scripts/checks/` for them and add to it (a new check script, or new
-  cases in an existing one) rather than writing one-off scripts. Launching the app and driving it over CDP from every agent is what made the
-  v1.0 run expensive.
+  cases in an existing one) rather than writing one-off scripts. Launching the app and driving it
+  over CDP from every agent is what made the v1.0 run expensive.
 
 ---
 
 ## 8. When you finish
 
-Report back briefly: what changed (with file links), how you verified it (commands and
-screenshots), anything you skipped or couldn't verify, and any follow-ups. Say plainly if
-something failed. Don't describe work as done or verified when it isn't.
+Report back briefly: what changed (with file links) and its changelog line, how you verified it
+(commands and screenshots), anything you skipped or couldn't verify, and any follow-ups. Say
+plainly if something failed. Don't describe work as done or verified when it isn't.

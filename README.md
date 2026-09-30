@@ -238,7 +238,8 @@ Test documents live in `fixtures/`; a hand-test fixture exists for every feature
 Mermaid, Unicode, spelling, colours, line endings, tabs, a huge document for performance…).
 
 See [`CLAUDE.md`](CLAUDE.md) for the full set of conventions this project follows — it's required
-reading for anyone (or any agent) contributing code.
+reading for anyone (or any agent) contributing code. Every change is logged in
+[`CHANGELOG.md`](CHANGELOG.md), with short notes for larger ones in [`docs/changes/`](docs/changes/).
 
 ## Icons
 

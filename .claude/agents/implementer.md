@@ -33,5 +33,7 @@ Every step re-reads your whole conversation, so fewer steps and less output cost
 
 ## Finish
 
-Commit as the phase document says (never stash, push or amend). Then report in a few lines: what changed, the
-test/lint/typecheck results with counts, anything left undone, and the checks for the supervisor.
+Add the phase's line to `CHANGELOG.md` under [Unreleased] (and a `docs/changes/` note if the phase document asks
+for one), in the same commit. Commit as the phase document says (never stash, push or amend). Then report in a few
+lines: what changed, the changelog line, the test/lint/typecheck results with counts, anything left undone, and
+the checks for the supervisor.

@@ -1,0 +1,62 @@
+# Changelog
+
+Every change to the app and to how it's built is logged here, newest first. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
+[Semantic Versioning](https://semver.org/).
+
+- One line per change, saying what's different for someone who uses the app ("Spell check skips
+  code blocks", not "Changed spellcheck.ts"). Name the setting, shortcut or view when there is
+  one.
+- **Added** for new features, **Changed** for changes to existing behaviour, **Fixed** for bug
+  fixes, **Removed** for things taken out, **Development** for tooling, tests, docs and process
+  that users don't see.
+- A larger feature or a tricky bug fix also gets a short note in [`docs/changes/`](docs/changes/),
+  linked from its line.
+- New entries go under **Unreleased**. A release renames that heading to the version and date.
+
+## [Unreleased]
+
+### Development
+
+- Plan phases handed to sub-agents use a lean `implementer` agent type that never launches the
+  app; the running-app checks moved to the supervisor, batched per group of phases.
+  ([note](docs/changes/2026-09-30-agent-token-use.md))
+- Reusable running-app checks in `scripts/checks/`: launch and stop with a settings backup and
+  restore, plus checks for the fixture sweep, formatting shortcuts, right-click menus, the guide
+  and the Settings pages. ([note](docs/changes/2026-09-30-check-scripts.md))
+- This changelog, `docs/changes/`, and a hook that reminds Claude Code sessions to log each
+  commit.
+
+## [1.0.0] - 2026-09-29
+
+The 1.0 release, after 0.8. Versions before 1.0.0 weren't logged here; see the git history.
+
+### Added
+
+- Spell check in the Source editor using the languages installed in Windows, with red wavy
+  underlines, one entry per language in Settings → Editor → Spelling, and a word flagged only when
+  every ticked language rejects it.
+- Formatting commands and shortcuts: `Ctrl+B`, `Ctrl+I`, `Ctrl+K`, and `Ctrl+Shift+1…6` for
+  headings (press a heading's shortcut again to turn it back into a paragraph).
+- Right-click menus: formatting, clipboard actions and spelling suggestions (Add to dictionary,
+  Ignore) in the Source editor, opened by mouse, the Menu key or `Shift+F10`; Copy and Select all
+  in the formatted view.
+- A built-in guide (`F1`, the toolbar's Guide button, or the start screen's link), shown in its
+  own read-only window.
+- An optional highlight (Settings → General → Layout) that tints the formatted block holding the
+  source cursor in Split view, across the full width.
+
+### Changed
+
+- Settings is arranged into five pages: General, Editor, Appearance, Shortcuts and About.
+- Submenus stay open while the pointer moves towards them.
+- The README was rewritten for 1.0, and the project is licensed under CC0 1.0.
+
+### Fixed
+
+- A start that got stuck before the window appeared now recovers on its own, and keeps the files
+  that were being opened.
+
+### Removed
+
+- The `Ctrl+Shift+0` paragraph shortcut: Windows reserves it as an input-language hotkey.
