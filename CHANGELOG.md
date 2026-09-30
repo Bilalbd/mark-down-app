@@ -43,6 +43,8 @@ Every change to the app and to how it's built is logged here, newest first. The 
 - Reusable running-app checks in `scripts/checks/`: launch and stop with a settings backup and
   restore, plus checks for the fixture sweep, formatting shortcuts, right-click menus, the guide
   and the Settings pages. ([note](docs/changes/2026-09-30-check-scripts.md))
+- A running-app font check (`scripts/checks/fonts.mjs`): every built-in font loads only its Latin
+  (and Arabic) files and renders, with a specimen screenshot in light and dark.
 - This changelog, `docs/changes/`, and a hook that reminds Claude Code sessions to log each
   commit.
 
