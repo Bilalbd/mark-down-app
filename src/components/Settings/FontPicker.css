@@ -7,6 +7,19 @@
   gap: 6px;
 }
 
+/* Custom mode: the input takes the full width, with the way back to the list on its own line. */
+.font-picker--custom {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+.font-picker--custom .settings__text {
+  flex: none;
+}
+.font-picker--custom .font-picker__link {
+  align-self: flex-start;
+}
+
 .font-picker__button {
   flex: 1;
   min-width: 0;

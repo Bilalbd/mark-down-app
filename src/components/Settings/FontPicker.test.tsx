@@ -285,6 +285,37 @@ describe('FontPicker', () => {
     expect(container.querySelector('[role="listbox"]')).not.toBeNull();
   });
 
+  it('gives every row of a long list its own id, matching the highlighted one', async () => {
+    installed = Array.from({ length: 1500 }, (_, i) => ({
+      family: `Sys ${String(i).padStart(4, '0')}`,
+      monospace: false,
+      arabic: false,
+    }));
+    await mount({ value: 'Arial' });
+    await open();
+    await act(async () =>
+      options()
+        .find((o) => o.textContent === 'Show all (1500)')!
+        .click(),
+    );
+    const ids = options().map((o) => o.id);
+    expect(ids.length).toBeGreaterThan(1500);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.every((id) => !id.endsWith('-undefined') && !id.endsWith('--1'))).toBe(true);
+    expect(
+      options().filter((o) => o.id === search().getAttribute('aria-activedescendant')),
+    ).toHaveLength(1);
+  });
+
+  it('gives the trigger button a title with the full name and note', async () => {
+    await mount({ value: "'Segoe UI Variable Text', sans-serif" });
+    expect(button().title).toBe('Segoe UI Variable Text (On this PC)');
+    act(() => root.unmount());
+    root = createRoot(container);
+    await mount({ value: 'Charter, Georgia, serif' });
+    expect(button().title).toBe('Charter (Not installed)');
+  });
+
   it('still works when no installed fonts can be listed', async () => {
     installed = [];
     await mount({ value: 'Arial' });

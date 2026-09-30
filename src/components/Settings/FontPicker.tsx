@@ -109,13 +109,15 @@ export function FontPicker({
   );
   const hasFonts = options.some((o) => o.kind === 'font');
 
-  let activeIndex = options.findIndex((o) => o.key === activeKey);
+  // Row ids come from this map so each row's id is O(1), not a scan of every option.
+  const indexByKey = useMemo(() => new Map(options.map((o, i) => [o.key, i])), [options]);
+  let activeIndex = activeKey === null ? -1 : (indexByKey.get(activeKey) ?? -1);
   if (activeIndex < 0)
     activeIndex = Math.max(
       0,
       options.findIndex((o) => o.kind === 'font'),
     );
-  const optionId = (key: string) => `${uid}-${options.findIndex((o) => o.key === key)}`;
+  const optionId = (key: string) => `${uid}-${indexByKey.get(key)}`;
   const activeId = options[activeIndex] ? optionId(options[activeIndex].key) : undefined;
 
   useEffect(() => {
@@ -197,7 +199,7 @@ export function FontPicker({
 
   if (custom) {
     return (
-      <div className="font-picker" ref={wrapRef}>
+      <div className="font-picker font-picker--custom" ref={wrapRef}>
         <FontInput
           value={value}
           onChange={onChange}
@@ -242,6 +244,7 @@ export function FontPicker({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={`${label}: ${shownName}${shownNote ? `, ${shownNote}` : ''}`}
+        title={shownNote ? `${shownName} (${shownNote})` : shownName}
         onClick={() => (open ? closePopover() : openPopover())}
         onKeyDown={(e) => {
           if (e.key === 'ArrowDown' && !open) {
