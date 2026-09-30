@@ -16,6 +16,11 @@ Every change to the app and to how it's built is logged here, newest first. The 
 
 ## [Unreleased]
 
+### Changed
+
+- The Solarized preset has darker body text in light mode and brighter text in dark mode for
+  easier reading, with slightly tighter line spacing and a wider page (800px).
+
 ### Fixed
 
 - A tab's unsaved-changes dot now sits before the file name and shows on every unsaved tab,
