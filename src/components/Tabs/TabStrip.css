@@ -4,12 +4,14 @@
   min-width: 0;
   height: 100%;
   flex: 0 1 auto;
-  margin-left: 8px;
   padding-top: 6px;
 }
 
+/* The side padding keeps the active tab's outer bottom curves (8px outside the tab) inside the
+   scroll area, which would otherwise clip them on the first and last tab. */
 .tabstrip__list {
   display: flex;
+  padding: 0 8px;
   overflow-x: auto;
   scrollbar-width: none;
   min-width: 0;

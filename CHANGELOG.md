@@ -20,6 +20,8 @@ Every change to the app and to how it's built is logged here, newest first. The 
 
 - A tab's unsaved-changes dot now sits before the file name and shows on every unsaved tab,
   including the active one, instead of being hidden behind the close button.
+- The active tab's bottom corners are now rounded on both sides when it's the first or last tab,
+  not only when it sits between two others.
 
 ### Development
 
