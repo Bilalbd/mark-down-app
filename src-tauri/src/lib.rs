@@ -1,6 +1,7 @@
 mod assets;
 mod commands;
 mod fonts;
+mod google_fonts;
 mod guide;
 mod instance;
 mod spell;
@@ -213,7 +214,12 @@ pub fn run() {
             spell::spell_languages,
             spell::spell_check,
             spell::spell_suggest,
-            fonts::list_system_fonts
+            fonts::list_system_fonts,
+            google_fonts::google_font_catalog,
+            google_fonts::download_google_font,
+            google_fonts::list_downloaded_fonts,
+            google_fonts::read_font_file,
+            google_fonts::remove_downloaded_font
         ])
         .setup(|app| {
             startup::mark(startup::Stage::SetupStart);

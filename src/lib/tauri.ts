@@ -225,3 +225,64 @@ export function listSystemFonts(): Promise<SystemFont[]> {
   });
   return systemFontsPromise;
 }
+
+/** One Google font in the Fontsource catalogue (Google-sourced fonts only). */
+export interface CatalogFont {
+  id: string;
+  family: string;
+  category: string;
+  subsets: string[];
+  weights: number[];
+  styles: string[];
+  variable: boolean;
+}
+
+/** One downloaded font file. `weight` is ready for a `FontFace` descriptor: `"400"` for a static
+ * file, a range such as `"200 900"` for a variable one. `unicodeRange` is `''` if there is none. */
+export interface DownloadedFontFile {
+  file: string;
+  weight: string;
+  style: string;
+  unicodeRange: string;
+}
+
+/** A Google font downloaded into `<app data>/fonts/<id>/`, available offline. */
+export interface DownloadedFont {
+  id: string;
+  family: string;
+  category: string;
+  files: DownloadedFontFile[];
+}
+
+/** The Google Fonts catalogue: the cached copy if it is under a week old (and `refresh` is false),
+ * else fetched from Fontsource. Offline, an older cache is used. `[]` outside Tauri; rejects with
+ * a message if there is no cache and the network fails. */
+export function googleFontCatalog(refresh = false): Promise<CatalogFont[]> {
+  if (!isTauri()) return Promise.resolve([]);
+  return invoke<CatalogFont[]>('google_font_catalog', { refresh });
+}
+
+/** Downloads a Google font (its Latin, Latin Extended and Arabic alphabets) by Fontsource id.
+ * Rejects with a message if offline or the download fails, and outside Tauri. */
+export function downloadGoogleFont(id: string): Promise<DownloadedFont> {
+  if (!isTauri()) return Promise.reject(new Error('downloadGoogleFont requires Tauri'));
+  return invoke<DownloadedFont>('download_google_font', { id });
+}
+
+/** The Google fonts downloaded so far. `[]` outside Tauri. */
+export function listDownloadedFonts(): Promise<DownloadedFont[]> {
+  if (!isTauri()) return Promise.resolve([]);
+  return invoke<DownloadedFont[]>('list_downloaded_fonts');
+}
+
+/** The bytes of one downloaded font file, for `new FontFace(name, bytes)`. Rejects outside Tauri. */
+export function readFontFile(id: string, file: string): Promise<ArrayBuffer> {
+  if (!isTauri()) return Promise.reject(new Error('readFontFile requires Tauri'));
+  return invoke<ArrayBuffer>('read_font_file', { id, file });
+}
+
+/** Deletes a downloaded font and its files. Rejects outside Tauri. */
+export function removeDownloadedFont(id: string): Promise<void> {
+  if (!isTauri()) return Promise.reject(new Error('removeDownloadedFont requires Tauri'));
+  return invoke('remove_downloaded_font', { id });
+}

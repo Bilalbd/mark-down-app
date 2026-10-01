@@ -2,8 +2,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
 import { emit } from '@tauri-apps/api/event';
 import {
+  downloadGoogleFont,
   emitGuideReady,
+  googleFontCatalog,
+  listDownloadedFonts,
   openGuideWindow,
+  readFontFile,
+  removeDownloadedFont,
   readClipboardText,
   settingsFolder,
   spellCheck,
@@ -33,6 +38,55 @@ describe('spell check wrappers outside Tauri', () => {
 
   it('spellSuggest resolves to an empty list', async () => {
     await expect(spellSuggest('tset', ['en-US'])).resolves.toEqual([]);
+  });
+});
+
+describe('Google font wrappers', () => {
+  afterEach(() => {
+    delete (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+    vi.mocked(invoke).mockReset();
+  });
+
+  it('list calls resolve to empty lists outside Tauri', async () => {
+    await expect(googleFontCatalog()).resolves.toEqual([]);
+    await expect(googleFontCatalog(true)).resolves.toEqual([]);
+    await expect(listDownloadedFonts()).resolves.toEqual([]);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('download, read and remove reject outside Tauri', async () => {
+    await expect(downloadGoogleFont('literata')).rejects.toThrow();
+    await expect(readFontFile('literata', 'latin-wght-normal.woff2')).rejects.toThrow();
+    await expect(removeDownloadedFont('literata')).rejects.toThrow();
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('pass their arguments to the matching Rust commands inside Tauri', async () => {
+    (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    vi.mocked(invoke).mockResolvedValue(undefined);
+
+    await googleFontCatalog();
+    await googleFontCatalog(true);
+    await downloadGoogleFont('literata');
+    await listDownloadedFonts();
+    await readFontFile('literata', 'latin-wght-normal.woff2');
+    await removeDownloadedFont('literata');
+
+    expect(vi.mocked(invoke).mock.calls).toEqual([
+      ['google_font_catalog', { refresh: false }],
+      ['google_font_catalog', { refresh: true }],
+      ['download_google_font', { id: 'literata' }],
+      ['list_downloaded_fonts'],
+      ['read_font_file', { id: 'literata', file: 'latin-wght-normal.woff2' }],
+      ['remove_downloaded_font', { id: 'literata' }],
+    ]);
+  });
+
+  it('passes a download failure on to the caller', async () => {
+    (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    vi.mocked(invoke).mockRejectedValue("Couldn't reach the font server.");
+
+    await expect(downloadGoogleFont('literata')).rejects.toBe("Couldn't reach the font server.");
   });
 });
 
