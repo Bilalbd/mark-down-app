@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { SystemFont } from '@/lib/tauri';
+import type { CatalogFont, DownloadedFont, DownloadProgress, SystemFont } from '@/lib/tauri';
+import { unregisterDownloadedFont } from '@/lib/fontLoader';
+import { useFontsStore } from '@/store/fonts';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -10,9 +12,30 @@ vi.mock('@/components/Toolbar/Toolbar', () => ({
 }));
 
 let installed: SystemFont[] = [];
+let catalogResult: () => Promise<CatalogFont[]>;
+let downloadedList: DownloadedFont[] = [];
+const downloadMock =
+  vi.fn<(id: string, onProgress?: (p: DownloadProgress) => void) => Promise<DownloadedFont>>();
 vi.mock('@/lib/tauri', () => ({
   listSystemFonts: () => Promise.resolve(installed),
+  googleFontCatalog: () => catalogResult(),
+  listDownloadedFonts: () => Promise.resolve(downloadedList),
+  downloadGoogleFont: (id: string, onProgress?: (p: DownloadProgress) => void) =>
+    downloadMock(id, onProgress),
+  readFontFile: () => Promise.resolve(new ArrayBuffer(8)),
+  removeDownloadedFont: () => Promise.resolve(),
 }));
+
+class FakeFace {
+  constructor(
+    public family: string,
+    public source: unknown,
+    public descriptors: unknown,
+  ) {}
+  load() {
+    return Promise.resolve(this);
+  }
+}
 
 import { FontPicker } from './FontPicker';
 
@@ -23,6 +46,36 @@ const SYSTEM: SystemFont[] = [
   { family: 'JetBrains Mono', monospace: true, arabic: false },
   { family: 'Segoe UI Variable Text', monospace: false, arabic: true },
 ];
+
+function catalogFont(id: string, family: string, extra: Partial<CatalogFont> = {}): CatalogFont {
+  return {
+    id,
+    family,
+    category: 'sans-serif',
+    subsets: ['latin'],
+    weights: [400],
+    styles: ['normal'],
+    variable: false,
+    ...extra,
+  };
+}
+
+const CATALOG: CatalogFont[] = [
+  catalogFont('literata', 'Literata', { category: 'serif' }),
+  catalogFont('lora', 'Lora', { category: 'serif' }),
+  catalogFont('arial', 'Arial'),
+  catalogFont('amiri', 'Amiri', { category: 'serif', subsets: ['arabic', 'latin'] }),
+  catalogFont('space-mono', 'Space Mono', { category: 'monospace' }),
+];
+
+const LITERATA: DownloadedFont = {
+  id: 'literata',
+  family: 'Literata',
+  category: 'serif',
+  files: [
+    { file: 'latin-wght-normal.woff2', weight: '200 900', style: 'normal', unicodeRange: '' },
+  ],
+};
 
 describe('FontPicker', () => {
   let container: HTMLElement;
@@ -51,10 +104,25 @@ describe('FontPicker', () => {
       );
     };
     await act(async () => root.render(<Harness />));
+    await settle();
   }
 
   beforeEach(() => {
     installed = SYSTEM;
+    catalogResult = () => Promise.resolve(CATALOG);
+    downloadedList = [];
+    downloadMock.mockReset();
+    useFontsStore.setState({
+      catalog: null,
+      catalogStatus: 'idle',
+      downloaded: [],
+      downloadedLoaded: false,
+    });
+    vi.stubGlobal('FontFace', FakeFace);
+    Object.defineProperty(document, 'fonts', {
+      value: { add: vi.fn(), delete: vi.fn() },
+      configurable: true,
+    });
     onChange = vi.fn<(stack: string) => void>();
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -62,6 +130,8 @@ describe('FontPicker', () => {
   });
 
   afterEach(() => {
+    unregisterDownloadedFont('literata');
+    vi.unstubAllGlobals();
     act(() => root.unmount());
     document.body.removeChild(container);
   });
@@ -74,7 +144,15 @@ describe('FontPicker', () => {
     Array.from(container.querySelectorAll('.font-picker__row-name')).map((o) => o.textContent);
   const headers = () =>
     Array.from(container.querySelectorAll('.font-picker__group')).map((o) => o.textContent);
-  const open = () => act(() => button().click());
+  // Lets the font lists (separate async calls) land before the next step.
+  const settle = () =>
+    act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  const open = async () => {
+    await act(async () => button().click());
+    await settle();
+  };
   const type = (text: string) =>
     act(() => {
       const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
@@ -197,6 +275,7 @@ describe('FontPicker', () => {
       'IBM Plex Mono',
       'JetBrains Mono',
       'Source Code Pro',
+      'Space Mono',
     ]);
   });
 
@@ -206,6 +285,7 @@ describe('FontPicker', () => {
     const toggle = container.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
     await act(async () => toggle.click());
     expect(fontNames().sort()).toEqual([
+      'Amiri',
       'Arial',
       'IBM Plex Sans Arabic',
       'Noto Naskh Arabic',
@@ -321,5 +401,142 @@ describe('FontPicker', () => {
     await mount({ value: 'Arial' });
     await open();
     expect(headers()).toEqual(['Built in', 'Google Fonts']);
+  });
+
+  describe('Google Fonts group', () => {
+    const rowFor = (name: string) =>
+      options().find((o) => o.querySelector('.font-picker__row-name')?.textContent === name)!;
+    const notes = () =>
+      Array.from(container.querySelectorAll('.font-picker__empty')).map((n) => n.textContent);
+
+    it('lists the catalogue once, leaving out fonts that are built in or installed', async () => {
+      await mount({ value: 'Arial' });
+      await open();
+      expect(headers()).toEqual(['Built in', 'On this PC', 'Google Fonts']);
+      expect(fontNames()).toContain('Literata');
+      expect(fontNames()).toContain('Space Mono');
+      expect(fontNames().filter((n) => n === 'Lora')).toHaveLength(1);
+      expect(fontNames().filter((n) => n === 'Arial')).toHaveLength(1);
+    });
+
+    it('shows a loading row while the catalogue loads', async () => {
+      let release!: (list: CatalogFont[]) => void;
+      catalogResult = () => new Promise((resolve) => (release = resolve));
+      await mount({ value: 'Arial' });
+      await open();
+      expect(headers()).toContain('Google Fonts');
+      expect(notes()).toEqual(['Loading Google Fonts…']);
+      expect(container.textContent).not.toContain('No fonts match.');
+      await act(async () => release(CATALOG));
+      expect(notes()).toEqual([]);
+      expect(fontNames()).toContain('Literata');
+    });
+
+    it('says an internet connection is needed when the catalogue cannot load', async () => {
+      catalogResult = () => Promise.reject(new Error('offline'));
+      await mount({ value: 'Arial' });
+      await open();
+      expect(notes()).toEqual(['Needs an internet connection to add Google fonts']);
+      expect(fontNames()).toContain('Inter');
+    });
+
+    it('lists downloaded fonts first, tagged and in their own face, even offline', async () => {
+      catalogResult = () => Promise.reject(new Error('offline'));
+      downloadedList = [LITERATA];
+      await mount({ value: 'Arial' });
+      await open();
+      const google = fontNames().slice(fontNames().indexOf('Literata'));
+      expect(google).toEqual(['Literata']);
+      const row = rowFor('Literata');
+      expect(row.querySelector('.font-picker__row-tag')?.textContent).toBe('Serif · Downloaded');
+      expect(row.querySelector<HTMLElement>('.font-picker__row-name')!.style.fontFamily).toContain(
+        'Literata',
+      );
+      expect(notes()).toEqual(['Needs an internet connection to add Google fonts']);
+    });
+
+    it('does not preview fonts that are not downloaded', async () => {
+      downloadedList = [LITERATA];
+      await mount({ value: 'Arial' });
+      await open();
+      expect(
+        rowFor('Space Mono').querySelector<HTMLElement>('.font-picker__row-name')!.style.fontFamily,
+      ).toBe('');
+      expect(
+        rowFor('Literata').querySelector<HTMLElement>('.font-picker__row-name')!.style.fontFamily,
+      ).not.toBe('');
+      const names = fontNames();
+      expect(names.indexOf('Literata')).toBeLessThan(names.indexOf('Amiri'));
+    });
+
+    it('uses the catalogue subsets for Supports Arabic', async () => {
+      await mount({ value: 'Arial' });
+      await open();
+      const toggle = container.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+      await act(async () => toggle.click());
+      expect(fontNames()).toContain('Amiri');
+      expect(fontNames()).not.toContain('Literata');
+    });
+
+    it('downloads a font that is not downloaded, shows progress, then applies it', async () => {
+      let finish!: (font: DownloadedFont) => void;
+      downloadMock.mockImplementation((_id, onProgress) => {
+        onProgress?.({ done: 3, total: 12 });
+        return new Promise((resolve) => (finish = resolve));
+      });
+      await mount({ value: 'Arial' });
+      await open();
+      await act(async () => rowFor('Literata').click());
+      expect(downloadMock).toHaveBeenCalledWith('literata', expect.any(Function));
+      expect(rowFor('Literata').textContent).toContain('Downloading… 3/12');
+      expect(button().textContent).toContain('Downloading… 3/12');
+      expect(onChange).not.toHaveBeenCalled();
+      expect(container.querySelector('[role="listbox"]')).not.toBeNull();
+
+      await act(async () => finish(LITERATA));
+      expect(onChange).toHaveBeenCalledWith("'Literata', Georgia, serif");
+      expect(container.querySelector('[role="listbox"]')).toBeNull();
+      expect(document.activeElement).toBe(button());
+      expect(button().textContent).toBe('LiterataGoogle Fonts');
+      expect(document.fonts.add).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows a failed download on its row and applies nothing', async () => {
+      downloadMock.mockRejectedValue("Couldn't reach the font server.");
+      await mount({ value: 'Arial' });
+      await open();
+      await act(async () => rowFor('Literata').click());
+      expect(rowFor('Literata').querySelector('[role="alert"]')?.textContent).toBe(
+        "Couldn't reach the font server.",
+      );
+      expect(onChange).not.toHaveBeenCalled();
+      expect(container.querySelector('[role="listbox"]')).not.toBeNull();
+      expect(rowFor('Literata').textContent).not.toContain('Downloading');
+    });
+
+    it('applies a downloaded font straight away', async () => {
+      downloadedList = [LITERATA];
+      await mount({ value: 'Arial' });
+      await open();
+      await act(async () => rowFor('Literata').click());
+      expect(downloadMock).not.toHaveBeenCalled();
+      expect(onChange).toHaveBeenCalledWith("'Literata', Georgia, serif");
+    });
+
+    it('notes a Google font in the preset that is not downloaded yet', async () => {
+      await mount({ value: "'Literata', Georgia, serif" });
+      expect(button().textContent).toBe('LiterataGoogle Fonts · not downloaded');
+      expect(button().title).toBe('Literata (Google Fonts · not downloaded)');
+      expect(button().querySelector<HTMLElement>('.font-picker__name')!.style.fontFamily).toBe('');
+    });
+
+    it('shows a downloaded Google font like any other, in its own face', async () => {
+      downloadedList = [LITERATA];
+      await mount({ value: "'Literata', Georgia, serif" });
+      expect(button().textContent).toBe('LiterataGoogle Fonts');
+      expect(button().querySelector<HTMLElement>('.font-picker__name')!.style.fontFamily).toContain(
+        'Literata',
+      );
+    });
   });
 });

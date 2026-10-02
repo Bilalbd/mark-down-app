@@ -1,4 +1,4 @@
-import { invoke, convertFileSrc } from '@tauri-apps/api/core';
+import { Channel, invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { emit } from '@tauri-apps/api/event';
 import { getVersion } from '@tauri-apps/api/app';
 import { appDataDir } from '@tauri-apps/api/path';
@@ -262,11 +262,23 @@ export function googleFontCatalog(refresh = false): Promise<CatalogFont[]> {
   return invoke<CatalogFont[]>('google_font_catalog', { refresh });
 }
 
+/** How far a font download is: `done` of `total` files. */
+export interface DownloadProgress {
+  done: number;
+  total: number;
+}
+
 /** Downloads a Google font (its Latin, Latin Extended and Arabic alphabets) by Fontsource id.
- * Rejects with a message if offline or the download fails, and outside Tauri. */
-export function downloadGoogleFont(id: string): Promise<DownloadedFont> {
+ * `onProgress` hears about each file as it arrives. Rejects with a message if offline or the
+ * download fails, and outside Tauri. */
+export function downloadGoogleFont(
+  id: string,
+  onProgress?: (progress: DownloadProgress) => void,
+): Promise<DownloadedFont> {
   if (!isTauri()) return Promise.reject(new Error('downloadGoogleFont requires Tauri'));
-  return invoke<DownloadedFont>('download_google_font', { id });
+  const channel = new Channel<DownloadProgress>();
+  if (onProgress) channel.onmessage = onProgress;
+  return invoke<DownloadedFont>('download_google_font', { id, onProgress: channel });
 }
 
 /** The Google fonts downloaded so far. `[]` outside Tauri. */

@@ -18,7 +18,13 @@ import {
 } from '@/lib/tauri';
 
 vi.mock('@tauri-apps/api/path', () => ({ appDataDir: vi.fn() }));
-vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(), convertFileSrc: vi.fn() }));
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn(),
+  convertFileSrc: vi.fn(),
+  Channel: class {
+    onmessage: (message: unknown) => void = () => undefined;
+  },
+}));
 vi.mock('@tauri-apps/api/event', () => ({ emit: vi.fn() }));
 
 // These wrappers must be safe when Tauri isn't there (plain Vite dev, or tests): `isTauri()`
@@ -67,7 +73,7 @@ describe('Google font wrappers', () => {
 
     await googleFontCatalog();
     await googleFontCatalog(true);
-    await downloadGoogleFont('literata');
+    await downloadGoogleFont('literata', () => undefined);
     await listDownloadedFonts();
     await readFontFile('literata', 'latin-wght-normal.woff2');
     await removeDownloadedFont('literata');
@@ -75,11 +81,23 @@ describe('Google font wrappers', () => {
     expect(vi.mocked(invoke).mock.calls).toEqual([
       ['google_font_catalog', { refresh: false }],
       ['google_font_catalog', { refresh: true }],
-      ['download_google_font', { id: 'literata' }],
+      ['download_google_font', { id: 'literata', onProgress: expect.any(Object) }],
       ['list_downloaded_fonts'],
       ['read_font_file', { id: 'literata', file: 'latin-wght-normal.woff2' }],
       ['remove_downloaded_font', { id: 'literata' }],
     ]);
+  });
+
+  it('forwards download progress from the channel to the callback', async () => {
+    (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    vi.mocked(invoke).mockImplementation((_cmd, args) => {
+      const channel = (args as { onProgress: { onmessage: (p: unknown) => void } }).onProgress;
+      channel.onmessage({ done: 3, total: 12 });
+      return Promise.resolve(undefined);
+    });
+    const seen: unknown[] = [];
+    await downloadGoogleFont('literata', (p) => seen.push(p));
+    expect(seen).toEqual([{ done: 3, total: 12 }]);
   });
 
   it('passes a download failure on to the caller', async () => {

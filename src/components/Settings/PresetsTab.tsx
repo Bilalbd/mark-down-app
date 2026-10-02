@@ -4,6 +4,7 @@ import { useDialogStore } from '@/components/Dialog/ConfirmDialog';
 import { isTauri, readFile, writeFile } from '@/lib/tauri';
 import { useStyleStore } from '@/store/style';
 import { Section } from './controls';
+import { offerGoogleFonts } from './importFonts';
 
 export function PresetsTab() {
   const presets = useStyleStore((s) => s.presets);
@@ -39,6 +40,14 @@ export function PresetsTab() {
       const { content } = await readFile(path);
       const r = importPreset(content);
       setMessage(r.ok ? 'Preset imported.' : r.error);
+      if (!r.ok) return;
+      const t = useStyleStore.getState().presets.find((p) => p.id === r.id)?.typography;
+      if (!t) return;
+      // A Google font the preset names is offered for download (skipped silently when offline).
+      const fonts = await offerGoogleFonts([t.bodyFont, t.headingFont, t.monoFont], (text) =>
+        setMessage(`Preset imported. ${text}`),
+      ).catch(() => null);
+      setMessage(fonts ? `Preset imported. ${fonts}` : 'Preset imported.');
     } catch (e) {
       setMessage(`Could not import: ${String(e)}`);
     }

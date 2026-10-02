@@ -80,6 +80,14 @@ pub struct DownloadedFont {
     pub files: Vec<DownloadedFontFile>,
 }
 
+/// How far a download is: `done` of `total` files.
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct DownloadProgress {
+    pub done: usize,
+    pub total: usize,
+}
+
 #[derive(Serialize, Deserialize, Default)]
 struct Manifest {
     fonts: Vec<DownloadedFont>,
@@ -448,18 +456,21 @@ fn temp_dir_name(id: &str) -> String {
     format!(".tmp-{id}-{nanos}-{n}")
 }
 
-/// Downloads every planned file into `dir` (created here). Any failure stops at once; the caller
-/// removes `dir`.
+/// Downloads every planned file into `dir` (created here), calling `progress(done, total)` before
+/// the first file and after each one. Any failure stops at once; the caller removes `dir`.
 fn stage_files(
     dir: &Path,
     files: &[PlannedFile],
     fetch: &dyn Fn(&str) -> Result<Vec<u8>, String>,
+    progress: &dyn Fn(usize, usize),
 ) -> Result<(), String> {
     fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-    for file in files {
+    progress(0, files.len());
+    for (i, file) in files.iter().enumerate() {
         let bytes = fetch(&file.url)?;
         validate_font_bytes(&bytes)?;
         fs::write(dir.join(&file.file), &bytes).map_err(|e| e.to_string())?;
+        progress(i + 1, files.len());
     }
     Ok(())
 }
@@ -497,12 +508,13 @@ fn commit_install(fonts: &Path, staged: &Path, font: DownloadedFont) -> Result<(
 }
 
 /// Installs a font from its plan: stages every file in a temporary folder, then commits. Nothing
-/// is left behind on failure.
+/// is left behind on failure. `progress(done, total)` counts files as they arrive.
 fn install_font(
     fonts: &Path,
     entry: &CatalogFont,
     files: &[PlannedFile],
     fetch: &dyn Fn(&str) -> Result<Vec<u8>, String>,
+    progress: &dyn Fn(usize, usize),
 ) -> Result<DownloadedFont, String> {
     fs::create_dir_all(fonts).map_err(|e| e.to_string())?;
     let staged = fonts.join(temp_dir_name(&entry.id));
@@ -520,7 +532,7 @@ fn install_font(
             })
             .collect(),
     };
-    let result = stage_files(&staged, files, fetch)
+    let result = stage_files(&staged, files, fetch, progress)
         .and_then(|()| commit_install(fonts, &staged, font.clone()));
     if result.is_err() {
         let _ = fs::remove_dir_all(&staged);
@@ -646,7 +658,11 @@ fn fonts_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
         .map_err(|e| e.to_string())
 }
 
-fn download_blocking(fonts: &Path, id: &str) -> Result<DownloadedFont, String> {
+fn download_blocking(
+    fonts: &Path,
+    id: &str,
+    progress: &dyn Fn(usize, usize),
+) -> Result<DownloadedFont, String> {
     if !is_valid_id(id) {
         return Err("Invalid font id.".to_string());
     }
@@ -662,7 +678,7 @@ fn download_blocking(fonts: &Path, id: &str) -> Result<DownloadedFont, String> {
         None
     };
     let planned = plan_files(id, &info, wght.as_deref())?;
-    install_font(fonts, entry, &planned, &get_font_bytes)
+    install_font(fonts, entry, &planned, &get_font_bytes, progress)
 }
 
 /// The Google Fonts catalogue (Google-sourced fonts only): the cached copy if under 7 days old
@@ -680,16 +696,24 @@ pub async fn google_font_catalog(
 }
 
 /// Downloads a Google font (the Latin, Latin Extended and Arabic alphabets it has) into the app's
-/// data folder. Nothing is kept if any file fails.
+/// data folder. Nothing is kept if any file fails. `on_progress` receives the number of files done
+/// out of the total, before the first file and after each one.
 #[tauri::command]
 pub async fn download_google_font(
     app: tauri::AppHandle,
     id: String,
+    on_progress: tauri::ipc::Channel<DownloadProgress>,
 ) -> Result<DownloadedFont, String> {
     let fonts = fonts_dir(&app)?;
-    tauri::async_runtime::spawn_blocking(move || download_blocking(&fonts, &id))
-        .await
-        .map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || {
+        let report = |done: usize, total: usize| {
+            // A closed channel only means nobody is watching the progress any more.
+            let _ = on_progress.send(DownloadProgress { done, total });
+        };
+        download_blocking(&fonts, &id, &report)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// The fonts downloaded so far, from the manifest.
@@ -782,6 +806,8 @@ mod tests {
             })
             .collect()
     }
+
+    fn no_progress(_: usize, _: usize) {}
 
     fn fake_font(_: &str) -> Result<Vec<u8>, String> {
         Ok(b"wOF2-test-bytes".to_vec())
@@ -1032,7 +1058,7 @@ mod tests {
             "lobster",
             &["latin-400-normal.woff2", "latin-ext-400-normal.woff2"],
         );
-        let font = install_font(&dir, &entry, &files, &fake_font).unwrap();
+        let font = install_font(&dir, &entry, &files, &fake_font, &no_progress).unwrap();
         assert_eq!(font.files.len(), 2);
         assert_eq!(
             fs::read(dir.join("lobster").join("latin-400-normal.woff2")).unwrap(),
@@ -1047,6 +1073,40 @@ mod tests {
         names.sort();
         assert_eq!(names, ["lobster", "manifest.json"]);
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn reports_progress_before_the_first_file_and_after_each_one() {
+        let dir = unique_dir("progress");
+        let files = planned(
+            "lobster",
+            &["latin-400-normal.woff2", "latin-ext-400-normal.woff2"],
+        );
+        let seen = std::cell::RefCell::new(Vec::new());
+        let record = |done: usize, total: usize| seen.borrow_mut().push((done, total));
+        install_font(&dir, &catalog_font("lobster"), &files, &fake_font, &record).unwrap();
+        assert_eq!(*seen.borrow(), [(0, 2), (1, 2), (2, 2)]);
+
+        // A failure stops reporting at the last file that arrived.
+        seen.borrow_mut().clear();
+        let calls = std::cell::Cell::new(0);
+        let flaky = |_: &str| {
+            calls.set(calls.get() + 1);
+            if calls.get() == 2 {
+                Err("offline".to_string())
+            } else {
+                fake_font("")
+            }
+        };
+        assert!(install_font(&dir, &catalog_font("amiri"), &files, &flaky, &record).is_err());
+        assert_eq!(*seen.borrow(), [(0, 2), (1, 2)]);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn serialises_progress_with_camel_case_keys() {
+        let json = serde_json::to_string(&DownloadProgress { done: 3, total: 12 }).unwrap();
+        assert_eq!(json, r#"{"done":3,"total":12}"#);
     }
 
     #[test]
@@ -1066,7 +1126,7 @@ mod tests {
                 fake_font("")
             }
         };
-        let error = install_font(&dir, &entry, &files, &flaky).unwrap_err();
+        let error = install_font(&dir, &entry, &files, &flaky, &no_progress).unwrap_err();
         assert_eq!(error, "Couldn't reach the font server.");
         assert!(read_manifest(&dir).unwrap().is_empty());
         assert!(!dir.join("lobster").exists());
@@ -1080,9 +1140,9 @@ mod tests {
         let dir = unique_dir("bad-file");
         let entry = catalog_font("lobster");
         let files = planned("lobster", &["latin-400-normal.woff2"]);
-        install_font(&dir, &entry, &files, &fake_font).unwrap();
+        install_font(&dir, &entry, &files, &fake_font, &no_progress).unwrap();
         let html = |_: &str| Ok(b"<html>not a font</html>".to_vec());
-        assert!(install_font(&dir, &entry, &files, &html).is_err());
+        assert!(install_font(&dir, &entry, &files, &html, &no_progress).is_err());
         assert_eq!(
             fs::read(dir.join("lobster").join("latin-400-normal.woff2")).unwrap(),
             b"wOF2-test-bytes"
@@ -1100,11 +1160,12 @@ mod tests {
             &entry,
             &planned("lobster", &["latin-400-normal.woff2"]),
             &fake_font,
+            &no_progress,
         )
         .unwrap();
         let newer = |_: &str| Ok(b"wOF2-newer".to_vec());
         let files = planned("lobster", &["latin-700-normal.woff2"]);
-        install_font(&dir, &entry, &files, &newer).unwrap();
+        install_font(&dir, &entry, &files, &newer, &no_progress).unwrap();
         assert!(!dir.join("lobster").join("latin-400-normal.woff2").exists());
         assert!(dir.join("lobster").join("latin-700-normal.woff2").exists());
         let list = read_manifest(&dir).unwrap();
@@ -1117,8 +1178,22 @@ mod tests {
     fn removes_a_font_and_its_manifest_entry() {
         let dir = unique_dir("remove");
         let files = planned("lobster", &["latin-400-normal.woff2"]);
-        install_font(&dir, &catalog_font("lobster"), &files, &fake_font).unwrap();
-        install_font(&dir, &catalog_font("amiri"), &files, &fake_font).unwrap();
+        install_font(
+            &dir,
+            &catalog_font("lobster"),
+            &files,
+            &fake_font,
+            &no_progress,
+        )
+        .unwrap();
+        install_font(
+            &dir,
+            &catalog_font("amiri"),
+            &files,
+            &fake_font,
+            &no_progress,
+        )
+        .unwrap();
         remove_font(&dir, "lobster").unwrap();
         assert!(!dir.join("lobster").exists());
         let list = read_manifest(&dir).unwrap();
@@ -1133,7 +1208,14 @@ mod tests {
     fn reads_font_bytes_only_from_inside_the_font_folder() {
         let dir = unique_dir("read");
         let files = planned("lobster", &["latin-400-normal.woff2"]);
-        install_font(&dir, &catalog_font("lobster"), &files, &fake_font).unwrap();
+        install_font(
+            &dir,
+            &catalog_font("lobster"),
+            &files,
+            &fake_font,
+            &no_progress,
+        )
+        .unwrap();
         assert_eq!(
             read_font_bytes(&dir, "lobster", "latin-400-normal.woff2").unwrap(),
             b"wOF2-test-bytes"

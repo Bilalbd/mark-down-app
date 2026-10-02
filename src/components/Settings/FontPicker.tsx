@@ -1,14 +1,17 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { Check, ChevronDown, Search } from 'lucide-react';
+import { Check, ChevronDown, Loader2, Search } from 'lucide-react';
 import { ICON } from '@/components/Toolbar/Toolbar';
 import {
   BUILTIN_FONTS,
   SOURCE_LABELS,
   buildPickerRows,
+  catalogToFamilies,
+  downloadedToFamilies,
   excludeBuiltin,
   filterFonts,
   fontKey,
   fontStack,
+  googleFamilies,
   groupFonts,
   isCustomStack,
   isGenericFamily,
@@ -21,6 +24,7 @@ import {
   type PickerOption,
 } from '@/lib/fonts';
 import { listSystemFonts } from '@/lib/tauri';
+import { useFontsStore } from '@/store/fonts';
 import { FontInput } from './controls';
 import './FontPicker.css';
 
@@ -44,10 +48,36 @@ const CATEGORY_LABELS: Record<FontCategory, string> = {
   handwriting: 'Handwriting',
 };
 
+const LOADING_NOTE = 'Loading Google Fonts…';
+const OFFLINE_NOTE = 'Needs an internet connection to add Google fonts';
+
+interface DownloadState {
+  id: string;
+  family: string;
+  done: number;
+  total: number;
+}
+
+/** `Downloading… 3/12`, or just `Downloading…` until the first file count arrives. */
+function progressLabel(p: DownloadState): string {
+  return p.total > 0 ? `Downloading… ${p.done}/${p.total}` : 'Downloading…';
+}
+
+/** A Google font that has to be downloaded before it can be used or previewed. */
+function needsDownload(font: FontFamily): boolean {
+  return font.source === 'google' && !font.downloaded && !!font.googleId;
+}
+
 /** A small tag for a row. Installed fonts only know mono or not, so they never claim a category. */
 function categoryTag(font: FontFamily): string {
   if (font.source === 'system') return font.monospace ? 'Mono' : '';
-  return CATEGORY_LABELS[font.category];
+  const label = CATEGORY_LABELS[font.category];
+  return font.downloaded ? `${label} · Downloaded` : label;
+}
+
+function errorMessage(e: unknown): string {
+  if (typeof e === 'string') return e;
+  return e instanceof Error ? e.message : String(e);
 }
 
 const ICON_SMALL = { ...ICON, size: 14 };
@@ -70,10 +100,19 @@ export function FontPicker({
   const [expanded, setExpanded] = useState<FontSource[]>([]);
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [system, setSystem] = useState<FontFamily[] | null>(null);
+  const [progress, setProgress] = useState<DownloadState | null>(null);
+  const [failure, setFailure] = useState<{ id: string; message: string } | null>(null);
+  const catalog = useFontsStore((s) => s.catalog);
+  const catalogStatus = useFontsStore((s) => s.catalogStatus);
+  const downloaded = useFontsStore((s) => s.downloaded);
+  const downloadedLoaded = useFontsStore((s) => s.downloadedLoaded);
   const wrapRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const pendingFocus = useRef<'input' | 'button' | null>(null);
+  const mounted = useRef(true);
+  /** The Google font id whose download should be applied when it finishes; null if superseded. */
+  const wanted = useRef<string | null>(null);
   const uid = useId();
   const listId = `${uid}-list`;
 
@@ -88,26 +127,85 @@ export function FontPicker({
     };
   }, []);
 
-  const resolved = useMemo(
-    () => resolveFamily(value, { builtin: BUILTIN_FONTS, system: system ?? [] }),
-    [value, system],
+  useEffect(() => {
+    mounted.current = true;
+    void useFontsStore.getState().loadDownloaded();
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  const downloadedFamilies = useMemo(() => downloadedToFamilies(downloaded), [downloaded]);
+  const catalogFamilies = useMemo(() => (catalog ? catalogToFamilies(catalog) : []), [catalog]);
+  const googleList = useMemo(
+    () =>
+      googleFamilies({
+        catalog: catalogFamilies,
+        downloaded: downloadedFamilies,
+        builtin: BUILTIN_FONTS,
+        system: system ?? [],
+      }),
+    [catalogFamilies, downloadedFamilies, system],
   );
+
+  const resolved = useMemo(
+    () =>
+      resolveFamily(value, {
+        builtin: BUILTIN_FONTS,
+        downloaded: downloadedFamilies,
+        system: system ?? [],
+        google: catalogFamilies,
+      }),
+    [value, downloadedFamilies, system, catalogFamilies],
+  );
+  const name = primaryFamily(value);
+
+  // A named family nothing local provides might be a Google font (a preset can name one that isn't
+  // downloaded yet), so the catalogue is needed to tell it from a missing font.
+  const maybeGoogle =
+    system !== null && downloadedLoaded && !resolved && !!name && !isGenericFamily(name);
+  useEffect(() => {
+    if (maybeGoogle) void useFontsStore.getState().loadCatalog();
+  }, [maybeGoogle]);
   const selectedKey = resolved ? fontKey(resolved) : allowSame && !value.trim() ? 'same' : null;
 
   const searching = query.trim() !== '';
   const rows = useMemo(() => {
-    const filtered = filterFonts([...BUILTIN_FONTS, ...(system ?? [])], {
+    const filtered = filterFonts([...BUILTIN_FONTS, ...(system ?? []), ...googleList], {
       query,
       monospaceOnly,
       arabicOnly,
     });
-    return buildPickerRows({ groups: groupFonts(filtered), searching, allowSame, expanded });
-  }, [system, query, monospaceOnly, arabicOnly, searching, allowSame, expanded]);
+    const googleNote =
+      catalogStatus === 'loading'
+        ? LOADING_NOTE
+        : catalogStatus === 'offline'
+          ? OFFLINE_NOTE
+          : null;
+    return buildPickerRows({
+      groups: groupFonts(filtered),
+      searching,
+      allowSame,
+      expanded,
+      googleNote,
+    });
+  }, [
+    system,
+    googleList,
+    catalogStatus,
+    query,
+    monospaceOnly,
+    arabicOnly,
+    searching,
+    allowSame,
+    expanded,
+  ]);
   const options = useMemo(
     () => rows.flatMap((r) => (r.type === 'option' ? [r.option] : [])),
     [rows],
   );
   const hasFonts = options.some((o) => o.kind === 'font');
+  const hasNote = rows.some((r) => r.type === 'note');
 
   // Row ids come from this map so each row's id is O(1), not a scan of every option.
   const indexByKey = useMemo(() => new Map(options.map((o, i) => [o.key, i])), [options]);
@@ -150,20 +248,59 @@ export function FontPicker({
     setQuery('');
     setExpanded([]);
     setActiveKey(selectedKey);
+    setFailure(null);
     setOpen(true);
+    // Both are session caches, so reopening costs nothing once they are loaded.
+    void useFontsStore.getState().loadCatalog();
+    void useFontsStore.getState().registerAll();
   };
   const closePopover = () => {
     setOpen(false);
     buttonRef.current?.focus();
   };
 
+  /** Downloads a Google font, then applies it, unless another choice was made meanwhile. */
+  const downloadAndApply = async (font: FontFamily) => {
+    const id = font.googleId;
+    if (!id || wanted.current === id) return;
+    wanted.current = id;
+    setFailure(null);
+    const start: DownloadState = { id, family: font.family, done: 0, total: 0 };
+    setProgress(start);
+    try {
+      await useFontsStore.getState().download(id, (p) => {
+        if (mounted.current && wanted.current === id) setProgress({ ...start, ...p });
+      });
+    } catch (e) {
+      if (mounted.current && wanted.current === id) {
+        wanted.current = null;
+        setProgress(null);
+        setFailure({ id, message: errorMessage(e) });
+      }
+      return;
+    }
+    if (!mounted.current || wanted.current !== id) return;
+    wanted.current = null;
+    setProgress(null);
+    onChange(fontStack(font));
+    const hadFocus = wrapRef.current?.contains(document.activeElement);
+    setOpen(false);
+    if (hadFocus) buttonRef.current?.focus();
+  };
+
   const choose = (option: PickerOption) => {
     switch (option.kind) {
       case 'same':
+        wanted.current = null;
         onChange('');
         closePopover();
         break;
       case 'font':
+        if (needsDownload(option.font)) {
+          void downloadAndApply(option.font);
+          break;
+        }
+        wanted.current = null;
         onChange(fontStack(option.font));
         closePopover();
         break;
@@ -219,18 +356,27 @@ export function FontPicker({
     );
   }
 
-  const name = primaryFamily(value);
   let shownName: string;
   let shownNote = '';
   let shownStyle: { fontFamily: string } | undefined;
-  if (resolved) {
+  if (progress) {
+    shownName = progress.family;
+    shownNote = progressLabel(progress);
+  } else if (resolved) {
     shownName = resolved.family;
-    shownNote = SOURCE_LABELS[resolved.source];
-    shownStyle = { fontFamily: fontStack(resolved) };
+    shownNote = needsDownload(resolved)
+      ? `${SOURCE_LABELS.google} · not downloaded`
+      : SOURCE_LABELS[resolved.source];
+    if (!needsDownload(resolved)) shownStyle = { fontFamily: fontStack(resolved) };
   } else if (name) {
     shownName = name;
     if (isGenericFamily(name)) shownNote = 'Custom';
-    else if (system) shownNote = 'Not installed';
+    else if (
+      system &&
+      downloadedLoaded &&
+      (catalogStatus === 'ready' || catalogStatus === 'offline')
+    )
+      shownNote = 'Not installed';
   } else {
     shownName = allowSame ? 'Same as body' : 'Choose a font';
   }
@@ -254,7 +400,7 @@ export function FontPicker({
         }}
       >
         <span
-          className={`font-picker__name ${resolved || !name ? '' : 'is-missing'}`}
+          className={`font-picker__name ${resolved || !name || progress ? '' : 'is-missing'}`}
           style={shownStyle}
         >
           {shownName}
@@ -318,6 +464,13 @@ export function FontPicker({
               if (row.type === 'note') {
                 return (
                   <li key={row.key} role="presentation" className="font-picker__empty">
+                    {row.text === LOADING_NOTE && (
+                      <Loader2
+                        {...ICON_SMALL}
+                        aria-hidden="true"
+                        className="font-picker__spinner"
+                      />
+                    )}
                     {row.text}
                   </li>
                 );
@@ -343,11 +496,17 @@ export function FontPicker({
                     <>
                       <span
                         className="font-picker__row-name"
-                        style={{ fontFamily: fontStack(o.font) }}
+                        style={
+                          needsDownload(o.font) ? undefined : { fontFamily: fontStack(o.font) }
+                        }
                       >
                         {o.font.family}
                       </span>
-                      <span className="font-picker__row-tag">{categoryTag(o.font)}</span>
+                      <span className="font-picker__row-tag">
+                        {progress && progress.id === o.font.googleId
+                          ? progressLabel(progress)
+                          : categoryTag(o.font)}
+                      </span>
                     </>
                   ) : (
                     <span>
@@ -359,10 +518,15 @@ export function FontPicker({
                   {isSelected && (
                     <Check {...ICON_SMALL} aria-hidden="true" className="font-picker__check" />
                   )}
+                  {o.kind === 'font' && failure && failure.id === o.font.googleId && (
+                    <span role="alert" className="font-picker__row-error">
+                      {failure.message}
+                    </span>
+                  )}
                 </li>
               );
             })}
-            {!hasFonts && (
+            {!hasFonts && !hasNote && (
               <li role="presentation" className="font-picker__empty">
                 No fonts match.
               </li>

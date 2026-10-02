@@ -2,17 +2,25 @@ import { describe, expect, it } from 'vitest';
 import {
   BUILTIN_FONTS,
   buildPickerRows,
+  catalogToFamilies,
+  downloadedForStacks,
+  downloadedToFamilies,
   excludeBuiltin,
+  excludeNamed,
   filterFonts,
   fontStack,
+  googleFamilies,
   groupFonts,
   isCustomStack,
   isGenericFamily,
+  missingGoogleFonts,
   primaryFamily,
   resolveFamily,
+  stacksUseFamily,
   systemFontsToFamilies,
   type FontFamily,
 } from './fonts';
+import type { CatalogFont, DownloadedFont } from './tauri';
 
 function font(over: Partial<FontFamily> & { family: string }): FontFamily {
   return {
@@ -285,12 +293,13 @@ describe('buildPickerRows', () => {
   const labels = (rows: ReturnType<typeof buildPickerRows>) =>
     rows.map((r) => (r.type === 'option' ? r.option.key : r.key));
 
-  it('lists Same as body first, then groups, a Google placeholder and the custom row', () => {
+  it('lists Same as body first, then groups, the Google status line and the custom row', () => {
     const rows = buildPickerRows({
       groups: groupFonts([font({ family: 'Lora', source: 'builtin' }), font({ family: 'Arial' })]),
       searching: false,
       allowSame: true,
       expanded: [],
+      googleNote: 'Loading Google Fonts…',
     });
     expect(labels(rows)).toEqual([
       'same',
@@ -304,7 +313,7 @@ describe('buildPickerRows', () => {
     ]);
   });
 
-  it('drops Same as body and the placeholder while searching', () => {
+  it('adds no Google header without a status line, and drops Same as body while searching', () => {
     const rows = buildPickerRows({
       groups: groupFonts([font({ family: 'Arial' })]),
       searching: true,
@@ -335,5 +344,202 @@ describe('buildPickerRows', () => {
       expanded: [],
     });
     expect(rows.filter((r) => r.type === 'option' && r.option.kind === 'font')).toHaveLength(200);
+  });
+
+  it('puts the status line at the end of an existing Google group', () => {
+    const rows = buildPickerRows({
+      groups: groupFonts([font({ family: 'Literata', source: 'google', downloaded: true })]),
+      searching: true,
+      allowSame: false,
+      expanded: [],
+      googleNote: 'Needs an internet connection to add Google fonts',
+    });
+    expect(labels(rows)).toEqual([
+      'header:google',
+      'font:google:Literata',
+      'note:google',
+      'custom',
+    ]);
+  });
+});
+
+const CATALOG: CatalogFont[] = [
+  {
+    id: 'literata',
+    family: 'Literata',
+    category: 'serif',
+    subsets: ['latin', 'latin-ext'],
+    weights: [400],
+    styles: ['normal'],
+    variable: true,
+  },
+  {
+    id: 'amiri',
+    family: 'Amiri',
+    category: 'serif',
+    subsets: ['arabic', 'latin'],
+    weights: [400],
+    styles: ['normal'],
+    variable: false,
+  },
+  {
+    id: 'space-mono',
+    family: 'Space Mono',
+    category: 'monospace',
+    subsets: ['latin'],
+    weights: [400],
+    styles: ['normal'],
+    variable: false,
+  },
+  {
+    id: 'weird',
+    family: 'Weird',
+    category: 'something-new',
+    subsets: [],
+    weights: [],
+    styles: [],
+    variable: false,
+  },
+];
+
+const DOWNLOADED: DownloadedFont[] = [
+  {
+    id: 'literata',
+    family: 'Literata',
+    category: 'serif',
+    files: [
+      { file: 'latin-wght-normal.woff2', weight: '200 900', style: 'normal', unicodeRange: '' },
+    ],
+  },
+  {
+    id: 'amiri',
+    family: 'Amiri',
+    category: 'serif',
+    files: [
+      { file: 'latin-400-normal.woff2', weight: '400', style: 'normal', unicodeRange: '' },
+      { file: 'arabic-400-normal.woff2', weight: '400', style: 'normal', unicodeRange: '' },
+    ],
+  },
+];
+
+describe('catalogToFamilies', () => {
+  it('maps the catalogue to Google entries with category, monospace and Arabic', () => {
+    const [literata, amiri, mono, weird] = catalogToFamilies(CATALOG);
+    expect(literata).toEqual({
+      family: 'Literata',
+      cssName: 'Literata',
+      source: 'google',
+      category: 'serif',
+      monospace: false,
+      arabic: false,
+      googleId: 'literata',
+    });
+    expect(amiri.arabic).toBe(true);
+    expect(mono.monospace).toBe(true);
+    expect(mono.category).toBe('monospace');
+    expect(weird.category).toBe('sans-serif');
+  });
+});
+
+describe('downloadedToFamilies', () => {
+  it('marks entries as downloaded and finds Arabic from the files', () => {
+    const [literata, amiri] = downloadedToFamilies(DOWNLOADED);
+    expect(literata).toMatchObject({ googleId: 'literata', downloaded: true, arabic: false });
+    expect(amiri.arabic).toBe(true);
+  });
+});
+
+describe('excludeNamed', () => {
+  it('drops fonts matching a taken family or CSS name, ignoring case', () => {
+    const taken = [font({ family: 'Lora', cssName: 'Lora Variable', source: 'builtin' })];
+    const fonts = [
+      font({ family: 'lora' }),
+      font({ family: 'LORA VARIABLE' }),
+      font({ family: 'Amiri' }),
+    ];
+    expect(excludeNamed(fonts, taken).map((f) => f.family)).toEqual(['Amiri']);
+  });
+});
+
+describe('googleFamilies', () => {
+  const catalog = catalogToFamilies([
+    ...CATALOG,
+    { ...CATALOG[0], id: 'lora', family: 'lora' },
+    { ...CATALOG[0], id: 'arial', family: 'ARIAL' },
+  ]);
+
+  it('lists downloaded fonts first and each font once, by priority', () => {
+    const list = googleFamilies({
+      catalog,
+      downloaded: downloadedToFamilies([DOWNLOADED[0]]),
+      builtin: BUILTIN_FONTS,
+      system: [font({ family: 'Arial' })],
+    });
+    const names = list.map((f) => f.family);
+    expect(names[0]).toBe('Literata');
+    expect(names.filter((n) => n === 'Literata')).toHaveLength(1);
+    expect(list[0].downloaded).toBe(true);
+    expect(names).toContain('Amiri');
+    expect(names.map((n) => n.toLowerCase())).not.toContain('lora');
+    expect(names.map((n) => n.toLowerCase())).not.toContain('arial');
+  });
+
+  it('works with the catalogue unavailable', () => {
+    const list = googleFamilies({
+      catalog: [],
+      downloaded: downloadedToFamilies(DOWNLOADED),
+      builtin: BUILTIN_FONTS,
+      system: [],
+    });
+    expect(list.map((f) => f.family)).toEqual(['Literata', 'Amiri']);
+  });
+});
+
+describe('groupFonts with downloaded Google fonts', () => {
+  it('puts downloaded fonts first inside the Google group', () => {
+    const groups = groupFonts([
+      font({ family: 'Aaa', source: 'google' }),
+      font({ family: 'Zzz', source: 'google', downloaded: true }),
+      font({ family: 'Bbb', source: 'google', downloaded: true }),
+    ]);
+    expect(groups[0].fonts.map((f) => f.family)).toEqual(['Bbb', 'Zzz', 'Aaa']);
+  });
+});
+
+describe('stacksUseFamily', () => {
+  it('compares the first family of each stack, ignoring case', () => {
+    expect(stacksUseFamily(["'Literata', serif", ''], 'literata')).toBe(true);
+    expect(stacksUseFamily(["Georgia, 'Literata'"], 'Literata')).toBe(false);
+    expect(stacksUseFamily([''], 'Literata')).toBe(false);
+  });
+});
+
+describe('downloadedForStacks', () => {
+  it('picks the downloaded fonts the stacks start with', () => {
+    const stacks = ["'Literata', serif", '', "'Inter Variable', sans-serif"];
+    expect(downloadedForStacks(stacks, DOWNLOADED).map((f) => f.id)).toEqual(['literata']);
+    expect(downloadedForStacks(['Georgia, serif'], DOWNLOADED)).toEqual([]);
+  });
+});
+
+describe('missingGoogleFonts', () => {
+  const lists = {
+    builtin: BUILTIN_FONTS,
+    downloaded: downloadedToFamilies([DOWNLOADED[0]]),
+    system: [font({ family: 'Consolas' })],
+    google: catalogToFamilies(CATALOG),
+  };
+
+  it('finds Google fonts that only the catalogue provides, once each', () => {
+    const stacks = ["'Amiri', serif", 'Amiri, serif', "'Space Mono', monospace"];
+    expect(missingGoogleFonts(stacks, lists).map((f) => f.googleId)).toEqual([
+      'amiri',
+      'space-mono',
+    ]);
+  });
+
+  it('ignores fonts that are built in, downloaded, installed, unknown or generic', () => {
+    const stacks = ["'Inter Variable'", "'Literata'", 'Consolas', 'Charter, serif', 'serif', ''];
+    expect(missingGoogleFonts(stacks, lists)).toEqual([]);
   });
 });

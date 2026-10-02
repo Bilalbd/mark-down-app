@@ -1,4 +1,4 @@
-import type { SystemFont } from '@/lib/tauri';
+import type { CatalogFont, DownloadedFont, SystemFont } from '@/lib/tauri';
 
 /** Where a font comes from: shipped with the app, installed on this PC, or a Google font. */
 export type FontSource = 'builtin' | 'system' | 'google';
@@ -16,6 +16,8 @@ export interface FontFamily {
   arabic: boolean;
   /** Fontsource id for Google fonts, e.g. `source-serif-4`. */
   googleId?: string;
+  /** A Google font that has been downloaded, so it renders in its own face. */
+  downloaded?: boolean;
 }
 
 /** The lists `resolveFamily` searches, in the order it searches them (built-in first). */
@@ -155,6 +157,14 @@ export function systemFontsToFamilies(list: SystemFont[]): FontFamily[] {
   }));
 }
 
+/** Drops fonts whose family or CSS name matches one in 	aken, case-insensitively. */
+export function excludeNamed(fonts: FontFamily[], taken: FontFamily[]): FontFamily[] {
+  const names = new Set(taken.flatMap((f) => [f.family.toLowerCase(), f.cssName.toLowerCase()]));
+  return fonts.filter(
+    (f) => !names.has(f.family.toLowerCase()) && !names.has(f.cssName.toLowerCase()),
+  );
+}
+
 /**
  * Drops installed fonts that are also bundled (by family or CSS name, case-insensitively), so a
  * font like JetBrains Mono appears once, under Built in.
@@ -163,12 +173,90 @@ export function excludeBuiltin(
   system: FontFamily[],
   builtin: FontFamily[] = BUILTIN_FONTS,
 ): FontFamily[] {
-  const taken = new Set(builtin.flatMap((f) => [f.family.toLowerCase(), f.cssName.toLowerCase()]));
-  return system.filter(
-    (f) => !taken.has(f.family.toLowerCase()) && !taken.has(f.cssName.toLowerCase()),
-  );
+  return excludeNamed(system, builtin);
 }
 
+const CATEGORIES: FontCategory[] = ['sans-serif', 'serif', 'monospace', 'display', 'handwriting'];
+
+function toCategory(value: string): FontCategory {
+  return CATEGORIES.find((c) => c === value) ?? 'sans-serif';
+}
+
+/** Turns the Google Fonts catalogue into picker entries (not downloaded, so no preview font). */
+export function catalogToFamilies(catalog: CatalogFont[]): FontFamily[] {
+  return catalog.map((f) => ({
+    family: f.family,
+    cssName: f.family,
+    source: 'google',
+    category: toCategory(f.category),
+    monospace: f.category === 'monospace',
+    arabic: f.subsets.includes('arabic'),
+    googleId: f.id,
+  }));
+}
+
+/** Turns the downloaded Google fonts into picker entries; Arabic if an Arabic file came with it. */
+export function downloadedToFamilies(list: DownloadedFont[]): FontFamily[] {
+  return list.map((f) => ({
+    family: f.family,
+    cssName: f.family,
+    source: 'google',
+    category: toCategory(f.category),
+    monospace: f.category === 'monospace',
+    arabic: f.files.some((file) => file.file.startsWith('arabic-')),
+    googleId: f.id,
+    downloaded: true,
+  }));
+}
+
+/**
+ * The Google group of the picker: every downloaded font, then each catalogue font that isn't
+ * downloaded. A font that is built in or installed on this PC is listed there only (Built in >
+ * On this PC > Google Fonts).
+ */
+export function googleFamilies(input: {
+  catalog: FontFamily[];
+  downloaded: FontFamily[];
+  builtin: FontFamily[];
+  system: FontFamily[];
+}): FontFamily[] {
+  const have = new Set(input.downloaded.map((f) => f.googleId));
+  const offered = excludeNamed(
+    input.catalog.filter((f) => !have.has(f.googleId)),
+    [...input.builtin, ...input.system],
+  );
+  return [...excludeNamed(input.downloaded, input.builtin), ...offered];
+}
+
+/** Whether any of the CSS stacks starts with this family (case-insensitively). */
+export function stacksUseFamily(stacks: string[], family: string): boolean {
+  const name = family.toLowerCase();
+  return stacks.some((s) => primaryFamily(s)?.toLowerCase() === name);
+}
+
+/** The downloaded fonts that these stacks start with, unless a built-in font has the same name. */
+export function downloadedForStacks(
+  stacks: string[],
+  downloaded: DownloadedFont[],
+): DownloadedFont[] {
+  const lists: FontLists = { builtin: BUILTIN_FONTS, downloaded: downloadedToFamilies(downloaded) };
+  const ids = new Set<string>();
+  for (const stack of stacks) {
+    const hit = resolveFamily(stack, lists);
+    if (hit?.source === 'google' && hit.googleId) ids.add(hit.googleId);
+  }
+  return downloaded.filter((f) => ids.has(f.id));
+}
+
+/** The Google fonts, not yet downloaded, that these stacks start with and nothing else provides. */
+export function missingGoogleFonts(stacks: string[], lists: FontLists): FontFamily[] {
+  const found = new Map<string, FontFamily>();
+  for (const stack of stacks) {
+    const hit = resolveFamily(stack, lists);
+    if (hit?.source === 'google' && !hit.downloaded && hit.googleId) found.set(hit.googleId, hit);
+  }
+  return [...found.values()];
+}
 const GENERIC_FAMILIES = new Set([
   'serif',
   'sans-serif',
@@ -229,6 +317,8 @@ export interface PickerRowsInput {
   allowSame: boolean;
   /** Groups whose "Show all" has been used. */
   expanded: FontSource[];
+  /** A status line for the Google Fonts group (loading, or no connection), shown even if empty. */
+  googleNote?: string | null;
 }
 
 /** The key that identifies a font's row in the picker. */
@@ -238,10 +328,10 @@ export function fontKey(font: FontFamily): string {
 
 /**
  * Lays out the picker list: an optional "Same as body" row, each group (capped, with a
- * "Show all (N)" row), a Google Fonts placeholder until that group exists, and the custom row.
+ * "Show all (N)" row), the Google Fonts status line, and the custom row.
  */
 export function buildPickerRows(input: PickerRowsInput): PickerRow[] {
-  const { groups, searching, allowSame, expanded } = input;
+  const { groups, searching, allowSame, expanded, googleNote } = input;
   const rows: PickerRow[] = [];
   if (allowSame && !searching) rows.push({ type: 'option', option: { key: 'same', kind: 'same' } });
   const cap = searching ? GROUP_CAP_SEARCHING : GROUP_CAP;
@@ -263,23 +353,36 @@ export function buildPickerRows(input: PickerRowsInput): PickerRow[] {
         },
       });
     }
+    if (group.source === 'google' && googleNote) {
+      rows.push({ type: 'note', key: 'note:google', text: googleNote });
+    }
   }
-  if (!searching && !groups.some((g) => g.source === 'google')) {
+  if (googleNote && !groups.some((g) => g.source === 'google')) {
     rows.push({ type: 'header', key: 'header:google', source: 'google' });
-    rows.push({ type: 'note', key: 'note:google', text: 'Coming soon' });
+    rows.push({ type: 'note', key: 'note:google', text: googleNote });
   }
   rows.push({ type: 'option', option: { key: 'custom', kind: 'custom' } });
   return rows;
 }
 
+/** One collator for every sort: localeCompare builds a new one per call, which is slow on 2,000 fonts. */
+const COLLATOR = new Intl.Collator();
+
 const GROUP_ORDER: FontSource[] = ['builtin', 'system', 'google'];
 
-/** Groups fonts for the picker: built-in, system, Google; A to Z inside; empty groups dropped. */
+/**
+ * Groups fonts for the picker: built-in, system, Google; A to Z inside (downloaded Google fonts
+ * first); empty groups dropped.
+ */
 export function groupFonts(fonts: FontFamily[]): FontGroup[] {
   return GROUP_ORDER.map((source) => ({
     source,
     fonts: fonts
       .filter((f) => f.source === source)
-      .sort((a, b) => a.family.localeCompare(b.family)),
+      .sort(
+        (a, b) =>
+          Number(b.downloaded ?? false) - Number(a.downloaded ?? false) ||
+          COLLATOR.compare(a.family, b.family),
+      ),
   })).filter((g) => g.fonts.length > 0);
 }

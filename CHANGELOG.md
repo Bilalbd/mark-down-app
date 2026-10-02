@@ -20,6 +20,9 @@ Every change to the app and to how it's built is logged here, newest first. The 
 
 - 16 more built-in fonts (sans, serif, heading, code and Arabic families), bundled so they work
   offline.
+- Any of about 2,000 Google Fonts can be picked in Settings → Appearance; the app downloads a font
+  once, from Fontsource rather than Google, and it then works offline. Downloaded fonts can be
+  removed again.
 
 ### Changed
 

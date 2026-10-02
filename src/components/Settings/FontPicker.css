@@ -130,11 +130,29 @@
   color: var(--chrome-fg-muted);
 }
 .font-picker__empty {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 4px 8px;
   color: var(--chrome-fg-muted);
 }
+.font-picker__spinner {
+  flex: none;
+  animation: font-picker-spin 1s linear infinite;
+}
+@keyframes font-picker-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .font-picker__spinner {
+    animation-duration: 3s;
+  }
+}
 .font-picker__option {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   min-height: 28px;
@@ -166,4 +184,10 @@
   flex: none;
   margin-left: auto;
   color: var(--accent);
+}
+.font-picker__row-error {
+  flex-basis: 100%;
+  padding-bottom: 4px;
+  font-size: 11px;
+  color: var(--spell-error);
 }
