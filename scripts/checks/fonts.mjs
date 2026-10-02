@@ -227,7 +227,8 @@ for (const theme of ['light', 'dark']) {
   p = await popover();
   r.check(
     `${theme} Code font lists monospace fonts only`,
-    p.fonts.length > 0 && p.fonts.every((f) => f.tag === 'Mono'),
+    // Downloaded Google fonts read "Mono · Downloaded".
+    p.fonts.length > 0 && p.fonts.every((f) => f.tag.startsWith('Mono')),
     `${p.fonts.length} rows: ${p.fonts.map((f) => f.name).join(', ')}`,
   );
   await shot('code', theme);
