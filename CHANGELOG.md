@@ -16,6 +16,11 @@ Every change to the app and to how it's built is logged here, newest first. The 
 
 ## [Unreleased]
 
+### Development
+
+- README brought up to date: removing downloaded Google fonts, every file the app writes, the
+  font-related source files, and the typecheck, Rust test and `pnpm fonts:css` commands.
+
 ## [1.1.0] - 2026-10-02
 
 ### Added
