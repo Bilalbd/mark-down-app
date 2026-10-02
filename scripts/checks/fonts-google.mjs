@@ -12,10 +12,13 @@
  *                   falls back at once, and downloading it again brings it back
  *   import          online: importing a preset whose fonts are only in the Google catalogue offers
  *                   one download for all of them ("Not now", then "Download")
+ *   export          online: with Lora (built in), Literata (downloaded) and Cascadia Code
+ *                   (installed), builds the HTML export as the Export menu does (self-contained on
+ *                   and off) into --out <dir>, and checks which fonts each file embeds
  *   cleanup         removes every downloaded font
  * Picking fonts edits the active preset; stop.ps1 puts presets.json back. The fonts\ folder in the
  * app's data isn't backed up: run `cleanup`, and delete the folder if it didn't exist before.
- * Usage: node scripts/checks/fonts-google.mjs --step <name> [--shots <dir>]
+ * Usage: node scripts/checks/fonts-google.mjs --step <name> [--shots <dir>] [--out <dir>]
  */
 import { join } from 'node:path';
 import { args, connect, fixture, reporter, wait } from './lib.mjs';
@@ -217,6 +220,28 @@ if (step === 'download') {
   await shot('restart');
   const catalog = await app.js(`${STORE} return useFontsStore.getState().catalogStatus;`);
   r.check('no catalogue fetch at startup', catalog === 'idle', `catalogStatus=${catalog}`);
+  // Opening Settings, even on a preset naming an unknown font, doesn't fetch it either; only
+  // opening a picker does.
+  await app.js(`window.__mdv.style.getState().updateActive((p) => ({ ...p, typography: { ...p.typography,
+      headingFont: 'Charter, Georgia, serif' } })); return 1;`);
+  await openFontsPage();
+  await wait(1500);
+  const onSettings = await app.js(`${STORE} return useFontsStore.getState().catalogStatus;`);
+  const heading = await labelOf('Heading font');
+  r.check(
+    'opening Fonts & colours fetches nothing',
+    onSettings === 'idle' && heading === 'Heading font: Charter',
+    `catalogStatus=${onSettings} label=${heading}`,
+  );
+  await clickSel(btn('Heading font'));
+  await until(`${STORE} return useFontsStore.getState().catalogStatus;`, (s) => s === 'ready');
+  await app.press('Escape');
+  r.check(
+    'opening a picker fetches it, then the note appears',
+    (await labelOf('Heading font')) === 'Heading font: Charter, Not installed',
+    String(await labelOf('Heading font')),
+  );
+  await closeSettings();
 } else if (step === 'offline') {
   await openFontsPage();
   await clickSel(btn('Body font'));
@@ -364,6 +389,62 @@ if (step === 'download') {
     String(await previewBody()),
   );
   await shot('import');
+  await app.js(`window.__mdv.style.setState(${style0}); return 1;`);
+} else if (step === 'export') {
+  // Body: a built-in font, headings: a downloaded Google font, code: an installed font. Exports
+  // through the real menu, answering the save dialog with a path under --out.
+  const out = String(opts.out ?? '');
+  if (!out) throw new Error('--out <dir> is required for the export step');
+  const style0 = await app.js(`const s = window.__mdv.style.getState();
+    return JSON.stringify({ presets: s.presets, activePresetId: s.activePresetId });`);
+  const self0 = await app.js('return window.__mdv.settings.getState().selfContainedExport;');
+  await app.js(`${STORE} await useFontsStore.getState().download('literata'); return 1;`);
+  await app.js(`window.__mdv.style.getState().updateActive((p) => ({ ...p, typography: { ...p.typography,
+      bodyFont: "'Lora Variable', Georgia, serif", headingFont: "'Literata', Georgia, serif",
+      monoFont: "'Cascadia Code', Consolas, monospace" } })); return 1;`);
+  await wait(800);
+  // The same steps as ExportMenu's exportHtml up to the save dialog, which a check can't answer
+  // (`__TAURI_INTERNALS__.invoke` is read-only, and the dialog's controls aren't reachable).
+  const exportTo = async (file, selfContained) => {
+    const html = await app.js(`const ex = await import('/src/lib/export.ts');
+      const { loadFontCss } = await import('/src/lib/exportFonts.ts');
+      const preset = window.__mdv.style.getState().active();
+      const theme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+      let bodyHtml = ex.stripCursorMark(document.querySelector('.preview-scroll .preview').innerHTML);
+      let katexCss, fontCss;
+      if (${selfContained}) {
+        bodyHtml = await ex.embedLocalImages(bodyHtml);
+        if (bodyHtml.includes('class="katex')) katexCss = await ex.loadInlineKatexCss();
+        fontCss = await loadFontCss(preset);
+      }
+      return ex.buildExportHtml({ title: 'gfm', bodyHtml, preset, theme, katexCss, fontCss });`);
+    const { writeFileSync } = await import('node:fs');
+    writeFileSync(join(out, file), html);
+  };
+  await exportTo('export-self-contained.html', true);
+  await exportTo('export-linked.html', false);
+  const { readFileSync } = await import('node:fs');
+  const faces = (html) =>
+    [...html.matchAll(/@font-face\{font-family:'([^']+)'[^}]*src:url\((data:[^)]{0,30})/g)].map(
+      (m) => `${m[1]}|${m[2].slice(0, 22)}`,
+    );
+  const a = readFileSync(join(out, 'export-self-contained.html'), 'utf8');
+  const b = readFileSync(join(out, 'export-linked.html'), 'utf8');
+  const fa = faces(a);
+  const families = [...new Set(fa.map((f) => f.split('|')[0]))].sort();
+  r.check(
+    'self-contained export embeds Lora and Literata only, as data URLs',
+    a.includes('/* fonts */') &&
+      families.join() === 'Literata,Lora Variable' &&
+      fa.every((f) => f.includes('data:font/woff2;base64')),
+    `${fa.length} faces: ${families.join(', ')}; ${Math.round(a.length / 1024)} KB`,
+  );
+  r.check(
+    'export with self-contained off has no embedded fonts',
+    !b.includes('@font-face') && !b.includes('/* fonts */'),
+    `${Math.round(b.length / 1024)} KB`,
+  );
+  await app.setting('selfContainedExport', self0);
   await app.js(`window.__mdv.style.setState(${style0}); return 1;`);
 } else if (step === 'cleanup') {
   const ids = await app.js(

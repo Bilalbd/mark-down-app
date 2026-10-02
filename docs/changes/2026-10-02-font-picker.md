@@ -23,7 +23,8 @@ typeface (`src/components/Settings/FontPicker.tsx`).
   `fonts` store (`src/store/fonts.ts`).
 - **Network and CSP:** only `api.fontsource.org` and `cdn.jsdelivr.net`, and only when you open the
   Google Fonts list, download a font or import such a preset. Never Google itself. All downloading
-  happens in Rust (`google_fonts.rs`), so the webview's CSP is unchanged.
+  happens in Rust (`google_fonts.rs`), and the page loads a downloaded font from bytes Rust reads
+  (`new FontFace(name, bytes)` in `src/lib/fontLoader.ts`), so the webview's CSP is unchanged.
 - **Export:** self-contained HTML export embeds the built-in and downloaded Google fonts that the
   preset's body, heading and code stacks use, as data URLs (`src/lib/exportFonts.ts`). Installed
   fonts are never embedded, because their licences usually forbid it.
@@ -37,7 +38,14 @@ typeface (`src/components/Settings/FontPicker.tsx`).
 - **Batch C:** download with progress; registered before app-ready after a restart; offline with and
   without a cached catalogue (simulated with an unreachable `HTTPS_PROXY`); remove, re-download and
   the import prompt.
-- **Batch D (export):** to be added by the supervisor.
+- **Batch D:** with Lora (built in) as body, Literata (downloaded) as heading and Cascadia Code
+  (installed) as code font, the self-contained export embeds 8 faces, Lora's and Literata's only,
+  as data URLs (427 KB). Opened from a local server, it renders in those fonts with no network
+  requests at all; the code falls back. With self-contained export off the file has no
+  `@font-face` (19 KB). In a production build (`pnpm build`), the built-in fonts' rules point at
+  the hashed `/assets/*.woff2` files, which fetch as WOFF2. Opening Fonts & colours no longer
+  fetches the catalogue; opening a picker does. The full fixture sweep (`huge.md` 1.05–1.18 s) and
+  the keys, menus, guide, settings and font checks pass.
 
 **Notes:** Only Latin, Latin Extended and Arabic files are downloaded or bundled, so other scripts
 use a system font. Bundling the 19 fonts grew `dist` from 17.8 MB to 20.6 MB (font files 0.86 to

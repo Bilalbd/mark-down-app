@@ -175,8 +175,9 @@ can **Copy** any preset, **Rename** or **Delete** a custom one, and **Export** a
 The **Body**, **Heading** and **Code** fonts each use a searchable list, with every font shown in its
 own typeface. It has three groups: **Built in** (19 fonts that ship with the app, including three
 Arabic ones), **On this PC** (the fonts installed in Windows) and **Google Fonts** (about 2,000).
-A font that is built in or installed is listed once, under its own group, not again under Google Fonts. The Code list shows
-monospace fonts only, **Supports Arabic** narrows any list to fonts with Arabic letters, and
+A font that is built in or installed is listed once, under its own group, not again under Google
+Fonts. The Code list shows monospace fonts only, **Supports Arabic** narrows any list to fonts with
+Arabic letters, and
 Heading has a **Same as body** row. **Custom CSS font list…** switches to a text box for a CSS
 `font-family` list of your own, and **Choose from list** switches back.
 
