@@ -18,6 +18,8 @@ Every change to the app and to how it's built is logged here, newest first. The 
 
 ### Added
 
+- Downloaded Google fonts can be removed straight from the font list: hover one and click ×, or
+  highlight it and press Delete.
 - 16 more built-in fonts (19 in all: sans, serif, heading, code and Arabic), bundled so they work
   offline.
 - Any of about 2,000 Google Fonts can be picked in Settings → Appearance. The app downloads a font
@@ -58,7 +60,8 @@ Every change to the app and to how it's built is logged here, newest first. The 
   (and Arabic) files and renders, and the font picker's groups, search, keyboard use, filters,
   custom mode and preset fonts work, with screenshots in light and dark. `fonts-google.mjs` checks
   Google Fonts step by step: download with progress, registration at startup, offline (through an
-  unreachable `HTTPS_PROXY`), removing, importing and the fonts a self-contained export embeds.
+  unreachable `HTTPS_PROXY`), removing (also from the font list), importing and the fonts a
+  self-contained export embeds; its cleanup leaves your own downloaded fonts alone.
 - `scripts/checks/stop.ps1` also stops the copy the startup watchdog relaunches after a slow
   first start, which used to keep running and block the next launch.
 - `scripts/checks/launch.ps1` warms a freshly started Vite before launching the app, so the

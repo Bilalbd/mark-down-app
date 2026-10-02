@@ -15,9 +15,12 @@
  *   export          online: with Lora (built in), Literata (downloaded) and Cascadia Code
  *                   (installed), builds the HTML export as the Export menu does (self-contained on
  *                   and off) into --out <dir>, and checks which fonts each file embeds
- *   cleanup         removes every downloaded font
+ *   picker-remove   online: × on the hovered downloaded row and the Delete key remove a font from
+ *                   the list; the preset's own font asks first (Lobster and Crimson Pro only)
+ *   cleanup         removes the fonts these checks download (Literata, Lobster, Crimson Pro, Amiri)
  * Picking fonts edits the active preset; stop.ps1 puts presets.json back. The fonts\ folder in the
- * app's data isn't backed up: run `cleanup`, and delete the folder if it didn't exist before.
+ * app's data isn't backed up and may hold the user's own fonts: run `cleanup`, which leaves those
+ * alone, and delete the folder only if it didn't exist before.
  * Usage: node scripts/checks/fonts-google.mjs --step <name> [--shots <dir>] [--out <dir>]
  */
 import { join } from 'node:path';
@@ -446,13 +449,140 @@ if (step === 'download') {
   );
   await app.setting('selfContainedExport', self0);
   await app.js(`window.__mdv.style.setState(${style0}); return 1;`);
+} else if (step === 'picker-remove') {
+  // Removing downloaded fonts from the list: × on the highlighted row, the Delete key, and the
+  // confirmation when the preset uses the font. Uses check-only fonts (Lobster, Crimson Pro).
+  const style0 = await app.js(`const s = window.__mdv.style.getState();
+    return JSON.stringify({ presets: s.presets, activePresetId: s.activePresetId });`);
+  const fetchFont = (id) =>
+    app.js(`${STORE} await useFontsStore.getState().download(${JSON.stringify(id)}); return 1;`);
+  const isDownloaded = (id) =>
+    app.js(
+      `${STORE} return useFontsStore.getState().downloaded.some((f) => f.id === ${JSON.stringify(id)});`,
+    );
+  const rowState = (name) =>
+    app.js(`const p = document.querySelector('.font-picker__popover'); if (!p) return null;
+      const rows = [...p.querySelectorAll('[role=option]:not(.is-action)')];
+      const row = rows.find((o) => o.querySelector('.font-picker__row-name')?.textContent === ${JSON.stringify(name)});
+      const visible = rows.filter((o) => { const x = o.querySelector('.font-picker__remove');
+        return x && getComputedStyle(x).visibility === 'visible'; })
+        .map((o) => o.querySelector('.font-picker__row-name')?.textContent);
+      const x = row?.querySelector('.font-picker__remove'); const rect = x?.getBoundingClientRect();
+      const input = p.querySelector('[role=combobox]');
+      return { tag: row?.querySelector('.font-picker__row-tag')?.textContent ?? null, visible,
+        active: row?.classList.contains('is-active') ?? false, query: input?.value,
+        focused: document.activeElement === input,
+        x: rect ? { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + rect.height / 2) } : null };`);
+  const hoverRow = async (name) => {
+    const c =
+      await app.js(`const row = [...document.querySelectorAll('.font-picker__popover [role=option]')]
+        .find((o) => o.querySelector('.font-picker__row-name')?.textContent === ${JSON.stringify(name)});
+      if (!row) return null; row.scrollIntoView({ block: 'nearest' }); const r = row.getBoundingClientRect();
+      return { x: Math.round(r.left + 40), y: Math.round(r.top + r.height / 2) };`);
+    if (c) await app.hover(c.x, c.y);
+  };
+
+  await fetchFont('lobster');
+  await fetchFont('crimson-pro');
+  await app.js(`window.__mdv.style.getState().updateActive((p) => ({ ...p, typography: { ...p.typography,
+      bodyFont: "'Crimson Pro', Georgia, serif" } })); return 1;`);
+  for (const theme of ['light', 'dark']) {
+    await app.setting('appTheme', theme);
+    await openFontsPage();
+    await searchPicker('Body font', 'lobster');
+    await hoverRow('Lobster');
+    const s = await rowState('Lobster');
+    r.check(
+      `${theme} × shows only on the hovered downloaded row`,
+      s?.visible.join() === 'Lobster' && s.active,
+      JSON.stringify(s?.visible),
+    );
+    await shot(`remove-x-${theme}`);
+    await app.press('Escape');
+    await closeSettings();
+  }
+  await app.setting('appTheme', 'light');
+  await openFontsPage();
+
+  // × removes without applying the row; the list stays open with focus in the search box.
+  await searchPicker('Body font', 'lobster');
+  await hoverRow('Lobster');
+  const x = (await rowState('Lobster')).x;
+  await app.mouse(x.x, x.y);
+  await wait(800);
+  const afterX = await rowState('Lobster');
+  r.check(
+    '× removes it, keeps the list open, applies nothing',
+    !(await isDownloaded('lobster')) &&
+      afterX?.focused &&
+      !afterX.tag?.includes('Downloaded') &&
+      (await labelOf('Body font'))?.startsWith('Body font: Crimson Pro'),
+    `tag=${afterX?.tag} focused=${afterX?.focused} label=${await labelOf('Body font')}`,
+  );
+
+  // Delete at the end of the search text removes the highlighted downloaded font.
+  await fetchFont('lobster');
+  await searchPicker('Body font', 'lobs');
+  await app.press('Delete');
+  await wait(800);
+  r.check('Delete at the end of the text removes it', !(await isDownloaded('lobster')));
+
+  // Delete in the middle of the text edits the text.
+  await fetchFont('lobster');
+  await searchPicker('Body font', 'lobster');
+  await app.press('ArrowLeft');
+  await app.press('ArrowLeft');
+  await app.press('Delete');
+  await wait(500);
+  const mid = await rowState('Lobster');
+  r.check(
+    'Delete in the middle edits the text instead',
+    (await isDownloaded('lobster')) && mid?.query === 'lobstr',
+    `query=${mid?.query}`,
+  );
+
+  // The preset's own font asks first; Escape cancels just the dialog.
+  await searchPicker('Body font', 'crimson');
+  await app.press('Delete');
+  await wait(500);
+  const d = await dialog();
+  await app.press('Escape');
+  await wait(400);
+  const afterEsc = await app.js(`return { dialog: !!document.querySelector('.dialog'),
+    settings: !!document.querySelector('.settings') };`);
+  r.check(
+    'removing the preset font asks; Escape cancels only the dialog',
+    d?.title === 'Remove Crimson Pro?' &&
+      !afterEsc.dialog &&
+      afterEsc.settings &&
+      (await isDownloaded('crimson-pro')),
+    `dialog=${JSON.stringify(d)} after=${JSON.stringify(afterEsc)}`,
+  );
+  await searchPicker('Body font', 'crimson');
+  await app.press('Delete');
+  await wait(500);
+  await app.click('.dialog__btn', 'Remove');
+  await wait(800);
+  r.check(
+    'confirmed: removed, the preset keeps its font setting',
+    !(await isDownloaded('crimson-pro')) &&
+      (await labelOf('Body font')) === 'Body font: Crimson Pro, Google Fonts · not downloaded',
+    String(await labelOf('Body font')),
+  );
+  await app.js(
+    `${STORE} await useFontsStore.getState().remove('lobster').catch(() => undefined); return 1;`,
+  );
+  await closeSettings();
+  await app.js(`window.__mdv.style.setState(${style0}); return 1;`);
 } else if (step === 'cleanup') {
+  // Only the fonts these checks download: the app data folder also holds the user's own fonts.
   const ids = await app.js(
-    `${STORE} const list = await useFontsStore.getState().loadDownloaded();
+    `${STORE} const ours = ['literata', 'lobster', 'crimson-pro', 'amiri'];
+    const list = (await useFontsStore.getState().loadDownloaded()).filter((f) => ours.includes(f.id));
     for (const f of list) await useFontsStore.getState().remove(f.id);
     return list.map((f) => f.id);`,
   );
-  r.check('removed downloaded fonts', true, ids.join(', ') || 'none');
+  r.check('removed the fonts the checks downloaded', true, ids.join(', ') || 'none');
 } else {
   throw new Error(`Unknown --step "${step}"`);
 }
