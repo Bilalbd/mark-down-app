@@ -16,15 +16,16 @@ Every change to the app and to how it's built is logged here, newest first. The 
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-02
+
 ### Added
 
-- Downloaded Google fonts can be removed straight from the font list: hover one and click ×, or
-  highlight it and press Delete.
 - 16 more built-in fonts (19 in all: sans, serif, heading, code and Arabic), bundled so they work
   offline.
 - Any of about 2,000 Google Fonts can be picked in Settings → Appearance. The app downloads a font
-  once, from Fontsource rather than Google, and it then works offline; downloaded fonts can be
-  removed again. ([note](docs/changes/2026-10-02-font-picker.md))
+  once, from Fontsource rather than Google, and it then works offline. To remove a downloaded font,
+  hover it in the font list and click ×, or highlight it and press Delete.
+  ([note](docs/changes/2026-10-02-font-picker.md))
 
 ### Changed
 
@@ -40,18 +41,10 @@ Every change to the app and to how it's built is logged here, newest first. The 
 
 ### Fixed
 
-- Downloaded Google fonts now work in the installed app. Picking one showed "The source provided
-  … could not be parsed" and the font didn't change, because the font's bytes arrived as a list of
-  numbers.
 - A tab's unsaved-changes dot now sits before the file name and shows on every unsaved tab,
   including the active one, instead of being hidden behind the close button.
 - The active tab's bottom corners are now rounded on both sides when it's the first or last tab,
   not only when it sits between two others.
-
-### Removed
-
-- The Downloaded fonts section in Settings → Appearance; remove a downloaded font from the font
-  list instead (× or Delete).
 
 ### Development
 
