@@ -176,8 +176,8 @@ can also read it on GitHub: [`src/guide/Guide.md`](src/guide/Guide.md).
 
 Settings and style presets live in `%APPDATA%\com.bilal.markdown-viewer\` (`settings.json`,
 `presets.json`). Google Fonts you download live in its `fonts\` folder: `catalog.json` (the font
-list, cached for 7 days), `manifest.json` and one folder per font; **Remove** in Settings →
-Appearance deletes a font's folder. The only other file the app writes, apart from the files you
+list, cached for 7 days), `manifest.json` and one folder per font; removing a font from a
+font list in Settings → Appearance deletes its folder. The only other file the app writes, apart from the files you
 open and save yourself, is `%LOCALAPPDATA%\com.bilal.markdown-viewer\startup.log`: one line each
 time a start gets stuck and the app has to recover (never written on a normal start, capped at
 64 KB).
