@@ -185,11 +185,11 @@ Picking a Google font that you haven’t used before downloads it once (the row 
 example *Downloading… 3/12*) and then applies it; after that it works offline. The app contacts
 `api.fontsource.org` and `cdn.jsdelivr.net` only when you open the Google Fonts list, download a
 font, or import a preset that uses Google fonts (it offers to download them all in one prompt) —
-never Google itself, and not offline. **Downloaded fonts**, further down the page, lists them with a
-**Remove** button each; it asks first if the active preset uses that font. You can also remove a
-downloaded font straight from the font list: hover it and click **×**, or highlight it and press
-**Delete** (with the caret at the end of the search text). The built-in and
-downloaded fonts include only Latin and Arabic characters, so other scripts use a system font.
+never Google itself, and not offline. Downloaded fonts are listed first in the Google Fonts group,
+tagged *Downloaded*. To remove one, hover it and click **×**, or highlight it and press **Delete**
+(with the caret at the end of the search text); it asks first if the active preset uses that font.
+The built-in and downloaded fonts include only Latin and Arabic characters, so other scripts use a
+system font.
 
 Settings → Appearance → Custom CSS gives the active preset a slot for your own CSS, applied on top of
 everything else so it can override anything. It targets elements inside `.preview`, for example:
@@ -449,8 +449,8 @@ were on until you close the app.
 **Appearance**
 
 A switch at the top of the page chooses between **Presets** (pick, copy, rename, delete, import and
-export presets), **Fonts & colours** (the active preset’s typography and colours, plus the
-**Downloaded fonts** list) and **Custom CSS** (your own CSS on top of the preset). See Styling, above.
+export presets), **Fonts & colours** (the active preset’s typography and colours) and **Custom CSS**
+(your own CSS on top of the preset). See Styling, above.
 
 **Shortcuts**
 

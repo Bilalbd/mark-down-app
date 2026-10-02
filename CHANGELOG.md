@@ -48,6 +48,11 @@ Every change to the app and to how it's built is logged here, newest first. The 
 - The active tab's bottom corners are now rounded on both sides when it's the first or last tab,
   not only when it sits between two others.
 
+### Removed
+
+- The Downloaded fonts section in Settings → Appearance; remove a downloaded font from the font
+  list instead (× or Delete).
+
 ### Development
 
 - Plan phases handed to sub-agents use a lean `implementer` agent type that never launches the

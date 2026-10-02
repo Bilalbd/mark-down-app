@@ -49,4 +49,5 @@ typeface (`src/components/Settings/FontPicker.tsx`).
 
 **Notes:** Only Latin, Latin Extended and Arabic files are downloaded or bundled, so other scripts
 use a system font. Bundling the 19 fonts grew `dist` from 17.8 MB to 20.6 MB (font files 0.86 to
-3.57 MB) and the installer from 6.58 MB to 9.32 MB.
+3.57 MB) and the installer from 6.58 MB to 9.32 MB. The *Downloaded fonts* section in Settings was
+later removed; remove a downloaded font from the font list instead.

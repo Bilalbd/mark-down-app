@@ -8,7 +8,6 @@ import {
   type Typography,
 } from '@/store/style';
 import { ColorInput, NumberInput, Row, Section } from './controls';
-import { DownloadedFonts } from './DownloadedFonts';
 import { FontPicker } from './FontPicker';
 
 export function AppearanceTab() {
@@ -117,8 +116,6 @@ export function AppearanceTab() {
           />
         </Row>
       </Section>
-
-      <DownloadedFonts />
 
       <Section title="Heading sizes (× base)">
         <div className="settings__grid">

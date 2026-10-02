@@ -2,14 +2,14 @@
  * Google Fonts checks (with fonts.mjs). Each step expects the app in a particular state, so a run
  * goes step by step with restarts in between (README → Development):
  *   download        online: browse the Google group, download and apply Literata with progress,
- *                   filters, the Downloaded fonts section (light and dark)
+ *                   filters, no separate Downloaded fonts section (light and dark)
  *   restart         after a relaunch: Literata is registered at startup and still applied
  *   offline         launched with HTTPS_PROXY pointing nowhere, catalogue cached: the list still
  *                   loads, a download fails inline and leaves nothing behind
  *   offline-nocache offline with catalog.json deleted: the "needs an internet connection" row,
  *                   downloaded fonts still work, importing a preset doesn't prompt
- *   remove          online: removing an unused font asks nothing; removing the preset's font asks,
- *                   falls back at once, and downloading it again brings it back
+ *   remove          online: removing the preset's font from the list asks, falls back at once,
+ *                   and downloading it again brings it back
  *   import          online: importing a preset whose fonts are only in the Google catalogue offers
  *                   one download for all of them ("Not now", then "Download")
  *   export          online: with Lora (built in), Literata (downloaded) and Cascadia Code
@@ -100,10 +100,13 @@ const faces = (family) =>
 const previewBody = () =>
   app.js(`const e = document.querySelector('.preview-scroll .preview p');
     return e ? getComputedStyle(e).fontFamily : null;`);
-const downloadedSection = () =>
-  app.js(
-    `return [...document.querySelectorAll('.downloaded-fonts__name')].map((e) => e.textContent);`,
-  );
+/** The fonts the Body font list shows as downloaded (Settings → Fonts & colours must be open). */
+const downloadedInList = async () => {
+  await searchPicker('Body font', '');
+  const p = await popover();
+  await app.press('Escape');
+  return (p?.rows ?? []).filter((x) => x.tag.includes('Downloaded')).map((x) => x.name);
+};
 const dialog = () =>
   app.js(`const d = document.querySelector('.dialog'); if (!d) return null;
     return { title: d.querySelector('.dialog__title')?.textContent,
@@ -203,12 +206,8 @@ if (step === 'download') {
       JSON.stringify(mono.rows),
     );
     await app.press('Escape');
-    const list = await downloadedSection();
-    r.check(`${theme} Downloaded fonts section`, list.includes('Literata'), list.join(', '));
-    await app.js(
-      `document.querySelector('.downloaded-fonts')?.scrollIntoView({ block: 'center' }); return 1;`,
-    );
-    await shot(`downloaded-${theme}`);
+    const gone = await app.js(`return !document.querySelector('.downloaded-fonts');`);
+    r.check(`${theme} no separate Downloaded fonts section`, gone);
     await closeSettings();
     await shot(`preview-${theme}`);
   }
@@ -286,7 +285,7 @@ if (step === 'download') {
   );
   await shot('offline-nocache');
   await app.press('Escape');
-  const list = await downloadedSection();
+  const list = await downloadedInList();
   r.check(
     'downloaded fonts still listed and applied offline',
     list.includes('Literata') && (await renders('Literata')),
@@ -303,18 +302,11 @@ if (step === 'download') {
   );
   await closeSettings();
 } else if (step === 'remove') {
-  await app.js(`${STORE} await useFontsStore.getState().download('lobster'); return 1;`);
+  // Literata is the body font (from the download step); removing it from the list asks first.
+  // Removing an unused font is covered by the picker-remove step.
   await openFontsPage();
-  await until(`return document.querySelectorAll('.downloaded-fonts__name').length;`, (n) => n >= 2);
-  await clickSel('[aria-label="Remove Lobster"]');
-  await wait(800);
-  const noDialog = !(await dialog());
-  r.check(
-    'removing an unused font asks nothing',
-    noDialog && !(await downloadedSection()).includes('Lobster'),
-    (await downloadedSection()).join(', '),
-  );
-  await clickSel('[aria-label="Remove Literata"]');
+  await searchPicker('Body font', 'literata');
+  await app.press('Delete');
   await wait(400);
   const d = await dialog();
   await shot('remove-confirm');
