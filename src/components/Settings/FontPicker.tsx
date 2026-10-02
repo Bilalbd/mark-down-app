@@ -160,13 +160,8 @@ export function FontPicker({
   );
   const name = primaryFamily(value);
 
-  // A named family nothing local provides might be a Google font (a preset can name one that isn't
-  // downloaded yet), so the catalogue is needed to tell it from a missing font.
-  const maybeGoogle =
-    system !== null && downloadedLoaded && !resolved && !!name && !isGenericFamily(name);
-  useEffect(() => {
-    if (maybeGoogle) void useFontsStore.getState().loadCatalog();
-  }, [maybeGoogle]);
+  // The catalogue is only fetched when a picker opens, so until then a family nothing local
+  // provides shows just its name (no note); it may or may not be a Google font.
   const selectedKey = resolved ? fontKey(resolved) : allowSame && !value.trim() ? 'same' : null;
 
   const searching = query.trim() !== '';

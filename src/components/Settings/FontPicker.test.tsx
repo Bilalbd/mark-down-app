@@ -68,6 +68,11 @@ const CATALOG: CatalogFont[] = [
   catalogFont('space-mono', 'Space Mono', { category: 'monospace' }),
 ];
 
+/** Pretends the catalogue was loaded earlier in the session (by a picker opening). */
+function loadCatalogFirst() {
+  useFontsStore.setState({ catalog: CATALOG, catalogStatus: 'ready' });
+}
+
 const LITERATA: DownloadedFont = {
   id: 'literata',
   family: 'Literata',
@@ -310,6 +315,7 @@ describe('FontPicker', () => {
   });
 
   it('marks a named family that is not installed, with no row selected', async () => {
+    loadCatalogFirst();
     await mount({ value: 'Charter, Georgia, serif' });
     expect(button().textContent).toBe('CharterNot installed');
     expect(container.querySelector('input[type="text"]')).toBeNull();
@@ -392,6 +398,7 @@ describe('FontPicker', () => {
     expect(button().title).toBe('Segoe UI Variable Text (On this PC)');
     act(() => root.unmount());
     root = createRoot(container);
+    loadCatalogFirst();
     await mount({ value: 'Charter, Georgia, serif' });
     expect(button().title).toBe('Charter (Not installed)');
   });
@@ -523,7 +530,27 @@ describe('FontPicker', () => {
       expect(onChange).toHaveBeenCalledWith("'Literata', Georgia, serif");
     });
 
+    it('does not fetch the catalogue just because a picker is shown', async () => {
+      const fetched = vi.fn(() => Promise.resolve(CATALOG));
+      catalogResult = fetched;
+      await mount({ value: "'Literata', Georgia, serif" });
+      await mount({ value: 'Charter, Georgia, serif' });
+      expect(fetched).not.toHaveBeenCalled();
+      expect(button().textContent).toBe('Charter');
+      expect(button().title).toBe('Charter');
+    });
+
+    it('shows just the name for an unknown family until the catalogue has loaded', async () => {
+      await mount({ value: "'Literata', Georgia, serif" });
+      expect(button().textContent).toBe('Literata');
+      await open();
+      expect(useFontsStore.getState().catalogStatus).toBe('ready');
+      await act(async () => button().click());
+      expect(button().textContent).toBe('LiterataGoogle Fonts · not downloaded');
+    });
+
     it('notes a Google font in the preset that is not downloaded yet', async () => {
+      loadCatalogFirst();
       await mount({ value: "'Literata', Georgia, serif" });
       expect(button().textContent).toBe('LiterataGoogle Fonts · not downloaded');
       expect(button().title).toBe('Literata (Google Fonts · not downloaded)');
