@@ -7,6 +7,7 @@ import {
   loadInlineKatexCss,
   stripCursorMark,
 } from '@/lib/export';
+import { loadFontCss } from '@/lib/exportFonts';
 import { basename, isTauri, writeFile } from '@/lib/tauri';
 import { useResolvedTheme, type ResolvedTheme } from '@/lib/useAppTheme';
 import { renderMermaidBlocks, whenMermaidIdle } from '@/markdown/mermaid';
@@ -81,12 +82,14 @@ export function ExportMenu() {
       let bodyHtml = preview.el.innerHTML;
       bodyHtml = stripCursorMark(bodyHtml);
       let katexCss: string | undefined;
+      let fontCss: string | undefined;
       if (selfContained) {
         bodyHtml = await embedLocalImages(bodyHtml);
         if (bodyHtml.includes('class="katex')) katexCss = await loadInlineKatexCss();
+        fontCss = await loadFontCss(preset);
       }
 
-      const html = buildExportHtml({ title, bodyHtml, preset, theme, katexCss });
+      const html = buildExportHtml({ title, bodyHtml, preset, theme, katexCss, fontCss });
       if (!isTauri()) {
         const blob = new Blob([html], { type: 'text/html' });
         const a = Object.assign(document.createElement('a'), {

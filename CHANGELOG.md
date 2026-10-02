@@ -32,6 +32,8 @@ Every change to the app and to how it's built is logged here, newest first. The 
   installed on this PC, each shown in its own typeface; a custom CSS font list is still available.
 - The Solarized preset has darker body text in light mode and brighter text in dark mode for
   easier reading, with slightly tighter line spacing and a wider page (800px).
+- Self-contained HTML export also embeds the built-in and downloaded Google fonts the document
+  uses, so it looks the same on any computer.
 
 ### Fixed
 
