@@ -172,6 +172,22 @@ changes as a new custom preset instead of overwriting the original. Back in Pres
 can **Copy** any preset, **Rename** or **Delete** a custom one, and **Export** any preset (or
 **Import**) as a JSON file, handy for sharing or backing up.
 
+The **Body**, **Heading** and **Code** fonts each use a searchable list, with every font shown in its
+own typeface. It has three groups: **Built in** (19 fonts that ship with the app, including three
+Arabic ones), **On this PC** (the fonts installed in Windows) and **Google Fonts** (about 2,000).
+A font that is built in or installed is listed once, under its own group, not again under Google Fonts. The Code list shows
+monospace fonts only, **Supports Arabic** narrows any list to fonts with Arabic letters, and
+Heading has a **Same as body** row. **Custom CSS font list…** switches to a text box for a CSS
+`font-family` list of your own, and **Choose from list** switches back.
+
+Picking a Google font that you haven’t used before downloads it once (the row shows progress, for
+example *Downloading… 3/12*) and then applies it; after that it works offline. The app contacts
+`api.fontsource.org` and `cdn.jsdelivr.net` only when you open the Google Fonts list, download a
+font, or import a preset that uses Google fonts (it offers to download them all in one prompt) —
+never Google itself, and not offline. **Downloaded fonts**, further down the page, lists them with a
+**Remove** button each; it asks first if the active preset uses that font. The built-in and
+downloaded fonts include only Latin and Arabic characters, so other scripts use a system font.
+
 Settings → Appearance → Custom CSS gives the active preset a slot for your own CSS, applied on top of
 everything else so it can override anything. It targets elements inside `.preview`, for example:
 
@@ -203,9 +219,10 @@ The toolbar’s export button offers:
 
 - **Export as HTML…** — a standalone HTML file that reproduces the formatted view with the active
   preset’s styling baked in. With **Self-contained HTML export** on (Settings → General → Documents,
-  on by default), local images and the maths font are embedded as data straight in the file, so it
-  works offline anywhere; remote images stay linked, and the bundled preset fonts fall back to
-  whatever’s on the system that opens it.
+  on by default), local images, the maths font and the built-in and downloaded Google fonts the
+  preset uses are embedded as data straight in the file, so it works offline anywhere; remote images
+  stay linked, and fonts installed on your PC are never embedded (their licences usually forbid it),
+  so they fall back to whatever’s on the system that opens it.
 - **Print / Save as PDF…** — opens the normal Windows print dialog on the formatted view, where
   *Save as PDF* is one of the printer choices.
 
@@ -407,7 +424,7 @@ were on until you close the app.
 | Setting | What it does | Default |
 |---|---|---|
 | Block remote images | Stops `http(s)` images loading in the preview | Off |
-| Self-contained HTML export | Embeds images and maths fonts in exported HTML | On |
+| Self-contained HTML export | Embeds images, maths fonts and the preset’s built-in and Google fonts in exported HTML | On |
 
 **Editor**
 
@@ -429,8 +446,8 @@ were on until you close the app.
 **Appearance**
 
 A switch at the top of the page chooses between **Presets** (pick, copy, rename, delete, import and
-export presets), **Fonts & colours** (the active preset’s typography and colours) and **Custom CSS**
-(your own CSS on top of the preset). See Styling, above.
+export presets), **Fonts & colours** (the active preset’s typography and colours, plus the
+**Downloaded fonts** list) and **Custom CSS** (your own CSS on top of the preset). See Styling, above.
 
 **Shortcuts**
 

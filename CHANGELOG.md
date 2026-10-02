@@ -18,22 +18,23 @@ Every change to the app and to how it's built is logged here, newest first. The 
 
 ### Added
 
-- 16 more built-in fonts (sans, serif, heading, code and Arabic families), bundled so they work
+- 16 more built-in fonts (19 in all: sans, serif, heading, code and Arabic), bundled so they work
   offline.
-- Any of about 2,000 Google Fonts can be picked in Settings → Appearance; the app downloads a font
-  once, from Fontsource rather than Google, and it then works offline. Downloaded fonts can be
-  removed again.
+- Any of about 2,000 Google Fonts can be picked in Settings → Appearance. The app downloads a font
+  once, from Fontsource rather than Google, and it then works offline; downloaded fonts can be
+  removed again. ([note](docs/changes/2026-10-02-font-picker.md))
 
 ### Changed
 
-- Built-in fonts now include only Latin and Arabic characters, keeping the installer small; other
+- Built-in fonts include only Latin and Arabic characters, keeping the installer small; other
   scripts use a system font.
-- Fonts in Settings → Appearance are chosen from a searchable list of built-in fonts and fonts
-  installed on this PC, each shown in its own typeface; a custom CSS font list is still available.
+- Fonts in Settings → Appearance are chosen from a searchable list of built-in fonts, fonts
+  installed on this PC and Google Fonts, each shown in its own typeface; a custom CSS font list is
+  still available. ([note](docs/changes/2026-10-02-font-picker.md))
 - The Solarized preset has darker body text in light mode and brighter text in dark mode for
   easier reading, with slightly tighter line spacing and a wider page (800px).
-- Self-contained HTML export also embeds the built-in and downloaded Google fonts the document
-  uses, so it looks the same on any computer.
+- Self-contained HTML export also embeds the built-in and downloaded Google fonts the preset
+  uses, so it looks the same on any computer; installed fonts are never embedded.
 
 ### Fixed
 

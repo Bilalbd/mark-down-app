@@ -94,6 +94,8 @@ Placement rules:
   - `view`: short-lived UI state and live element handles. Never saved.
   - `tabs`: the open tabs, and a snapshot of each inactive tab's document and view state. The
     document store always holds the tab on screen. Never saved.
+  - `fonts`: the Google Fonts catalogue and the list of downloaded fonts, for the font pickers and
+    Settings. Never saved (the files live in the app's `fonts\` folder).
 - **Rust stays thin:** file I/O, the file watcher, the local-image protocol and window lifecycle.
   Rendering, parsing and UI logic belong in TypeScript.
 - **New Tauri command:** add it to `generate_handler!` in `lib.rs`, add a typed wrapper in
