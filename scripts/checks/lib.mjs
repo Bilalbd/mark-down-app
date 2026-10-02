@@ -134,6 +134,7 @@ export async function connect() {
     Home: 36,
     End: 35,
     Backspace: 8,
+    Delete: 46,
     F1: 112,
     F10: 121,
   };
