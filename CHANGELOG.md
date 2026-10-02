@@ -50,7 +50,9 @@ Every change to the app and to how it's built is logged here, newest first. The 
   and the Settings pages. ([note](docs/changes/2026-09-30-check-scripts.md))
 - A running-app font check (`scripts/checks/fonts.mjs`): every built-in font loads only its Latin
   (and Arabic) files and renders, and the font picker's groups, search, keyboard use, filters,
-  custom mode and preset fonts work, with screenshots in light and dark.
+  custom mode and preset fonts work, with screenshots in light and dark. `fonts-google.mjs` checks
+  Google Fonts step by step: download with progress, registration at startup, offline (through an
+  unreachable `HTTPS_PROXY`), removing and importing.
 - `scripts/checks/stop.ps1` also stops the copy the startup watchdog relaunches after a slow
   first start, which used to keep running and block the next launch.
 - `scripts/checks/launch.ps1` warms a freshly started Vite before launching the app, so the

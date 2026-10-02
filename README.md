@@ -209,6 +209,7 @@ node scripts/checks/menus.mjs [--shots <dir>]    # right-click menus (--clipboar
 node scripts/checks/guide.mjs                    # F1, the Guide button and the guide window
 node scripts/checks/settings.mjs [--shots <dir>] # every Settings page, light and dark
 node scripts/checks/fonts.mjs [--shots <dir>]    # built-in fonts and the font picker, light and dark
+node scripts/checks/fonts-google.mjs --step <s>  # Google Fonts, step by step with restarts (see file)
 .\scripts\checks\stop.ps1 [-KeepState]           # stop what launch started, put settings back
 ```
 

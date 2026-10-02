@@ -246,7 +246,12 @@ for (const theme of ['light', 'dark']) {
   await clickSel(btn('Body font'));
   await clickSel('.font-picker__filter input');
   p = await popover();
-  const notArabic = p.fonts.filter((f) => !arabicNames.includes(f.name));
+  // The Google catalogue (loaded when the picker opened) adds the fonts with an Arabic subset.
+  const googleArabic = await app.js(`const { useFontsStore } = await import('/src/store/fonts.ts');
+    return (useFontsStore.getState().catalog ?? []).filter((f) => f.subsets.includes('arabic')).map((f) => f.family);`);
+  const notArabic = p.fonts.filter(
+    (f) => !arabicNames.includes(f.name) && !googleArabic.includes(f.name),
+  );
   r.check(
     `${theme} Supports Arabic filter`,
     p.fonts.length > 0 && notArabic.length === 0,
