@@ -4,6 +4,8 @@ import { createRoot } from 'react-dom/client';
 import type { CatalogFont, DownloadedFont, DownloadProgress, SystemFont } from '@/lib/tauri';
 import { unregisterDownloadedFont } from '@/lib/fontLoader';
 import { useFontsStore } from '@/store/fonts';
+import { useDialogStore } from '@/components/Dialog/ConfirmDialog';
+import { BUILTIN_PRESETS, useStyleStore, type StylePreset } from '@/store/style';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -16,6 +18,7 @@ let catalogResult: () => Promise<CatalogFont[]>;
 let downloadedList: DownloadedFont[] = [];
 const downloadMock =
   vi.fn<(id: string, onProgress?: (p: DownloadProgress) => void) => Promise<DownloadedFont>>();
+const removeMock = vi.fn<(id: string) => Promise<void>>();
 vi.mock('@/lib/tauri', () => ({
   listSystemFonts: () => Promise.resolve(installed),
   googleFontCatalog: () => catalogResult(),
@@ -23,7 +26,7 @@ vi.mock('@/lib/tauri', () => ({
   downloadGoogleFont: (id: string, onProgress?: (p: DownloadProgress) => void) =>
     downloadMock(id, onProgress),
   readFontFile: () => Promise.resolve(new ArrayBuffer(8)),
-  removeDownloadedFont: () => Promise.resolve(),
+  removeDownloadedFont: (id: string) => removeMock(id),
 }));
 
 class FakeFace {
@@ -117,6 +120,8 @@ describe('FontPicker', () => {
     catalogResult = () => Promise.resolve(CATALOG);
     downloadedList = [];
     downloadMock.mockReset();
+    removeMock.mockReset().mockResolvedValue(undefined);
+    useStyleStore.setState({ presets: BUILTIN_PRESETS, activePresetId: BUILTIN_PRESETS[0].id });
     useFontsStore.setState({
       catalog: null,
       catalogStatus: 'idle',
@@ -135,6 +140,7 @@ describe('FontPicker', () => {
   });
 
   afterEach(() => {
+    useDialogStore.setState({ current: null });
     unregisterDownloadedFont('literata');
     vi.unstubAllGlobals();
     act(() => root.unmount());
@@ -564,6 +570,211 @@ describe('FontPicker', () => {
       expect(button().querySelector<HTMLElement>('.font-picker__name')!.style.fontFamily).toContain(
         'Literata',
       );
+    });
+  });
+
+  describe('removing downloaded fonts from the list', () => {
+    const AMIRI_DL: DownloadedFont = {
+      id: 'amiri',
+      family: 'Amiri',
+      category: 'serif',
+      files: [{ file: 'latin-400-normal.woff2', weight: '400', style: 'normal', unicodeRange: '' }],
+    };
+    const rowFor = (name: string) =>
+      options().find((o) => o.querySelector('.font-picker__row-name')?.textContent === name)!;
+    const removeButton = (name: string) =>
+      container.querySelector<HTMLButtonElement>(`button[aria-label="Remove ${name}"]`);
+    const hover = (name: string) =>
+      act(() => {
+        rowFor(name).dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
+      });
+    const tagOf = (name: string) =>
+      rowFor(name).querySelector('.font-picker__row-tag')?.textContent;
+    const setCaret = (start: number, end = start) => search().setSelectionRange(start, end);
+    /** Presses a key and says whether the picker took it over (called preventDefault). */
+    const pressKey = (key: string) => {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+      act(() => {
+        search().dispatchEvent(event);
+      });
+      return event.defaultPrevented;
+    };
+    const answer = async (id: string | null) => {
+      await vi.waitFor(() => expect(useDialogStore.getState().current).not.toBeNull());
+      await act(async () => useDialogStore.getState().close(id));
+    };
+    function usePresetWith(bodyFont: string) {
+      const base = BUILTIN_PRESETS[0];
+      const preset: StylePreset = {
+        ...base,
+        id: 'mine',
+        name: 'Mine',
+        builtin: false,
+        typography: { ...base.typography, bodyFont },
+      };
+      useStyleStore.setState({ presets: [...BUILTIN_PRESETS, preset], activePresetId: 'mine' });
+    }
+
+    it('gives only downloaded Google fonts a x button, shown on the highlighted row', async () => {
+      downloadedList = [AMIRI_DL, LITERATA];
+      await mount({ value: 'Arial' });
+      await open();
+      const buttons = Array.from(
+        container.querySelectorAll<HTMLButtonElement>('.font-picker__remove'),
+      );
+      expect(buttons.map((b) => b.getAttribute('aria-label'))).toEqual([
+        'Remove Amiri',
+        'Remove Literata',
+      ]);
+      expect(buttons[0].title).toBe('Remove from this PC (Delete)');
+      expect(buttons[0].tabIndex).toBe(-1);
+      expect(options().filter((o) => o.querySelector('button')).length).toBe(2);
+      // Hidden by CSS (not removed) unless inside the highlighted row.
+      expect(buttons.map((b) => !!b.closest('.is-active'))).toEqual([false, false]);
+      await hover('Literata');
+      expect(buttons.map((b) => !!b.closest('.is-active'))).toEqual([false, true]);
+    });
+
+    it('removes the font on click without applying the row, keeping the list open', async () => {
+      downloadedList = [LITERATA];
+      await mount({ value: 'Arial' });
+      await open();
+      await hover('Literata');
+      expect(tagOf('Literata')).toBe('Serif · Downloaded');
+      const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+      removeButton('Literata')!.dispatchEvent(down);
+      expect(down.defaultPrevented).toBe(true);
+      await act(async () => removeButton('Literata')!.click());
+      await settle();
+      expect(removeMock).toHaveBeenCalledWith('literata');
+      expect(useDialogStore.getState().current).toBeNull();
+      expect(onChange).not.toHaveBeenCalled();
+      expect(container.querySelector('[role="listbox"]')).not.toBeNull();
+      expect(document.activeElement).toBe(search());
+      expect(removeButton('Literata')).toBeNull();
+      expect(tagOf('Literata')).toBe('Serif');
+      expect(
+        rowFor('Literata').querySelector<HTMLElement>('.font-picker__row-name')!.style.fontFamily,
+      ).toBe('');
+      expect(search().getAttribute('aria-activedescendant')).toBe(rowFor('Literata').id);
+    });
+
+    it('moves the highlight to the nearest font when the row disappears', async () => {
+      catalogResult = () => Promise.reject(new Error('offline'));
+      downloadedList = [AMIRI_DL, LITERATA];
+      await mount({ value: 'Arial' });
+      await open();
+      await hover('Amiri');
+      await act(async () => removeButton('Amiri')!.click());
+      await settle();
+      expect(fontNames()).not.toContain('Amiri');
+      expect(search().getAttribute('aria-activedescendant')).toBe(rowFor('Literata').id);
+    });
+
+    it('removes the highlighted font with Delete at the end of the search text', async () => {
+      downloadedList = [LITERATA];
+      await mount({ value: 'Arial' });
+      await open();
+      await type('liter');
+      setCaret(5);
+      expect(pressKey('Delete')).toBe(true);
+      await settle();
+      expect(removeMock).toHaveBeenCalledWith('literata');
+      expect(search().value).toBe('liter');
+      expect(tagOf('Literata')).toBe('Serif');
+    });
+
+    it('removes with Delete when the search box is empty', async () => {
+      downloadedList = [LITERATA];
+      await mount({ value: "'Literata', Georgia, serif" });
+      await open();
+      expect(search().getAttribute('aria-activedescendant')).toBe(rowFor('Literata').id);
+      expect(pressKey('Delete')).toBe(true);
+      await settle();
+      expect(removeMock).toHaveBeenCalledWith('literata');
+    });
+
+    it('leaves Delete to edit the text when the caret is not at the end or text is selected', async () => {
+      downloadedList = [LITERATA];
+      await mount({ value: 'Arial' });
+      await open();
+      await type('liter');
+      setCaret(2);
+      expect(pressKey('Delete')).toBe(false);
+      setCaret(0, 5);
+      expect(pressKey('Delete')).toBe(false);
+      await settle();
+      expect(removeMock).not.toHaveBeenCalled();
+    });
+
+    it('ignores Delete when the highlighted row is not a downloaded Google font', async () => {
+      downloadedList = [LITERATA];
+      await mount({ value: 'Arial' });
+      await open();
+      await type('lora');
+      setCaret(4);
+      expect(pressKey('Delete')).toBe(false);
+      await settle();
+      expect(removeMock).not.toHaveBeenCalled();
+    });
+
+    it('asks first when the active preset uses the font, and keeps it on Cancel', async () => {
+      usePresetWith("'Literata', Georgia, serif");
+      downloadedList = [LITERATA];
+      await mount({ value: 'Arial' });
+      await open();
+      await type('liter');
+      pressKey('Delete');
+      const dialog = useDialogStore.getState().current!;
+      expect(dialog.title).toBe('Remove Literata?');
+      expect(dialog.message).toContain('"Mine" preset uses this font');
+      await answer('cancel');
+      expect(removeMock).not.toHaveBeenCalled();
+      expect(tagOf('Literata')).toBe('Serif · Downloaded');
+    });
+
+    it('removes after confirming and leaves the preset using the font', async () => {
+      usePresetWith("'Literata', Georgia, serif");
+      downloadedList = [LITERATA];
+      await mount({ value: "'Literata', Georgia, serif" });
+      await open();
+      await act(async () => removeButton('Literata')!.click());
+      await answer('remove');
+      await settle();
+      expect(removeMock).toHaveBeenCalledWith('literata');
+      expect(useStyleStore.getState().active().typography.bodyFont).toBe(
+        "'Literata', Georgia, serif",
+      );
+      expect(button().textContent).toBe('LiterataGoogle Fonts · not downloaded');
+    });
+
+    it('shows a failed removal on its row and keeps the font downloaded', async () => {
+      removeMock.mockRejectedValue('Access is denied.');
+      downloadedList = [LITERATA];
+      await mount({ value: 'Arial' });
+      await open();
+      await hover('Literata');
+      await act(async () => removeButton('Literata')!.click());
+      await settle();
+      expect(rowFor('Literata').querySelector('[role="alert"]')?.textContent).toBe(
+        'Could not remove: Access is denied.',
+      );
+      expect(tagOf('Literata')).toBe('Serif · Downloaded');
+      expect(container.querySelector('[role="listbox"]')).not.toBeNull();
+    });
+
+    it('does not start a second removal while one is running', async () => {
+      let finish!: () => void;
+      removeMock.mockImplementation(() => new Promise<void>((resolve) => (finish = resolve)));
+      downloadedList = [LITERATA];
+      await mount({ value: 'Arial' });
+      await open();
+      await hover('Literata');
+      await act(async () => removeButton('Literata')!.click());
+      await act(async () => removeButton('Literata')!.click());
+      pressKey('Delete');
+      expect(removeMock).toHaveBeenCalledTimes(1);
+      await act(async () => finish());
     });
   });
 });

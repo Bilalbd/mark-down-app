@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { Check, ChevronDown, Loader2, Search } from 'lucide-react';
+import { Check, ChevronDown, Loader2, Search, X } from 'lucide-react';
 import { ICON } from '@/components/Toolbar/Toolbar';
 import {
   BUILTIN_FONTS,
@@ -26,6 +26,7 @@ import {
 import { listSystemFonts } from '@/lib/tauri';
 import { useFontsStore } from '@/store/fonts';
 import { FontInput } from './controls';
+import { removeDownloadedFontConfirmed } from './removeFont';
 import './FontPicker.css';
 
 interface Props {
@@ -68,6 +69,11 @@ function needsDownload(font: FontFamily): boolean {
   return font.source === 'google' && !font.downloaded && !!font.googleId;
 }
 
+/** A downloaded Google font, which can be removed from this PC. */
+function isRemovable(font: FontFamily): boolean {
+  return font.source === 'google' && !!font.downloaded && !!font.googleId;
+}
+
 /** A small tag for a row. Installed fonts only know mono or not, so they never claim a category. */
 function categoryTag(font: FontFamily): string {
   if (font.source === 'system') return font.monospace ? 'Mono' : '';
@@ -102,6 +108,7 @@ export function FontPicker({
   const [system, setSystem] = useState<FontFamily[] | null>(null);
   const [progress, setProgress] = useState<DownloadState | null>(null);
   const [failure, setFailure] = useState<{ id: string; message: string } | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
   const catalog = useFontsStore((s) => s.catalog);
   const catalogStatus = useFontsStore((s) => s.catalogStatus);
   const downloaded = useFontsStore((s) => s.downloaded);
@@ -113,6 +120,10 @@ export function FontPicker({
   const mounted = useRef(true);
   /** The Google font id whose download should be applied when it finishes; null if superseded. */
   const wanted = useRef<string | null>(null);
+  /** The Google font id being removed (possibly waiting on the confirmation); one at a time. */
+  const removingId = useRef<string | null>(null);
+  /** Where the highlight goes if the removed font's row disappears from the list. */
+  const afterRemoval = useRef<{ id: string; key: string; nearest: string | null } | null>(null);
   const uid = useId();
   const listId = `${uid}-list`;
 
@@ -218,6 +229,14 @@ export function FontPicker({
   }, [open]);
 
   useEffect(() => {
+    const p = afterRemoval.current;
+    if (!p || downloaded.some((f) => f.id === p.id)) return;
+    afterRemoval.current = null;
+    // The row stays (as a not-downloaded font) unless a filter hides it; then the nearest row.
+    if (!indexByKey.has(p.key)) setActiveKey(p.nearest);
+  }, [downloaded, indexByKey]);
+
+  useEffect(() => {
     if (!open || !activeId) return;
     // jsdom has no scrollIntoView.
     document.getElementById(activeId)?.scrollIntoView?.({ block: 'nearest' });
@@ -283,6 +302,33 @@ export function FontPicker({
     if (hadFocus) buttonRef.current?.focus();
   };
 
+  /** Removes a downloaded Google font from this PC; the row stays as a not-downloaded font. */
+  const removeFont = async (font: FontFamily) => {
+    const id = font.googleId;
+    if (!id || removingId.current || wanted.current === id) return;
+    removingId.current = id;
+    setRemoving(id);
+    setFailure(null);
+    const key = fontKey(font);
+    const at = indexByKey.get(key) ?? -1;
+    const isFont = (o: PickerOption) => o.kind === 'font';
+    const nearest =
+      options.slice(at + 1).find(isFont) ?? options.slice(0, at).reverse().find(isFont);
+    afterRemoval.current = { id, key, nearest: nearest?.key ?? null };
+    try {
+      const removed = await removeDownloadedFontConfirmed({ id, family: font.family });
+      if (!removed) afterRemoval.current = null;
+    } catch (e) {
+      afterRemoval.current = null;
+      if (mounted.current) {
+        setFailure({ id, message: `Could not remove: ${errorMessage(e)}` });
+      }
+    } finally {
+      removingId.current = null;
+      if (mounted.current) setRemoving(null);
+    }
+  };
+
   const choose = (option: PickerOption) => {
     switch (option.kind) {
       case 'same':
@@ -322,6 +368,17 @@ export function FontPicker({
     else if (e.key === 'Enter') {
       e.preventDefault();
       if (options[activeIndex]) choose(options[activeIndex]);
+      return;
+    } else if (e.key === 'Delete') {
+      // Only at the end of the text (or in an empty box); elsewhere Delete edits the text.
+      const input = e.currentTarget;
+      const atEnd =
+        input.selectionStart === input.value.length && input.selectionEnd === input.value.length;
+      const active = options[activeIndex];
+      if (atEnd && active?.kind === 'font' && isRemovable(active.font)) {
+        e.preventDefault();
+        void removeFont(active.font);
+      }
       return;
     }
     if (next === null) return;
@@ -509,6 +566,23 @@ export function FontPicker({
                       {o.kind === 'more' && `Show all (${o.total})`}
                       {o.kind === 'custom' && 'Custom CSS font list…'}
                     </span>
+                  )}
+                  {o.kind === 'font' && isRemovable(o.font) && (
+                    <button
+                      type="button"
+                      className={`font-picker__remove ${removing === o.font.googleId ? 'is-busy' : ''}`}
+                      aria-label={`Remove ${o.font.family}`}
+                      title="Remove from this PC (Delete)"
+                      tabIndex={-1}
+                      // Keep focus in the search box.
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void removeFont(o.font);
+                      }}
+                    >
+                      <X {...ICON_SMALL} aria-hidden="true" />
+                    </button>
                   )}
                   {isSelected && (
                     <Check {...ICON_SMALL} aria-hidden="true" className="font-picker__check" />

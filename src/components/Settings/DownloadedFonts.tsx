@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useDialogStore } from '@/components/Dialog/ConfirmDialog';
-import { stacksUseFamily } from '@/lib/fonts';
 import type { DownloadedFont } from '@/lib/tauri';
 import { useFontsStore } from '@/store/fonts';
-import { useStyleStore } from '@/store/style';
 import { Section } from './controls';
+import { removeDownloadedFontConfirmed } from './removeFont';
 import './DownloadedFonts.css';
 
 function errorMessage(e: unknown): string {
@@ -24,26 +22,11 @@ export function DownloadedFonts() {
   }, []);
 
   const remove = async (font: DownloadedFont) => {
-    const preset = useStyleStore.getState().active();
-    const t = preset.typography;
-    // The preset keeps its font stack, so the text falls back until a new font is chosen.
-    if (stacksUseFamily([t.bodyFont, t.headingFont, t.monoFont], font.family)) {
-      const choice = await useDialogStore
-        .getState()
-        .show(
-          `Remove ${font.family}?`,
-          `The "${preset.name}" preset uses this font. It will fall back to another font until you choose a new one.`,
-          [
-            { id: 'remove', label: 'Remove', danger: true },
-            { id: 'cancel', label: 'Cancel', primary: true },
-          ],
-        );
-      if (choice !== 'remove') return;
-    }
-    setBusy(font.id);
-    setError(null);
     try {
-      await useFontsStore.getState().remove(font.id);
+      await removeDownloadedFontConfirmed(font, () => {
+        setBusy(font.id);
+        setError(null);
+      });
     } catch (e) {
       setError(`Could not remove ${font.family}: ${errorMessage(e)}`);
     } finally {

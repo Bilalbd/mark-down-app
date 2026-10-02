@@ -18,6 +18,8 @@ Every change to the app and to how it's built is logged here, newest first. The 
 
 ### Added
 
+- Downloaded Google fonts can be removed straight from the font list: hover one and click ×, or
+  highlight it and press Delete.
 - 16 more built-in fonts (19 in all: sans, serif, heading, code and Arabic), bundled so they work
   offline.
 - Any of about 2,000 Google Fonts can be picked in Settings → Appearance. The app downloads a font
