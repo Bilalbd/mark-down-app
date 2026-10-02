@@ -50,6 +50,8 @@ Every change to the app and to how it's built is logged here, newest first. The 
   custom mode and preset fonts work, with screenshots in light and dark.
 - `scripts/checks/stop.ps1` also stops the copy the startup watchdog relaunches after a slow
   first start, which used to keep running and block the next launch.
+- `scripts/checks/launch.ps1` warms a freshly started Vite before launching the app, so the
+  first page load no longer outlasts the startup watchdog and makes the app relaunch itself.
 - This changelog, `docs/changes/`, and a hook that reminds Claude Code sessions to log each
   commit.
 
