@@ -29,13 +29,61 @@ importers:
       '@codemirror/view':
         specifier: ^6.43.12
         version: 6.43.12
+      '@fontsource-variable/atkinson-hyperlegible-next':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/fira-code':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@fontsource-variable/inter':
         specifier: ^5.3.0
         version: 5.3.0
       '@fontsource-variable/jetbrains-mono':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource-variable/lora':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/merriweather':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/montserrat':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/noto-naskh-arabic':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/noto-sans':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/noto-sans-arabic':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@fontsource-variable/open-sans':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/playfair-display':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/roboto':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/source-code-pro':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/source-sans-3':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource-variable/source-serif-4':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/ibm-plex-mono':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/ibm-plex-sans-arabic':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/lato':
         specifier: ^5.3.0
         version: 5.3.0
       '@lezer/highlight':
@@ -336,14 +384,62 @@ packages:
       '@noble/hashes':
         optional: true
 
+  '@fontsource-variable/atkinson-hyperlegible-next@5.3.0':
+    resolution: {integrity: sha512-UnLzNUy1RWoLDfydAatP4NaRm99X/WbQEph7q/PymJnCFIOOwKOx3pBmp5ys8trO0dM+CKGuJgeZP9fAR4mQpA==}
+
+  '@fontsource-variable/fira-code@5.3.0':
+    resolution: {integrity: sha512-ZhvHeknlicraKVSJBa1NrJnXDVByUkC407zwgELYfmnx3p9g8vwIPfQCxx8YD3K7dAeCdLuHJOHlpMfRsIcApQ==}
+
   '@fontsource-variable/inter@5.3.0':
     resolution: {integrity: sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==}
 
   '@fontsource-variable/jetbrains-mono@5.3.0':
     resolution: {integrity: sha512-F32xpS2NsGYoQi2ADSkKTgpJj7ozajsGgDJ8woTnqjmIB+dxDIqImjl4pXZVEExu8UFZ2ndhmX18EBS/hdz3Lw==}
 
+  '@fontsource-variable/lora@5.3.0':
+    resolution: {integrity: sha512-2ph8KiZ8Bn141hWuC3ErtpJ+Ui8p2MJQn8TJNRSRmLmnCIOCtHfiBM9R7WLRPeUG/q6hXyHOxWQ8DvRSX+ixvQ==}
+
+  '@fontsource-variable/merriweather@5.3.0':
+    resolution: {integrity: sha512-wK7S4NtPXWUWll/sZCdub93pqSCnFkpKFbnoOE8fh+9Ut6JFjgkc9UlBxHJ0RVMkDpoWwGwMwYYTMvd3G9aAXA==}
+
+  '@fontsource-variable/montserrat@5.3.0':
+    resolution: {integrity: sha512-7PaZoxaxrWLAyrhO46v65An9LhUhfkTExWLhfbywYZCnZEgg/W1rEHnlNmZKjNZ3nJTVYyicqxlJt10z/26yTA==}
+
+  '@fontsource-variable/noto-naskh-arabic@5.3.0':
+    resolution: {integrity: sha512-Ot0G5iln5MeLPKp1WNt6AGi4KHbPIVm0GEow2ED6rZ+8Rao+OuswhX4D+RPerc3aQ6teneLdqXSL8VPGorJvGg==}
+
+  '@fontsource-variable/noto-sans-arabic@5.3.0':
+    resolution: {integrity: sha512-Rz8+DBzza3//cmN+DBQajJhx3x+Dx12eUgnQsTOgPWbOT0+In6APmE8z4I/QQnUWfAx+s8l93+60qDT5vJH1sA==}
+
+  '@fontsource-variable/noto-sans@5.3.0':
+    resolution: {integrity: sha512-e3ZuxzY9AL2psXPZlhwhnYrHUHv6PMoyK9MQ7croF0CUgURLqu9EMjW7q2FgVLwij1tjLsIHQrnwQ8aUcg4BiA==}
+
   '@fontsource-variable/open-sans@5.3.0':
     resolution: {integrity: sha512-VOfhZfLIOBVa6K/dTEu7scqQXYdGa4jBX8quFpQ0S6574B+W2EOBJf9PkqyVtMEI7WWIWNEbpvPc3vY1mN2mmQ==}
+
+  '@fontsource-variable/playfair-display@5.3.0':
+    resolution: {integrity: sha512-IHdzTvE8eGIXHteZql7KXoqdc3Gfm+Zs1u4XlSC3MeplkwviT3sx/P6gI0tLwg/xIYLF4ZJYveZ5V+bl9cnDwA==}
+
+  '@fontsource-variable/roboto@5.3.0':
+    resolution: {integrity: sha512-BoaaZiQf8fgtxv07KXkTwx1bKz/EoqIlTXq2OOKKXINxp6qXWdnlChqV+hSaDANS49yyUASFl3OVBMMDTCIHFA==}
+
+  '@fontsource-variable/source-code-pro@5.3.0':
+    resolution: {integrity: sha512-CxzAbqtNrQ6EQXTb9ovRZIRiOhFPcBQhNKla58K5UV6IMoL/ROkWxXDSBOa/frIDLuV4B5PLHI4R1e9SWVinYg==}
+
+  '@fontsource-variable/source-sans-3@5.3.0':
+    resolution: {integrity: sha512-dpi0GZk7EQe2tYpg6Q0Fx0OmUgnuGu+0rHPgtXqtKhglYmJuP7jZ12Mu1uN+NfRaJRY1Emn8AQJEWzmoZ4wa9g==}
+
+  '@fontsource-variable/source-serif-4@5.3.0':
+    resolution: {integrity: sha512-9vch9WqxjaaA+1o9Ur8pOgIGbCYLjRReOUel23A6lOpD1syptgjtkORevvNmldJ5kGXQL29onQUqI5Ltz0s3bQ==}
+
+  '@fontsource/ibm-plex-mono@5.3.0':
+    resolution: {integrity: sha512-eTgnZjZEGk1QtD3ZstF+Vclo2HLAni8YMy34/DxllwZvyz1lR/1RF/xTiAquOBO7MvqBx8D2Ig2WCPMVfdZu7Q==}
+
+  '@fontsource/ibm-plex-sans-arabic@5.3.0':
+    resolution: {integrity: sha512-ZZ4g+JDgQY0NqSh4o0MNWU1sHQmtcee1g++aKAwyJvZxnT5y51JXsN1cIXnaQaMd40dcbK6QFYa+Z1LbaiNuqA==}
+
+  '@fontsource/lato@5.3.0':
+    resolution: {integrity: sha512-0WhF/4rhrw+ErIyneKvhHn2YAl+xf8GDtllgOgOzDmeaSlLQtjpChXaQOpWhG2BchQW0WJy2zLV12Hdg0ndOMw==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -2362,11 +2458,43 @@ snapshots:
 
   '@exodus/bytes@1.15.1': {}
 
+  '@fontsource-variable/atkinson-hyperlegible-next@5.3.0': {}
+
+  '@fontsource-variable/fira-code@5.3.0': {}
+
   '@fontsource-variable/inter@5.3.0': {}
 
   '@fontsource-variable/jetbrains-mono@5.3.0': {}
 
+  '@fontsource-variable/lora@5.3.0': {}
+
+  '@fontsource-variable/merriweather@5.3.0': {}
+
+  '@fontsource-variable/montserrat@5.3.0': {}
+
+  '@fontsource-variable/noto-naskh-arabic@5.3.0': {}
+
+  '@fontsource-variable/noto-sans-arabic@5.3.0': {}
+
+  '@fontsource-variable/noto-sans@5.3.0': {}
+
   '@fontsource-variable/open-sans@5.3.0': {}
+
+  '@fontsource-variable/playfair-display@5.3.0': {}
+
+  '@fontsource-variable/roboto@5.3.0': {}
+
+  '@fontsource-variable/source-code-pro@5.3.0': {}
+
+  '@fontsource-variable/source-sans-3@5.3.0': {}
+
+  '@fontsource-variable/source-serif-4@5.3.0': {}
+
+  '@fontsource/ibm-plex-mono@5.3.0': {}
+
+  '@fontsource/ibm-plex-sans-arabic@5.3.0': {}
+
+  '@fontsource/lato@5.3.0': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

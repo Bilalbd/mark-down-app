@@ -7,7 +7,9 @@ import {
   type StylePreset,
   type Typography,
 } from '@/store/style';
-import { ColorInput, FontInput, NumberInput, Row, Section } from './controls';
+import { ColorInput, NumberInput, Row, Section } from './controls';
+import { DownloadedFonts } from './DownloadedFonts';
+import { FontPicker } from './FontPicker';
 
 export function AppearanceTab() {
   const presets = useStyleStore((s) => s.presets);
@@ -44,18 +46,28 @@ export function AppearanceTab() {
       </p>
 
       <Section title="Typography">
-        <Row label="Body font">
-          <FontInput value={t.bodyFont} onChange={(v) => setTypo('bodyFont', v)} />
-        </Row>
-        <Row label="Heading font" hint="blank = same as body">
-          <FontInput
-            value={t.headingFont}
-            onChange={(v) => setTypo('headingFont', v)}
-            placeholder="Same as body"
+        <Row label="Body font" asLabel={false}>
+          <FontPicker
+            label="Body font"
+            value={t.bodyFont}
+            onChange={(v) => setTypo('bodyFont', v)}
           />
         </Row>
-        <Row label="Code font">
-          <FontInput value={t.monoFont} onChange={(v) => setTypo('monoFont', v)} />
+        <Row label="Heading font" asLabel={false}>
+          <FontPicker
+            label="Heading font"
+            value={t.headingFont}
+            onChange={(v) => setTypo('headingFont', v)}
+            allowSame
+          />
+        </Row>
+        <Row label="Code font" asLabel={false}>
+          <FontPicker
+            label="Code font"
+            value={t.monoFont}
+            onChange={(v) => setTypo('monoFont', v)}
+            monospaceOnly
+          />
         </Row>
         <Row label="Base size">
           <NumberInput
@@ -105,6 +117,8 @@ export function AppearanceTab() {
           />
         </Row>
       </Section>
+
+      <DownloadedFonts />
 
       <Section title="Heading sizes (× base)">
         <div className="settings__grid">

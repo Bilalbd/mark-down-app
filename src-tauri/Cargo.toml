@@ -29,12 +29,16 @@ serde_json = "1"
 percent-encoding = "2.3.2"
 tauri-plugin-single-instance = "2"
 base64 = "0.22"
+# The app's first network feature (Google Fonts via Fontsource): downloads happen here in Rust so
+# the webview's CSP stays unchanged. Only rustls (pure-Rust TLS), gzip (the catalogue is large)
+# and JSON; no native-tls, no cookies, no charset or multipart support.
+ureq = { version = "3.4", default-features = false, features = ["rustls", "gzip", "json"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.60", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_Graphics_Dwm", "Win32_System_Threading"] }
 # Already in Cargo.lock at 0.61.3 via webview2-com, so this adds no new crate to compile;
 # used for the Windows Spell Checking API (ISpellCheckerFactory / ISpellChecker).
-windows = { version = "0.61", features = ["Win32_Foundation", "Win32_Globalization", "Win32_System_Com"] }
+windows = { version = "0.61", features = ["Win32_Foundation", "Win32_Globalization", "Win32_Graphics_DirectWrite", "Win32_System_Com"] }
 
 [profile.release]
 codegen-units = 1

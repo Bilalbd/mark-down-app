@@ -16,6 +16,8 @@ export interface ExportOptions {
   theme: ResolvedTheme;
   /** When provided, inlined in a `<style>` tag instead of linked from the CDN. */
   katexCss?: string;
+  /** `@font-face` rules with data: URLs for the preset's built-in and Google fonts. */
+  fontCss?: string;
 }
 
 /**
@@ -29,10 +31,12 @@ export function buildExportHtml({
   preset,
   theme,
   katexCss,
+  fontCss,
 }: ExportOptions): string {
   const body = rewriteAssetUrls(bodyHtml);
   const needsKatex = body.includes('class="katex');
   const css = [
+    fontCss ? `/* fonts */\n${fontCss}` : '',
     '/* base */',
     `html,body{margin:0;padding:0;background:${preset.colors[theme].bg};}`,
     '.preview-scroll{height:auto;overflow:visible;}',

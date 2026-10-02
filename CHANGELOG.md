@@ -16,10 +16,25 @@ Every change to the app and to how it's built is logged here, newest first. The 
 
 ## [Unreleased]
 
+### Added
+
+- 16 more built-in fonts (19 in all: sans, serif, heading, code and Arabic), bundled so they work
+  offline.
+- Any of about 2,000 Google Fonts can be picked in Settings → Appearance. The app downloads a font
+  once, from Fontsource rather than Google, and it then works offline; downloaded fonts can be
+  removed again. ([note](docs/changes/2026-10-02-font-picker.md))
+
 ### Changed
 
+- Built-in fonts include only Latin and Arabic characters, keeping the installer small; other
+  scripts use a system font.
+- Fonts in Settings → Appearance are chosen from a searchable list of built-in fonts, fonts
+  installed on this PC and Google Fonts, each shown in its own typeface; a custom CSS font list is
+  still available. ([note](docs/changes/2026-10-02-font-picker.md))
 - The Solarized preset has darker body text in light mode and brighter text in dark mode for
   easier reading, with slightly tighter line spacing and a wider page (800px).
+- Self-contained HTML export also embeds the built-in and downloaded Google fonts the preset
+  uses, so it looks the same on any computer; installed fonts are never embedded.
 
 ### Fixed
 
@@ -36,6 +51,15 @@ Every change to the app and to how it's built is logged here, newest first. The 
 - Reusable running-app checks in `scripts/checks/`: launch and stop with a settings backup and
   restore, plus checks for the fixture sweep, formatting shortcuts, right-click menus, the guide
   and the Settings pages. ([note](docs/changes/2026-09-30-check-scripts.md))
+- A running-app font check (`scripts/checks/fonts.mjs`): every built-in font loads only its Latin
+  (and Arabic) files and renders, and the font picker's groups, search, keyboard use, filters,
+  custom mode and preset fonts work, with screenshots in light and dark. `fonts-google.mjs` checks
+  Google Fonts step by step: download with progress, registration at startup, offline (through an
+  unreachable `HTTPS_PROXY`), removing, importing and the fonts a self-contained export embeds.
+- `scripts/checks/stop.ps1` also stops the copy the startup watchdog relaunches after a slow
+  first start, which used to keep running and block the next launch.
+- `scripts/checks/launch.ps1` warms a freshly started Vite before launching the app, so the
+  first page load no longer outlasts the startup watchdog and makes the app relaunch itself.
 - This changelog, `docs/changes/`, and a hook that reminds Claude Code sessions to log each
   commit.
 

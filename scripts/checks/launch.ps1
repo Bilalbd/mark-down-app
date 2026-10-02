@@ -39,6 +39,8 @@ if (-not (Test-Url "http://localhost:1420")) {
   $pids.vite = $vite.Id
   for ($i = 0; $i -lt 60 -and -not (Test-Url "http://localhost:1420"); $i++) { Start-Sleep -Milliseconds 500 }
   if (-not (Test-Url "http://localhost:1420")) { throw "Vite didn't start; see $state\vite.err.log" }
+  # A cold first page load can outlast the startup watchdog (15 s) and make the app relaunch itself.
+  node (Join-Path $PSScriptRoot "warm-vite.mjs")
 }
 
 $env:WEBVIEW2_USER_DATA_FOLDER = Join-Path $state "webview2-$Profile"

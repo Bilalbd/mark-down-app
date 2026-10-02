@@ -83,14 +83,21 @@ The installer isn't code-signed, so Windows SmartScreen may warn when you first 
   be copied, renamed, and exported or imported as JSON, and each has a custom-CSS slot. Settings
   has five pages (General, Editor, Appearance, Shortcuts, About) and sits beside the document, so
   you see changes as you make them.
+- A searchable **font picker** for the body, heading and code fonts, each font shown in its own
+  typeface. It lists **Built in** fonts (19 of them, bundled so they work offline, including three
+  Arabic ones), fonts **On this PC**, and about 2,000 **Google Fonts**, which the app downloads
+  once, on request, and then loads from disk. The code font lists monospace fonts only, and a
+  filter shows fonts that support Arabic. A custom CSS font list is still available for anything
+  else. Bundled fonts include only Latin and Arabic characters; other scripts use a system font.
 - A separate **Light / Dark / Follow Windows** theme for the app's own chrome.
 
 **Export and print**
 
 - Export as a standalone HTML file. With **Self-contained HTML export** on (the default), local
-  images and the maths font are embedded as data URLs so the file works offline anywhere; remote
-  images stay linked, and the bundled preset fonts fall back to whatever's on the system that
-  opens it.
+  images, the maths font and the built-in and downloaded Google fonts the preset uses are embedded
+  as data URLs so the file works offline anywhere; remote images stay linked, and fonts installed
+  on your PC (which licences usually don't let anyone embed) fall back to whatever's on the system
+  that opens it.
 - Print, or save as PDF, through the normal Windows print dialog.
 
 **Files and safety**
@@ -168,16 +175,22 @@ can also read it on GitHub: [`src/guide/Guide.md`](src/guide/Guide.md).
 ## Where things are stored
 
 Settings and style presets live in `%APPDATA%\com.bilal.markdown-viewer\` (`settings.json`,
-`presets.json`). The only other file the app writes, apart from the files you open and save
-yourself, is `%LOCALAPPDATA%\com.bilal.markdown-viewer\startup.log`: one line each time a start
-gets stuck and the app has to recover (never written on a normal start, capped at 64 KB).
+`presets.json`). Google Fonts you download live in its `fonts\` folder: `catalog.json` (the font
+list, cached for 7 days), `manifest.json` and one folder per font; **Remove** in Settings →
+Appearance deletes a font's folder. The only other file the app writes, apart from the files you
+open and save yourself, is `%LOCALAPPDATA%\com.bilal.markdown-viewer\startup.log`: one line each
+time a start gets stuck and the app has to recover (never written on a normal start, capped at
+64 KB).
 
-The app makes no network requests of its own. The one exception is remote (`http(s)`) images
-referenced by a document you open, which you can stop with **Block remote images** in Settings;
-everything else it renders — fonts, KaTeX, Mermaid — is bundled. (If you export with
-**Self-contained HTML export** turned off and the document has maths, the *exported* file links
-its stylesheet from a CDN instead of embedding it — that request happens in whatever later opens
-the file, not in the app.)
+The app makes very few network requests of its own, and none at startup. The first is remote
+(`http(s)`) images referenced by a document you open, which you can stop with **Block remote
+images** in Settings. The second is Google Fonts: only when you open the Google Fonts list in a
+font picker, download a font, or import a preset that uses Google fonts, the app contacts
+`api.fontsource.org` and `cdn.jsdelivr.net` (never Google itself), and a downloaded font then
+works offline. Everything else it renders — KaTeX, Mermaid and the built-in fonts — is bundled.
+(If you export with **Self-contained HTML export** turned off and the document has maths, the
+*exported* file links its stylesheet from a CDN instead of embedding it — that request happens in
+whatever later opens the file, not in the app.)
 
 ## Development
 
@@ -208,6 +221,8 @@ node scripts/checks/keys.mjs                     # formatting shortcuts
 node scripts/checks/menus.mjs [--shots <dir>]    # right-click menus (--clipboard for Cut/Paste)
 node scripts/checks/guide.mjs                    # F1, the Guide button and the guide window
 node scripts/checks/settings.mjs [--shots <dir>] # every Settings page, light and dark
+node scripts/checks/fonts.mjs [--shots <dir>]    # built-in fonts and the font picker, light and dark
+node scripts/checks/fonts-google.mjs --step <s>  # Google Fonts, step by step with restarts (see file)
 .\scripts\checks\stop.ps1 [-KeepState]           # stop what launch started, put settings back
 ```
 

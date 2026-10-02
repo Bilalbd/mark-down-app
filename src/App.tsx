@@ -40,6 +40,7 @@ import {
   routeExternalOpen,
   useTabsStore,
 } from './store/tabs';
+import { registerFontsAtStartup, watchPresetFonts } from './store/fonts';
 import { useStyleStore } from './store/style';
 import { useViewStore } from './store/view';
 
@@ -100,12 +101,19 @@ export default function App() {
   useEffect(() => {
     void (async () => {
       await Promise.all([loadSettings(), loadStyles()]);
+      // A downloaded font the preset uses must be ready before the first paint (capped, so a slow
+      // disk can't hold the window back).
+      const fontsReady = registerFontsAtStartup();
       const arg = await getLaunchArgs();
       if (arg) await openPath(arg);
       await handleOpenRequests();
+      await fontsReady;
       requestAnimationFrame(() => requestAnimationFrame(emitAppReady));
     })();
   }, [loadSettings, loadStyles, handleOpenRequests]);
+
+  // Downloaded Google fonts are registered again when the preset or one of its fonts changes.
+  useEffect(() => watchPresetFonts(), []);
 
   // Drag & drop from Explorer (Tauri-native event; browser DnD is disabled by dragDropEnabled).
   useEffect(() => {
