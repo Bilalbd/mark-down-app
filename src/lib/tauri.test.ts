@@ -14,6 +14,7 @@ import {
   spellCheck,
   spellLanguages,
   spellSuggest,
+  toArrayBuffer,
   writeClipboardText,
 } from '@/lib/tauri';
 
@@ -69,7 +70,9 @@ describe('Google font wrappers', () => {
 
   it('pass their arguments to the matching Rust commands inside Tauri', async () => {
     (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
-    vi.mocked(invoke).mockResolvedValue(undefined);
+    vi.mocked(invoke).mockImplementation((cmd) =>
+      Promise.resolve(cmd === 'read_font_file' ? new ArrayBuffer(4) : undefined),
+    );
 
     await googleFontCatalog();
     await googleFontCatalog(true);
@@ -105,6 +108,38 @@ describe('Google font wrappers', () => {
     vi.mocked(invoke).mockRejectedValue("Couldn't reach the font server.");
 
     await expect(downloadGoogleFont('literata')).rejects.toBe("Couldn't reach the font server.");
+  });
+
+  // The installed app's IPC falls back to postMessage, which sends raw bytes as a number array;
+  // FontFace then failed with "The source provided ('119,79,70,50,…') could not be parsed".
+  it('readFontFile turns a number array from the IPC fallback into an ArrayBuffer', async () => {
+    (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    vi.mocked(invoke).mockResolvedValue([119, 79, 70, 50, 0, 1]);
+
+    const bytes = await readFontFile('literata', 'latin-wght-normal.woff2');
+    expect(bytes).toBeInstanceOf(ArrayBuffer);
+    expect([...new Uint8Array(bytes)]).toEqual([119, 79, 70, 50, 0, 1]);
+  });
+});
+
+describe('toArrayBuffer', () => {
+  it('keeps an ArrayBuffer as it is', () => {
+    const buffer = new Uint8Array([1, 2, 3]).buffer;
+    expect(toArrayBuffer(buffer)).toBe(buffer);
+  });
+
+  it('copies just the viewed bytes of a typed array', () => {
+    const view = new Uint8Array([9, 1, 2, 3, 9]).subarray(1, 4);
+    expect([...new Uint8Array(toArrayBuffer(view))]).toEqual([1, 2, 3]);
+  });
+
+  it('converts a number array', () => {
+    expect([...new Uint8Array(toArrayBuffer([119, 79, 70, 50]))]).toEqual([119, 79, 70, 50]);
+  });
+
+  it('rejects anything else', () => {
+    expect(() => toArrayBuffer(undefined)).toThrow();
+    expect(() => toArrayBuffer('119,79,70,50')).toThrow();
   });
 });
 

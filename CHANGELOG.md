@@ -38,6 +38,9 @@ Every change to the app and to how it's built is logged here, newest first. The 
 
 ### Fixed
 
+- Downloaded Google fonts now work in the installed app. Picking one showed "The source provided
+  … could not be parsed" and the font didn't change, because the font's bytes arrived as a list of
+  numbers.
 - A tab's unsaved-changes dot now sits before the file name and shows on every unsaved tab,
   including the active one, instead of being hidden behind the close button.
 - The active tab's bottom corners are now rounded on both sides when it's the first or last tab,

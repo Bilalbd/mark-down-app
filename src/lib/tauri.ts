@@ -287,10 +287,24 @@ export function listDownloadedFonts(): Promise<DownloadedFont[]> {
   return invoke<DownloadedFont[]>('list_downloaded_fonts');
 }
 
+/**
+ * Bytes from a command that returns raw data (`tauri::ipc::Response`), as an `ArrayBuffer`. The
+ * IPC delivers an `ArrayBuffer` over its custom protocol but a plain array of numbers when it
+ * falls back to `postMessage`, as the installed app does; `FontFace` would read that array as text.
+ */
+export function toArrayBuffer(data: unknown): ArrayBuffer {
+  if (data instanceof ArrayBuffer) return data;
+  if (ArrayBuffer.isView(data)) {
+    return new Uint8Array(data.buffer, data.byteOffset, data.byteLength).slice().buffer;
+  }
+  if (Array.isArray(data)) return Uint8Array.from(data as number[]).buffer;
+  throw new Error('Expected binary data from the app');
+}
+
 /** The bytes of one downloaded font file, for `new FontFace(name, bytes)`. Rejects outside Tauri. */
-export function readFontFile(id: string, file: string): Promise<ArrayBuffer> {
-  if (!isTauri()) return Promise.reject(new Error('readFontFile requires Tauri'));
-  return invoke<ArrayBuffer>('read_font_file', { id, file });
+export async function readFontFile(id: string, file: string): Promise<ArrayBuffer> {
+  if (!isTauri()) throw new Error('readFontFile requires Tauri');
+  return toArrayBuffer(await invoke<unknown>('read_font_file', { id, file }));
 }
 
 /** Deletes a downloaded font and its files. Rejects outside Tauri. */
